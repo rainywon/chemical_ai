@@ -240,7 +240,7 @@ const downloadFile = (file) => {
 
 <style scoped>
 .files-container {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 20px;
   height: 100vh;
@@ -253,7 +253,12 @@ const downloadFile = (file) => {
 .files-header {
   margin-bottom: 20px;
   text-align: center;
-  position: relative; /* 为返回按钮的绝对定位添加相对定位容器 */
+  position: relative;
+  border: 1px solid #e0e3e7;
+  border-radius: 10px;
+  padding: 20px;
+  background-color: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 /* 返回按钮样式 */
@@ -334,26 +339,28 @@ const downloadFile = (file) => {
   display: flex;
   gap: 20px;
   flex: 1;
-  overflow: hidden; /* 防止出现垂直滚动条 */
+  overflow: hidden;
+  border-radius: 10px;
 }
 
 /* 左侧分类栏样式 */
 .category-sidebar {
-  width: 200px;
+  width: 250px;
   flex-shrink: 0;
   background: white;
-  border-radius: 8px;
-  padding: 15px;
-  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.05);
-  overflow-y: auto; /* 如果分类很多，允许垂直滚动 */
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  overflow-y: auto;
+  border: 1px solid #e0e3e7;
 }
 
 .sidebar-title {
-  font-size: 16px;
+  font-size: 18px;
   color: #2b3674;
-  padding-bottom: 10px;
-  margin-bottom: 10px;
-  border-bottom: 1px solid #f0f1f5;
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid #e0e3e7;
 }
 
 .category-list {
@@ -386,27 +393,28 @@ const downloadFile = (file) => {
 .files-content {
   flex: 1;
   background: white;
-  border-radius: 8px;
-  padding: 15px;
-  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.05);
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
   display: flex;
   flex-direction: column;
-  overflow: hidden; /* 防止内容溢出 */
+  overflow: hidden;
+  border: 1px solid #e0e3e7;
 }
 
 .content-title {
-  font-size: 16px;
+  font-size: 18px;
   color: #2b3674;
   margin-bottom: 15px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid #f0f1f5;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e0e3e7;
 }
 
 .files-table {
   display: flex;
   flex-direction: column;
   gap: 5px;
-  overflow-y: auto; /* 文件过多时允许垂直滚动 */
+  overflow-y: auto;
   flex: 1;
 }
 
@@ -414,10 +422,12 @@ const downloadFile = (file) => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 15px;
-  border-radius: 6px;
+  padding: 12px 15px;
+  border-radius: 8px;
   background: #f9fafc;
   transition: all 0.2s ease;
+  border: 1px solid #eaecf0;
+  margin-bottom: 5px;
 }
 
 .file-row:hover {
@@ -474,17 +484,17 @@ const downloadFile = (file) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-top: 15px;
+  margin-top: 20px;
   padding-top: 15px;
-  border-top: 1px solid #f0f1f5;
+  border-top: 1px solid #e0e3e7;
 }
 
 .page-btn {
-  padding: 6px 12px;
+  padding: 8px 15px;
   background: #f5f6fa;
   border: 1px solid #e0e3e7;
-  border-radius: 4px;
-  font-size: 12px;
+  border-radius: 6px;
+  font-size: 13px;
   cursor: pointer;
   transition: all 0.2s ease;
   color: #4a5173;
@@ -532,6 +542,7 @@ const downloadFile = (file) => {
   .files-container {
     height: 100%;
     padding: 15px;
+    max-width: 100%;
   }
   
   .main-content {
