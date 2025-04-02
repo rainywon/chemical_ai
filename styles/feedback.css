@@ -1,0 +1,20 @@
+@media (max-width: 768px) {
+  .feedback-container {
+    padding: 1.5rem;
+    margin: 1rem;
+  }
+  
+  .feedback-header h1 {
+    font-size: 1.8rem;
+  }
+  
+  .feedback-form input,
+  .feedback-form textarea,
+  .feedback-form select {
+    padding: 0.7rem;
+  }
+  
+  .submit-button {
+    width: 100%;
+  }
+} 
