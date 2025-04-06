@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="login">
     <!-- 添加科技感网格背景 -->
     <div class="tech-grid"></div>
@@ -60,7 +60,7 @@
 
       <!-- 登录方式切换 -->
       <div class="login-type-selector">
-        <el-radio-group v-model="loginByPassword" size="large" @change="toggleLoginType">
+        <el-radio-group v-model="loginByPassword" size="large">
           <el-radio-button :label="false">验证码登录</el-radio-button>
           <el-radio-button :label="true">密码登录</el-radio-button>
         </el-radio-group>
@@ -97,7 +97,7 @@
               type="password"
               show-password
               name="password"
-              autocomplete="new-password"
+              autocomplete="current-password"
             />
           </div>
           
@@ -126,7 +126,7 @@
         <!-- 忘记密码链接 - 使用固定位置，无论是否显示都保持位置 -->
         <div class="forgot-password-container">
           <div v-if="loginByPassword" class="forgot-password">
-            <el-button type="primary" link @click="forgotPassword" class="forgot-btn">忘记密码?</el-button>
+            <el-button type="text" @click="forgotPassword">忘记密码?</el-button>
           </div>
         </div>
       </div>
@@ -180,21 +180,10 @@ const formData = reactive({
 const loading = ref(false);
 
 // 切换登录方式
-const toggleLoginType = (value) => {
-  // 直接使用事件传来的值，而不是反转当前值
+const toggleLoginType = () => {
+  loginByPassword.value = !loginByPassword.value;
   // 清空错误消息
   resultMessage.value = "";
-  
-  // 如果切换到密码登录，清空密码字段防止自动填充
-  if (value) { // 使用参数判断是否为密码登录
-    // 延迟清空密码，给浏览器先填充的机会，然后再清空
-    setTimeout(() => {
-      formData.password = "";
-    }, 50);
-  } else {
-    // 如果切换到验证码登录，清空验证码
-    formData.verificationCode = "";
-  }
 };
 
 // 输入处理
@@ -824,7 +813,7 @@ const handleApiError = (error, action) => {
   flex-direction: column;
   align-items: center;
   width: 100%;
-  margin-bottom: 5px;
+  margin-bottom: 10px;
 }
 
 /* 添加固定高度容器确保切换时高度一致 */
@@ -832,7 +821,6 @@ const handleApiError = (error, action) => {
   width: 100%;
   min-height: 66px;
   position: relative;
-  margin-top: 15px;
 }
 
 .form-item {
@@ -930,11 +918,11 @@ const handleApiError = (error, action) => {
 
 /* 结果消息 - 基础样式 */
 .result-message {
-  padding: 6px 12px;
+  padding: 8px 14px;
   border-radius: 12px;
   font-size: 14px;
-  line-height: 1.4;
-  margin-bottom: 5px;
+  line-height: 1.5;
+  margin-bottom: 8px;
   width: 100%;
   text-align: left;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
@@ -1032,8 +1020,7 @@ const handleApiError = (error, action) => {
 
 /* 隐私协议 */
 .privacy-agreement {
-  margin-bottom: 10px;
-  margin-top: 0px;
+  margin-bottom: 12px;
   width: 100%;
 }
 
@@ -1053,7 +1040,7 @@ const handleApiError = (error, action) => {
 /* 登录类型选择器样式调整，避免切换时高度变化 */
 .login-type-selector {
   width: 100%;
-  margin-bottom: 18px;
+  margin-bottom: 15px;
   display: flex;
   justify-content: center;
 }
@@ -1123,25 +1110,24 @@ const handleApiError = (error, action) => {
 /* 添加固定高度的消息和链接容器 */
 .fixed-height-container {
   width: 100%;
-  min-height: 45px;
+  min-height: 60px;
   display: flex;
   flex-direction: column;
   position: relative;
-  margin-bottom: 0;
 }
 
 /* 为空消息状态添加占位符 */
 .empty-message-placeholder {
   width: 100%;
-  height: 20px;
-  margin-bottom: 5px;
+  height: 24px;
+  margin-bottom: 8px;
 }
 
 /* 为忘记密码添加固定容器 */
 .forgot-password-container {
   width: 100%;
-  height: 18px;
-  margin-bottom: 5px;
+  height: 20px;
+  margin-bottom: 8px;
 }
 
 /* 忘记密码链接 */
@@ -1152,45 +1138,15 @@ const handleApiError = (error, action) => {
   height: 100%;
 }
 
-.forgot-password .forgot-btn {
-  color: #4b5563;
+.forgot-password .el-button {
+  color: #64748b;
   font-size: 14px;
-  padding: 0 4px;
-  font-weight: 500;
-  position: relative;
-  transition: all 0.3s ease;
-  margin-right: 2px;
+  padding: 0;
 }
 
-.forgot-password .forgot-btn::after {
-  content: '';
-  position: absolute;
-  width: 0;
-  height: 1.5px;
-  bottom: -2px;
-  left: 0;
-  background: linear-gradient(90deg, #3b82f6, #60a5fa);
-  transition: width 0.3s ease;
-  border-radius: 4px;
-}
-
-.forgot-password .forgot-btn:hover {
+.forgot-password .el-button:hover {
   color: #3b82f6;
-  transform: translateY(-1px);
-}
-
-.forgot-password .forgot-btn:hover::after {
-  width: 100%;
-}
-
-.forgot-password .forgot-btn:active {
-  transform: translateY(0);
-}
-
-/* 移除元素内部样式，使用上面的自定义样式 */
-.forgot-password .el-button.forgot-btn:focus-visible {
-  outline: none;
-  box-shadow: none;
+  text-decoration: underline;
 }
 
 /* 登录按钮 */
