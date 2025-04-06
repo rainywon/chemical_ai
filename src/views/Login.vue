@@ -58,6 +58,14 @@
         <span>天工AI智能助手</span>
       </div>
 
+      <!-- 登录方式切换 -->
+      <div class="login-type-selector">
+        <el-radio-group v-model="loginByPassword" size="large" @change="toggleLoginType">
+          <el-radio-button :label="false">验证码登录</el-radio-button>
+          <el-radio-button :label="true">密码登录</el-radio-button>
+        </el-radio-group>
+      </div>
+
       <!-- 表单提交 -->
       <div class="table-submit">
         <!-- 手机号 -->
@@ -75,22 +83,54 @@
             maxlength="11"
           />
         </div>
-        <!-- 验证码 -->
-        <div class="form-item">
-          <!-- 验证码输入 -->
-          <el-input v-model="formData.verificationCode" class="input-field" placeholder="请输入6位数验证码"
-            :prefix-icon="Search" size="large" @input="handleVerificationCodeInput" />
-          <!-- 发送验证码按钮 -->
-          <el-button type="primary" class="verification-btn" :disabled="isCodeSent || !isPhoneValid"
-            @click="sendVerificationCode">
-            {{ isCodeSent ? countdownText : '发送验证码' }}
-          </el-button>
+        
+        <!-- 使用固定高度容器包裹切换的表单元素 -->
+        <div class="form-container">
+          <!-- 密码输入框 - 仅在密码登录模式下显示 -->
+          <div v-if="loginByPassword" class="form-item">
+            <el-input 
+              v-model="formData.password" 
+              class="input-field" 
+              placeholder="请输入密码" 
+              :prefix-icon="Lock" 
+              size="large" 
+              type="password"
+              show-password
+              name="password"
+              autocomplete="new-password"
+            />
+          </div>
+          
+          <!-- 验证码 - 仅在验证码登录模式下显示 -->
+          <div v-else class="form-item">
+            <!-- 验证码输入 -->
+            <el-input v-model="formData.verificationCode" class="input-field" placeholder="请输入6位数验证码"
+              :prefix-icon="Search" size="large" @input="handleVerificationCodeInput" />
+            <!-- 发送验证码按钮 -->
+            <el-button type="primary" class="verification-btn" :disabled="isCodeSent || !isPhoneValid"
+              @click="sendVerificationCode">
+              {{ isCodeSent ? countdownText : '发送验证码' }}
+            </el-button>
+          </div>
         </div>
       </div>
-      <!-- 验证码结果信息 -->
-      <div v-if="resultMessage" :class="['result-message', messageType]">
-        {{ resultMessage }}
+      
+      <!-- 消息和链接容器 - 使用固定高度包裹，保持位置稳定 -->
+      <div class="fixed-height-container">
+        <!-- 验证码结果信息 -->
+        <div v-if="resultMessage" :class="['result-message', messageType]">
+          {{ resultMessage }}
+        </div>
+        <div v-else class="empty-message-placeholder"></div>
+        
+        <!-- 忘记密码链接 - 使用固定位置，无论是否显示都保持位置 -->
+        <div class="forgot-password-container">
+          <div v-if="loginByPassword" class="forgot-password">
+            <el-button type="primary" link @click="forgotPassword" class="forgot-btn">忘记密码?</el-button>
+          </div>
+        </div>
       </div>
+
       <!-- 隐私协议 -->
       <div class="privacy-agreement">
         <el-checkbox v-model="formData.agreed" class="checkbox">
@@ -98,23 +138,17 @@
         </el-checkbox>
       </div>
 
-      <!-- 登录按钮 -->
-      <div class="login-btn">
-        <el-button type="primary" style="width: 100%; height: 45px; font-size: 16px;"
-          :disabled="!isPhoneValid || !isVerificationCodeValid || !formData.agreed" @click="login" :loading="loading">
-          登录 / 注册
+      <!-- 按钮组 -->
+      <div class="button-group">
+        <!-- 登录按钮 -->
+        <el-button type="primary" class="action-btn login-btn"
+          :disabled="!isFormValid" @click="login" :loading="loading">
+          登录
         </el-button>
-      </div>
-
-      <!-- 分割线 -->
-      <div class="divider">
-        <el-divider content-position="center" class="divider-text">或</el-divider>
-      </div>
-
-      <!-- 微信登陆 -->
-      <div class="wechat-login">
-        <el-button type="default" class="wechat-btn" style="width: 100%; height: 45px; font-size: 16px;" icon="Iphone">
-          使用微信扫码登录
+        
+        <!-- 注册按钮 -->
+        <el-button type="default" class="action-btn register-btn" @click="goToRegister">
+          注册账号
         </el-button>
       </div>
     </div>
@@ -123,19 +157,45 @@
 
 <script setup>
 import { ref, reactive, computed, onUnmounted } from "vue";
-import { PhoneFilled, Search, Iphone } from "@element-plus/icons-vue";
+import { PhoneFilled, Search, Iphone, Lock } from "@element-plus/icons-vue";
 import { useRouter } from "vue-router";
 import { API_BASE_URL } from "../config";
 import axios from "axios";
+import { ElMessage } from 'element-plus';
 
 const router = useRouter();
+
+// 登录方式 - true为密码登录，false为验证码登录
+const loginByPassword = ref(false);
 
 // 表单数据
 const formData = reactive({
   phone: "",
   verificationCode: "",
+  password: "",
   agreed: false,
 });
+
+// 登录相关状态
+const loading = ref(false);
+
+// 切换登录方式
+const toggleLoginType = (value) => {
+  // 直接使用事件传来的值，而不是反转当前值
+  // 清空错误消息
+  resultMessage.value = "";
+  
+  // 如果切换到密码登录，清空密码字段防止自动填充
+  if (value) { // 使用参数判断是否为密码登录
+    // 延迟清空密码，给浏览器先填充的机会，然后再清空
+    setTimeout(() => {
+      formData.password = "";
+    }, 50);
+  } else {
+    // 如果切换到验证码登录，清空验证码
+    formData.verificationCode = "";
+  }
+};
 
 // 输入处理
 const handlePhoneInput = (value) => {
@@ -167,6 +227,24 @@ const isVerificationCodeValid = computed(() => {
   return /^\d{6}$/.test(formData.verificationCode);
 });
 
+const isPasswordValid = computed(() => {
+  return formData.password.length >= 6;
+});
+
+// 表单整体验证
+const isFormValid = computed(() => {
+  // 基础验证：手机号和协议勾选必须有效
+  const baseValid = isPhoneValid.value && formData.agreed;
+  
+  if (loginByPassword.value) {
+    // 密码登录：必须有密码输入
+    return baseValid && formData.password.length > 0;
+  } else {
+    // 验证码登录：必须有验证码输入
+    return baseValid && formData.verificationCode.length > 0;
+  }
+});
+
 // 验证码相关状态
 const resultMessage = ref("");
 const countdown = ref(60);
@@ -183,6 +261,28 @@ onUnmounted(() => {
 
 // 添加消息类型状态
 const messageType = ref("info");
+
+// 忘记密码处理
+const forgotPassword = () => {
+  // 清空结果信息
+  resultMessage.value = "";
+  
+  // 检查手机号格式
+  if (!isPhoneValid.value) {
+    resultMessage.value = "请输入有效的11位手机号";
+    messageType.value = "warning";
+    return;
+  }
+  
+  // 切换到验证码登录模式
+  loginByPassword.value = false;
+  
+  // 提示用户使用验证码重置密码
+  ElMessage({
+    message: '请使用验证码登录后重置密码',
+    type: 'info'
+  });
+};
 
 // 修改发送验证码函数，添加消息类型判断
 const sendVerificationCode = async () => {
@@ -244,21 +344,27 @@ const sendVerificationCode = async () => {
 };
 
 // 登录处理
-const loading = ref(false);
-
-// 修改登录函数，添加消息类型判断
 const login = async () => {
-  // 检测手机号端验证手机号和验证码
+  // 检测手机号
   if (!isPhoneValid.value) {
     resultMessage.value = "请输入有效的11位手机号";
     messageType.value = "warning";
     return;
   }
 
-  if (!isVerificationCodeValid.value) {
-    resultMessage.value = "验证码必须是6位数字";
-    messageType.value = "warning";
-    return;
+  // 根据登录模式检查输入
+  if (loginByPassword.value) {
+    if (!isPasswordValid.value) {
+      resultMessage.value = "密码长度不能少于6位";
+      messageType.value = "warning";
+      return;
+    }
+  } else {
+    if (!isVerificationCodeValid.value) {
+      resultMessage.value = "验证码必须是6位数字";
+      messageType.value = "warning";
+      return;
+    }
   }
 
   // 根据登录逻辑进行登录请求
@@ -267,19 +373,41 @@ const login = async () => {
     resultMessage.value = "正在登录...";
     messageType.value = "info";
     
-    const response = await axios.post(`${API_BASE_URL}/login/`, {
-      mobile: formData.phone,
-      code: formData.verificationCode,
-    });
+    let response;
+    
+    if (loginByPassword.value) {
+      // 密码登录
+      response = await axios.post(`${API_BASE_URL}/login/`, {
+        mobile: formData.phone,
+        password: formData.password,
+        mode: 'password'
+      });
+    } else {
+      // 验证码登录
+      response = await axios.post(`${API_BASE_URL}/login/`, {
+        mobile: formData.phone,
+        code: formData.verificationCode,
+        mode: 'code'
+      });
+    }
 
     if (response.data.code === 200) {
-      // 存储登录状态
+      // 存储登录状态和Token
       localStorage.setItem("isAuthenticated", "true");
       localStorage.setItem("mobile", formData.phone);
+      if (response.data.token) {
+        localStorage.setItem("token", response.data.token);
+      }
+      
       resultMessage.value = "登录成功，正在跳转...";
       messageType.value = "success";
+      
+      // 显示登录成功提示
+      ElMessage.success('登录成功');
+      
+      // 跳转到首页
       setTimeout(() => {
-        router.push("/");
+        router.push("/chat");
       }, 1000);
     } else {
       resultMessage.value = response.data.message || "登录失败";
@@ -294,10 +422,7 @@ const login = async () => {
 };
 
 const handleLoginError = (error) => {
-  if (error.response) {
-    return error.response.data.message || "请求失败，请稍后重试";
-  }
-  return "网络连接异常，请检查网络";
+  return handleApiError(error, "登录");
 };
 
 // 添加生成随机数字字符串的方法
@@ -309,6 +434,19 @@ const generateRandomDigits = () => {
     result += characters.charAt(Math.floor(Math.random() * characters.length));
   }
   return result;
+};
+
+// 在script setup中添加注册页面跳转
+const goToRegister = () => {
+  router.push('/register');
+};
+
+// 统一错误处理
+const handleApiError = (error, action) => {
+  if (error.response) {
+    return error.response.data.message || `${action}失败，请稍后重试`;
+  }
+  return "网络连接异常，请检查网络";
 };
 </script>
 
@@ -566,160 +704,23 @@ const generateRandomDigits = () => {
 
 /* 登录容器增强 - 更强的玻璃态效果 */
 .login-container {
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 
-    0 15px 35px rgba(0, 0, 0, 0.2), 
-    0 5px 15px rgba(0, 0, 0, 0.1),
-    0 0 0 1px rgba(255, 255, 255, 0.05) inset;
-  z-index: 10;
-}
-
-/* 调整登录容器内文字颜色 */
-.img-title span {
-  color: #f8fafc;
-  background: linear-gradient(135deg, #f8fafc, #cbd5e1);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-/* 调整复选框文字颜色 */
-.checkbox {
-  color: #e2e8f0;
-}
-
-/* 调整分割线颜色 */
-.divider .el-divider {
-  background-color: rgba(226, 232, 240, 0.3);
-  height: 1px;
-  position: relative;
-  overflow: visible;
-}
-
-.divider .el-divider__text {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(8px);
-  color: #e2e8f0;
-  font-size: 14px;
-  font-weight: 500;
-  padding: 4px 15px;
-  position: relative;
-  border-radius: 12px;
-  box-shadow: 
-    0 2px 6px rgba(0, 0, 0, 0.05),
-    0 0 0 1px rgba(255, 255, 255, 0.1) inset;
-  letter-spacing: 1px;
-  transition: all 0.3s ease;
-}
-
-/* 添加发光效果 */
-.divider .el-divider__text::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(168, 85, 247, 0.2));
-  border-radius: 12px;
-  z-index: -1;
-  opacity: 0.5;
-  animation: glowText 3s infinite alternate;
-}
-
-@keyframes glowText {
-  0% {
-    opacity: 0.3;
-    box-shadow: 0 0 5px rgba(59, 130, 246, 0.3);
-  }
-  100% {
-    opacity: 0.6;
-    box-shadow: 0 0 10px rgba(168, 85, 247, 0.5);
-  }
-}
-
-/* 添加装饰点 */
-.divider .el-divider::before,
-.divider .el-divider::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-  transform: translateY(-50%);
-  box-shadow: 0 0 8px rgba(59, 130, 246, 0.6);
-  z-index: 1;
-}
-
-.divider .el-divider::before {
-  left: calc(50% - 60px);
-}
-
-.divider .el-divider::after {
-  right: calc(50% - 60px);
-}
-
-/* 添加更多装饰点 */
-.divider .el-divider::before,
-.divider .el-divider::after {
-  box-shadow: 0 0 8px rgba(59, 130, 246, 0.6);
-}
-
-.divider .el-divider::before {
-  box-shadow: 0 0 8px rgba(59, 130, 246, 0.6);
-}
-
-.divider .el-divider::after {
-  box-shadow: 0 0 8px rgba(168, 85, 247, 0.6);
-}
-
-/* 添加小装饰点 */
-.divider .el-divider::before {
-  box-shadow: 
-    0 0 8px rgba(59, 130, 246, 0.6),
-    -15px 0 0 -2px rgba(59, 130, 246, 0.4),
-    -30px 0 0 -3px rgba(59, 130, 246, 0.2);
-}
-
-.divider .el-divider::after {
-  box-shadow: 
-    0 0 8px rgba(168, 85, 247, 0.6),
-    15px 0 0 -2px rgba(168, 85, 247, 0.4),
-    30px 0 0 -3px rgba(168, 85, 247, 0.2);
-}
-
-/* 鼠标悬停效果 */
-.divider:hover .el-divider__text {
-  transform: scale(1.05);
-  box-shadow: 
-    0 4px 12px rgba(0, 0, 0, 0.1),
-    0 0 0 1px rgba(255, 255, 255, 0.2) inset;
-}
-
-/* 登录容器 - 更精致的玻璃态效果 */
-.login-container {
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: 100%;
-  max-width: 400px;
-  padding: 45px;
+  padding: 30px 45px;
   background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(12px);
-  border-radius: 24px;
+  backdrop-filter: blur(10px);
+  border-radius: 30px;
+  max-width: 420px;
+  width: 85%;
   box-shadow: 
-    0 10px 30px rgba(0, 0, 0, 0.08), 
-    0 1px 8px rgba(0, 0, 0, 0.03),
-    0 0 0 1px rgba(255, 255, 255, 0.9) inset;
-  margin-top: 0;
-  overflow: visible;
+    0 15px 35px rgba(0, 0, 0, 0.1),
+    0 3px 10px rgba(0, 0, 0, 0.05);
   position: relative;
-  z-index: 1;
-  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  border: 1px solid rgba(255, 255, 255, 0.9);
+  z-index: 10;
+  overflow: hidden;
+  min-height: 480px;
+  transition: all 0.3s ease;
 }
 
 .login-container:hover {
@@ -762,7 +763,7 @@ const generateRandomDigits = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 45px;
+  margin-bottom: 20px;
   position: relative;
   width: 100%;
 }
@@ -823,7 +824,15 @@ const generateRandomDigits = () => {
   flex-direction: column;
   align-items: center;
   width: 100%;
-  margin-bottom: 15px;
+  margin-bottom: 5px;
+}
+
+/* 添加固定高度容器确保切换时高度一致 */
+.form-container {
+  width: 100%;
+  min-height: 66px;
+  position: relative;
+  margin-top: 15px;
 }
 
 .form-item {
@@ -831,16 +840,16 @@ const generateRandomDigits = () => {
   flex-direction: row;
   align-items: center;
   width: 100%;
-  margin-bottom: 22px;
+  margin-bottom: 12px;
   position: relative;
 }
 
 /* 输入框样式 */
 .input-field {
   width: 100%;
-  height: 54px;
+  height: 48px;
   font-size: 15px;
-  border-radius: 14px !important;
+  border-radius: 12px !important;
   background: rgba(255, 255, 255, 0.9) !important;
   border: 1px solid rgba(226, 232, 240, 0.8) !important;
   box-shadow: 
@@ -868,9 +877,9 @@ const generateRandomDigits = () => {
 /* 验证码按钮 */
 .verification-btn {
   margin-left: 12px;
-  height: 54px;
-  min-width: 120px;
-  border-radius: 14px !important;
+  height: 48px;
+  min-width: 110px;
+  border-radius: 12px !important;
   background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
   border: none !important;
   color: white !important;
@@ -921,11 +930,11 @@ const generateRandomDigits = () => {
 
 /* 结果消息 - 基础样式 */
 .result-message {
-  padding: 12px 16px;
+  padding: 6px 12px;
   border-radius: 12px;
   font-size: 14px;
-  line-height: 1.5;
-  margin-bottom: 18px;
+  line-height: 1.4;
+  margin-bottom: 5px;
   width: 100%;
   text-align: left;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
@@ -1023,7 +1032,8 @@ const generateRandomDigits = () => {
 
 /* 隐私协议 */
 .privacy-agreement {
-  margin-bottom: 25px;
+  margin-bottom: 10px;
+  margin-top: 0px;
   width: 100%;
 }
 
@@ -1040,30 +1050,160 @@ const generateRandomDigits = () => {
   color: #475569;
 }
 
-/* 登录按钮 - 更精美的按钮效果 */
-.login-btn {
-  margin-top: 12px;
+/* 登录类型选择器样式调整，避免切换时高度变化 */
+.login-type-selector {
   width: 100%;
+  margin-bottom: 18px;
+  display: flex;
+  justify-content: center;
 }
 
-.login-btn .el-button {
-  height: 54px !important;
-  border-radius: 14px !important;
-  background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
-  border: none !important;
-  color: white !important;
+.login-type-selector .el-radio-group {
+  width: 100%;
+  display: flex;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.login-type-selector .el-radio-button {
+  flex: 1;
+}
+
+.login-type-selector .el-radio-button__inner {
+  width: 100%;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-color: #e2e8f0;
+  background: rgba(248, 250, 252, 0.8);
+  color: #64748b;
+  font-weight: 500;
+  transition: all 0.3s;
+  font-size: 15px;
+}
+
+.login-type-selector .el-radio-button__original {
+  opacity: 0;
+}
+
+.login-type-selector .el-radio-button__inner:hover {
+  background: rgba(241, 245, 249, 0.9);
+  color: #3b82f6;
+}
+
+.login-type-selector .el-radio-button.is-active .el-radio-button__inner {
+  background: #3b82f6;
+  color: white;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+  border-color: #3b82f6;
+}
+
+/* 按钮组 */
+.button-group {
+  display: flex;
+  width: 100%;
+  gap: 15px;
+  margin-top: 5px;
+}
+
+.action-btn {
+  flex: 1;
+  height: 48px !important;
+  border-radius: 12px !important;
   font-weight: 600 !important;
   letter-spacing: 0.5px;
-  box-shadow: 
-    0 4px 12px rgba(37, 99, 235, 0.25), 
-    0 2px 4px rgba(37, 99, 235, 0.1) !important;
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
   position: relative;
   overflow: hidden;
   font-size: 16px !important;
 }
 
-.login-btn .el-button::after {
+/* 添加固定高度的消息和链接容器 */
+.fixed-height-container {
+  width: 100%;
+  min-height: 45px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  margin-bottom: 0;
+}
+
+/* 为空消息状态添加占位符 */
+.empty-message-placeholder {
+  width: 100%;
+  height: 20px;
+  margin-bottom: 5px;
+}
+
+/* 为忘记密码添加固定容器 */
+.forgot-password-container {
+  width: 100%;
+  height: 18px;
+  margin-bottom: 5px;
+}
+
+/* 忘记密码链接 */
+.forgot-password {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+  height: 100%;
+}
+
+.forgot-password .forgot-btn {
+  color: #4b5563;
+  font-size: 14px;
+  padding: 0 4px;
+  font-weight: 500;
+  position: relative;
+  transition: all 0.3s ease;
+  margin-right: 2px;
+}
+
+.forgot-password .forgot-btn::after {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 1.5px;
+  bottom: -2px;
+  left: 0;
+  background: linear-gradient(90deg, #3b82f6, #60a5fa);
+  transition: width 0.3s ease;
+  border-radius: 4px;
+}
+
+.forgot-password .forgot-btn:hover {
+  color: #3b82f6;
+  transform: translateY(-1px);
+}
+
+.forgot-password .forgot-btn:hover::after {
+  width: 100%;
+}
+
+.forgot-password .forgot-btn:active {
+  transform: translateY(0);
+}
+
+/* 移除元素内部样式，使用上面的自定义样式 */
+.forgot-password .el-button.forgot-btn:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+/* 登录按钮 */
+.login-btn {
+  background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+  border: none !important;
+  color: white !important;
+  box-shadow: 
+    0 4px 12px rgba(37, 99, 235, 0.25), 
+    0 2px 4px rgba(37, 99, 235, 0.1) !important;
+}
+
+.login-btn::after {
   content: '';
   position: absolute;
   top: 0;
@@ -1074,7 +1214,7 @@ const generateRandomDigits = () => {
   transition: all 0.6s ease;
 }
 
-.login-btn .el-button:hover:not(:disabled) {
+.login-btn:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: 
     0 8px 20px rgba(37, 99, 235, 0.3), 
@@ -1082,64 +1222,51 @@ const generateRandomDigits = () => {
   background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
 }
 
-.login-btn .el-button:hover::after {
+.login-btn:hover::after {
   left: 100%;
 }
 
-.login-btn .el-button:active:not(:disabled) {
+.login-btn:active:not(:disabled) {
   transform: translateY(0);
-  box-shadow: 
-    0 4px 12px rgba(37, 99, 235, 0.25), 
-    0 2px 4px rgba(37, 99, 235, 0.1) !important;
 }
 
-.login-btn .el-button:disabled {
+.login-btn:disabled {
   background: linear-gradient(135deg, #93c5fd, #bfdbfe) !important;
   color: #eff6ff !important;
   box-shadow: none !important;
   cursor: not-allowed;
 }
 
-/* 微信登录按钮 - 更精美的按钮效果 */
-.wechat-login {
-  width: 100%;
-}
-
-.wechat-login .wechat-btn {
-  height: 54px !important;
-  border-radius: 14px !important;
-  background: rgba(248, 250, 252, 0.8) !important;
-  border: 1px solid rgba(226, 232, 240, 0.8) !important;
+/* 注册按钮 */
+.register-btn {
+  background: rgba(255, 255, 255, 0.8) !important;
+  border: 1px solid #e2e8f0 !important;
   color: #475569 !important;
-  font-weight: 600 !important;
-  letter-spacing: 0.5px;
   box-shadow: 
     0 2px 6px rgba(0, 0, 0, 0.03), 
     0 0 0 1px rgba(255, 255, 255, 0.8) inset !important;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
-  position: relative;
-  overflow: hidden;
-  font-size: 16px !important;
 }
 
-.wechat-login .wechat-btn:hover {
-  background: #f1f5f9 !important;
-  border-color: #cbd5e1 !important;
+.register-btn:hover:not(:disabled) {
   transform: translateY(-2px);
+  background: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+  color: #334155 !important;
   box-shadow: 
     0 4px 12px rgba(0, 0, 0, 0.05), 
     0 0 0 1px rgba(255, 255, 255, 0.9) inset !important;
 }
 
-.wechat-login .wechat-btn:active {
+.register-btn:active:not(:disabled) {
   transform: translateY(0);
 }
 
-.wechat-login .wechat-btn .el-icon {
-  color: #07c160 !important; /* 微信绿色 */
-  font-size: 20px;
-  margin-right: 10px;
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+.register-btn:disabled {
+  background: rgba(241, 245, 249, 0.8) !important;
+  color: #94a3b8 !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: none !important;
+  cursor: not-allowed;
 }
 
 /* 响应式调整 */
@@ -1167,6 +1294,11 @@ const generateRandomDigits = () => {
     margin-left: 0;
     margin-top: 12px;
     width: 100%;
+  }
+  
+  .button-group {
+    flex-direction: column;
+    gap: 10px;
   }
 }
 </style>
