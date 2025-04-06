@@ -1301,8 +1301,8 @@ const goToWelcome = () => {
     width: 55%;
     max-width: 900px;
     min-width: 600px;
-    margin: 0 auto 20px;
-    padding: 5px 0;
+    margin: 0 auto 5px;
+    padding: 2px 0;
     background: transparent;
     position: sticky;
     bottom: 0;
@@ -1418,16 +1418,13 @@ const goToWelcome = () => {
 
     .footer-tip {
       text-align: center;
-      margin-top: 10px;
       
       span {
         font-size: 13px;
         color: #64748b;
         border-radius: 4px;
         padding: 6px 10px;
-        background: rgba(255, 255, 255, 0.7);
         backdrop-filter: blur(4px);
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
       }
     }
   }
