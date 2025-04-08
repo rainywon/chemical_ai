@@ -90,9 +90,8 @@
           
           <!-- 添加跳转到welcome页面的按钮 -->
           <div class="welcome-btn" @click="goToWelcome">
-            <el-tooltip content="返回欢迎页面" placement="bottom">
-              <img src="../assets/leave.png" alt="首页" class="home-icon" />
-            </el-tooltip>
+            <img src="../assets/leave.png" alt="首页" class="home-icon" />
+            <span class="home-text">首页</span>
           </div>
         </el-header>
         <el-main class="chat-main">
@@ -1199,15 +1198,17 @@ const goToWelcome = () => {
 /* 添加welcome按钮样式 */
 .welcome-btn {
   position: absolute;
-  right: 20px;
+  right: 10px;
   cursor: pointer;
   transition: all 0.25s ease;
-  padding: 8px;
+  padding: 2px 6px;
   border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   
   &:hover {
-    background: rgba(59, 130, 246, 0.1);
-    transform: translateY(-2px);
+    transform: translateY(-1px);
   }
   
   &:active {
@@ -1215,9 +1216,16 @@ const goToWelcome = () => {
   }
   
   .home-icon {
-    width: 20px;
-    height: 20px;
-    filter: grayscale(0.3);
+    width: 16px;
+    height: 16px;
+    filter: brightness(0.4);
+    margin-right: 6px;
+  }
+  
+  .home-text {
+    color: #334155;
+    font-size: 15px;
+    font-weight: 500;
   }
 }
 
