@@ -343,7 +343,10 @@ const handleSendMessage = async () => {
   userMsg.pairedAiId = aiMsg.id;
   currentChatHistory.value.push(aiMsg);
 
-  // saveCurrentChat();
+  // 如果已有会话ID，保存用户消息
+  if (currentChatId.value) {
+    await saveMessage(userMsg);
+  }
   
   // 滚动到底部
   await nextTick(() => {
@@ -355,7 +358,6 @@ const handleSendMessage = async () => {
   });
   
   textarea2.value = "";
-  // saveCurrentChat();
 
   // 处理AI响应
   await processAIResponse(userText, aiMsg);
@@ -386,6 +388,15 @@ const regenerateResponse = (aiMsgId) => {
         ? { ...msg, text: "", isLoading: true, references: [] }
         : msg
     );
+    
+    // 更新消息状态
+    if (currentChatId.value) {
+      const updatedAiMsg = currentChatHistory.value.find(msg => msg.id === aiMsgId);
+      if (updatedAiMsg) {
+        updateMessage(updatedAiMsg);
+      }
+    }
+    
     processAIResponse(userMessage.text, aiMsgId);
   }
 };
@@ -431,7 +442,7 @@ const newChat = async () => {
 // 选择对话
 const selectChat = async (chat) => {
   try {
-    if (currentChatHistory.value.length) {
+    if (currentChatHistory.value.length && currentChatId.value) {
       await saveCurrentChat();
     }
     
@@ -486,7 +497,7 @@ const clearTotalHistory = async () => {
       message: '确定删除所有历史记录吗？此操作无法恢复。',
       type: 'danger',
       confirmButtonText: '清空',
-      cancelText: '取消',
+      cancelButtonText: '取消',
       onConfirm: async () => {
         const userId = getUserId();
         if (!userId) {
@@ -513,9 +524,25 @@ const clearTotalHistory = async () => {
 
 /* ------------------ API 调用 ------------------ */
 // 处理AI响应
-const processAIResponse = async (question, aiMsgId) => {
+const processAIResponse = async (question, aiMsgOrId) => {
   abortController = new AbortController();
+  isSending.value = true;
+  
   try {
+    // 确定aiMsg
+    let aiMsg = aiMsgOrId;
+    if (typeof aiMsgOrId === 'number' || typeof aiMsgOrId === 'string') {
+      aiMsg = currentChatHistory.value.find((msg) => msg.id === aiMsgOrId);
+      if (!aiMsg) {
+        throw new Error("找不到对应的AI消息");
+      }
+    }
+    
+    // 保存初始消息状态（记录已接收的AI消息和其ID）
+    if (currentChatId.value) {
+      await saveMessage(aiMsg);
+    }
+    
     let generate_mode = "";
     if (selectedOption.value === "大模型生成") {
       generate_mode = "query_model";
@@ -553,17 +580,17 @@ const processAIResponse = async (question, aiMsgId) => {
 
           if (type === "references") {
             currentChatHistory.value = currentChatHistory.value.map((msg) =>
-              msg.id === aiMsgId ? { ...msg, references: data } : msg
+              msg.id === aiMsg.id ? { ...msg, references: data } : msg
             );
           } else if (type === "content") {
             partialText += data;
             currentChatHistory.value = currentChatHistory.value.map((msg) =>
-              msg.id === aiMsgId ? { ...msg, text: partialText } : msg
+              msg.id === aiMsg.id ? { ...msg, text: partialText } : msg
             );
           } else if (type === "error") {
             partialText += data;
             currentChatHistory.value = currentChatHistory.value.map((msg) =>
-              msg.id === aiMsgId ? { ...msg, text: partialText } : msg
+              msg.id === aiMsg.id ? { ...msg, text: partialText } : msg
             );
           }
         } catch (e) {
@@ -580,7 +607,7 @@ const processAIResponse = async (question, aiMsgId) => {
         if (type === "content" || type === "error") {
           partialText += data;
           currentChatHistory.value = currentChatHistory.value.map((msg) =>
-            msg.id === aiMsgId ? { ...msg, text: partialText } : msg
+            msg.id === aiMsg.id ? { ...msg, text: partialText } : msg
           );
         }
       } catch (e) {
@@ -589,25 +616,48 @@ const processAIResponse = async (question, aiMsgId) => {
     }
 
     currentChatHistory.value = currentChatHistory.value.map((msg) =>
-      msg.id === aiMsgId ? { ...msg, isLoading: false } : msg
+      msg.id === aiMsg.id ? { ...msg, isLoading: false } : msg
     );
+    
+    // 完成后更新消息
+    if (currentChatId.value) {
+      const updatedAiMsg = currentChatHistory.value.find(msg => msg.id === aiMsg.id);
+      if (updatedAiMsg) {
+        await updateMessage(updatedAiMsg);
+      }
+    }
   } catch (error) {
     if (error.name === "AbortError") {
       console.log("请求已被中止");
       currentChatHistory.value = currentChatHistory.value.map((msg) =>
-        msg.id === aiMsgId ? { ...msg, isLoading: false } : msg
+        msg.id === aiMsgOrId.id || msg.id === aiMsgOrId ? { ...msg, isLoading: false } : msg
       );
+      
+      // 更新被中止的消息状态
+      if (currentChatId.value) {
+        const abortedMsg = currentChatHistory.value.find(msg => msg.id === (typeof aiMsgOrId === 'object' ? aiMsgOrId.id : aiMsgOrId));
+        if (abortedMsg) {
+          await updateMessage(abortedMsg);
+        }
+      }
       return;
     }
     console.error("流式传输出错:", error);
     currentChatHistory.value = currentChatHistory.value.map((msg) =>
-      msg.id === aiMsgId
+      msg.id === aiMsgOrId.id || msg.id === aiMsgOrId
         ? { ...msg, text: msg.text + "\n[生成出错，请重试]", isLoading: false }
         : msg
     );
+    
+    // 更新错误消息状态
+    if (currentChatId.value) {
+      const errorMsg = currentChatHistory.value.find(msg => msg.id === (typeof aiMsgOrId === 'object' ? aiMsgOrId.id : aiMsgOrId));
+      if (errorMsg) {
+        await updateMessage(errorMsg);
+      }
+    }
   } finally {
     isSending.value = false;
-    // saveCurrentChat();
   }
 };
 
@@ -621,9 +671,10 @@ const fetchChatSessions = async () => {
     }
     
     const response = await fetch(`${API_BASE_URL}/chat/sessions?user_id=${userId}`);
-    console.log(response)
-    if (!response.ok) 
+    if (!response.ok) {
       console.error("获取会话列表失败");
+      return;
+    }
     
     const data = await response.json();
     totalChatHistory.value = data.map(session => ({
@@ -652,13 +703,74 @@ const fetchChatMessages = async (sessionId) => {
       isLoading: msg.is_loading,
       parentId: msg.parent_id,
       pairedAiId: msg.paired_ai_id,
-      references: msg.references,
-      question: msg.question
+      references: msg.references || [],
+      question: msg.question || ""
     }));
   } catch (error) {
     console.error("获取消息失败:", error);
     ElMessage.error("获取消息失败");
     return [];
+  }
+};
+
+// 保存单个消息
+const saveMessage = async (message) => {
+  try {
+    if (!currentChatId.value) return;
+    
+    const response = await fetch(`${API_BASE_URL}/chat/messages`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        session_id: currentChatId.value,
+        message_type: message.type,
+        content: message.text,
+        parent_id: message.parentId,
+        paired_ai_id: message.pairedAiId,
+        references: message.references || [],
+        question: message.question || "",
+        is_loading: message.isLoading
+      })
+    });
+
+    if (!response.ok) throw new Error("保存消息失败");
+    
+    const data = await response.json();
+    return data.id;
+  } catch (error) {
+    console.error("保存消息失败:", error);
+    return null;
+  }
+};
+
+// 更新消息
+const updateMessage = async (message) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/chat/messages/${message.id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        session_id: currentChatId.value,
+        message_type: message.type,
+        content: message.text,
+        parent_id: message.parentId,
+        paired_ai_id: message.pairedAiId,
+        references: message.references || [],
+        question: message.question || "",
+        is_loading: message.isLoading
+      })
+    });
+
+    if (!response.ok) throw new Error("更新消息失败");
+    
+    return true;
+  } catch (error) {
+    console.error("更新消息失败:", error);
+    return false;
   }
 };
 
@@ -670,29 +782,16 @@ const saveCurrentChat = async () => {
       return;
     }
 
+    // 遍历保存每条消息
     for (const message of currentChatHistory.value) {
-      const response = await fetch(`${API_BASE_URL}/chat/messages`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          session_id: currentChatId.value,
-          message_type: message.type,
-          content: message.text,
-          parent_id: message.parentId,
-          paired_ai_id: message.pairedAiId,
-          references: message.references,
-          question: message.question,
-          is_loading: message.isLoading
-        })
-      });
-
-      if (!response.ok) throw new Error("保存消息失败");
+      await saveMessage(message);
     }
+    
+    return true;
   } catch (error) {
     console.error("保存对话失败:", error);
     ElMessage.error("保存对话失败");
+    return false;
   }
 };
 
@@ -788,7 +887,7 @@ const initializeChatData = async () => {
 
     // 如果有历史会话，选择最新的一个
     if (totalChatHistory.value.length > 0) {
-      const latestChat = totalChatHistory.value[totalChatHistory.value.length - 1];
+      const latestChat = totalChatHistory.value[0]; // 因为API返回的数据已经是按更新时间降序排列
       await selectChat(latestChat);
     } else {
       // 如果没有历史会话，创建新会话
