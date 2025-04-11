@@ -343,7 +343,7 @@ const handleSendMessage = async () => {
   userMsg.pairedAiId = aiMsg.id;
   currentChatHistory.value.push(aiMsg);
 
-  saveCurrentChat();
+  // saveCurrentChat();
   
   // 滚动到底部
   await nextTick(() => {
@@ -355,7 +355,7 @@ const handleSendMessage = async () => {
   });
   
   textarea2.value = "";
-  saveCurrentChat();
+  // saveCurrentChat();
 
   // 处理AI响应
   await processAIResponse(userText, aiMsg);
@@ -607,7 +607,7 @@ const processAIResponse = async (question, aiMsgId) => {
     );
   } finally {
     isSending.value = false;
-    saveCurrentChat();
+    // saveCurrentChat();
   }
 };
 
@@ -621,7 +621,9 @@ const fetchChatSessions = async () => {
     }
     
     const response = await fetch(`${API_BASE_URL}/chat/sessions?user_id=${userId}`);
-    if (!response.ok) throw new Error("获取会话列表失败");
+    console.log(response)
+    if (!response.ok) 
+      console.error("获取会话列表失败");
     
     const data = await response.json();
     totalChatHistory.value = data.map(session => ({
