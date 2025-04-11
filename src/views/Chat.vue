@@ -320,6 +320,34 @@ const handleSendMessage = async () => {
   if (!textarea2.value.trim()) return;
   isSending.value = true;
 
+  // 如果没有会话ID，先创建新会话
+  if (!currentChatId.value) {
+    try {
+      const userId = getUserId();
+      const response = await fetch(`${API_BASE_URL}/chat/sessions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          title: `对话 ${new Date().toLocaleTimeString()}`
+        })
+      });
+
+      if (!response.ok) throw new Error("创建会话失败");
+      
+      const data = await response.json();
+      currentChatId.value = data.id;
+      await fetchChatSessions();
+    } catch (error) {
+      console.error("创建新对话失败:", error);
+      ElMessage.error("创建新对话失败");
+      isSending.value = false;
+      return;
+    }
+  }
+
   // 添加用户消息
   const userText = textarea2.value;
   const userMsg = {
@@ -343,10 +371,8 @@ const handleSendMessage = async () => {
   userMsg.pairedAiId = aiMsg.id;
   currentChatHistory.value.push(aiMsg);
 
-  // 如果已有会话ID，保存用户消息
-  if (currentChatId.value) {
-    await saveMessage(userMsg);
-  }
+  // 保存用户消息
+  await saveMessage(userMsg);
   
   // 滚动到底部
   await nextTick(() => {
@@ -677,6 +703,11 @@ const fetchChatSessions = async () => {
     }
     
     const data = await response.json();
+    if (!Array.isArray(data) || data.length === 0) {
+      console.log("没有历史会话记录");
+      return;
+    }
+    
     totalChatHistory.value = data.map(session => ({
       id: session.id,
       title: session.title,
@@ -727,7 +758,7 @@ const saveMessage = async (message) => {
         session_id: currentChatId.value,
         message_type: message.type,
         content: message.text,
-        parent_id: message.parentId,
+        parent_id: message.parentId || null,
         paired_ai_id: message.pairedAiId,
         references: message.references || [],
         question: message.question || "",
@@ -778,7 +809,6 @@ const updateMessage = async (message) => {
 const saveCurrentChat = async () => {
   try {
     if (!currentChatId.value) {
-      await newChat();
       return;
     }
 
@@ -890,8 +920,8 @@ const initializeChatData = async () => {
       const latestChat = totalChatHistory.value[0]; // 因为API返回的数据已经是按更新时间降序排列
       await selectChat(latestChat);
     } else {
-      // 如果没有历史会话，创建新会话
-      await newChat();
+      // 如果没有历史会话，跳过
+      return;
     }
   } catch (error) {
     console.error("初始化聊天数据失败:", error);
