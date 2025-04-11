@@ -143,7 +143,6 @@ import { ref, reactive, computed, onUnmounted } from "vue";
 import { PhoneFilled, Key, Lock } from "@element-plus/icons-vue";
 import { useRouter } from "vue-router";
 import { API_BASE_URL } from "../config";
-import axios from "axios";
 import { ElMessage } from 'element-plus';
 
 const router = useRouter();
@@ -237,12 +236,20 @@ const sendVerificationCode = async () => {
     resultMessage.value = "正在发送验证码...";
     messageType.value = "info";
 
-    const response = await axios.post(`${API_BASE_URL}/send_sms/`, {
-      mobile: formData.phone,
-      type: 'register' // 指定是注册用的验证码
+    const response = await fetch(`${API_BASE_URL}/send_sms/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        mobile: formData.phone,
+        purpose: 'register'
+      })
     });
 
-    if (response.status === 200) {
+    const data = await response.json();
+
+    if (response.ok) {
       resultMessage.value = "验证码已发送，请查收";
       messageType.value = "success";
       // 启动倒计时
@@ -258,16 +265,12 @@ const sendVerificationCode = async () => {
         }
       }, 1000);
     } else {
-      resultMessage.value = "验证码发送失败，请稍后重试";
+      resultMessage.value = data.message || "验证码发送失败，请稍后重试";
       messageType.value = "error";
     }
   } catch (error) {
     // 网络请求失败的处理
-    if (error.response) {
-      resultMessage.value = error.response.data.message || "验证码发送失败";
-    } else {
-      resultMessage.value = "网络连接异常，请检查网络";
-    }
+    resultMessage.value = "网络连接异常，请检查网络";
     messageType.value = "error";
   }
 };
@@ -312,20 +315,29 @@ const register = async () => {
     loading.value = true;
     resultMessage.value = "正在注册...";
     messageType.value = "info";
-    
-    const response = await axios.post(`${API_BASE_URL}/register/`, {
-      mobile: formData.phone,
-      code: formData.verificationCode,
-      password: formData.password,
-      confirm_password: formData.confirmPassword
+
+    const response = await fetch(`${API_BASE_URL}/register/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        mobile: formData.phone,
+        code: formData.verificationCode,
+        password: formData.password,
+        confirm_password: formData.confirmPassword
+      })
     });
 
-    if (response.data.code === 200) {
+    const data = await response.json();
+
+    if (response.ok && data.code === 200) {
       // 注册成功，自动登录
       localStorage.setItem("isAuthenticated", "true");
       localStorage.setItem("mobile", formData.phone);
-      if (response.data.token) {
-        localStorage.setItem("token", response.data.token);
+      if (data.token) {
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("user_id", data.user_id);
       }
       
       resultMessage.value = "注册成功，正在跳转...";
@@ -336,18 +348,15 @@ const register = async () => {
       
       // 跳转到首页
       setTimeout(() => {
-        router.push("/chat");
+        router.push("/");
       }, 1000);
     } else {
-      resultMessage.value = response.data.message || "注册失败";
+      resultMessage.value = data.message || "注册失败，请稍后重试";
       messageType.value = "error";
     }
   } catch (error) {
-    if (error.response) {
-      resultMessage.value = error.response.data.message || "注册失败，请稍后重试";
-    } else {
-      resultMessage.value = "网络连接异常，请检查网络";
-    }
+    console.error("注册错误:", error);
+    resultMessage.value = "网络连接异常，请检查网络";
     messageType.value = "error";
   } finally {
     loading.value = false;

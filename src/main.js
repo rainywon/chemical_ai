@@ -16,7 +16,9 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
 }
 app.use(ElementPlus);
 app.use(router)
-app.use(axios)
+
+// 配置 axios
+app.config.globalProperties.$axios = axios;
 
 // 将应用挂载到 DOM 节点上
 app.mount('#app');

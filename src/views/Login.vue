@@ -60,9 +60,9 @@
 
       <!-- 登录方式切换 -->
       <div class="login-type-selector">
-        <el-radio-group v-model="loginByPassword" size="large">
-          <el-radio-button :label="false">验证码登录</el-radio-button>
-          <el-radio-button :label="true">密码登录</el-radio-button>
+        <el-radio-group v-model="loginMode">
+          <el-radio-button :value="false">验证码登录</el-radio-button>
+          <el-radio-button :value="true">密码登录</el-radio-button>
         </el-radio-group>
       </div>
 
@@ -87,7 +87,7 @@
         <!-- 使用固定高度容器包裹切换的表单元素 -->
         <div class="form-container">
           <!-- 密码输入框 - 仅在密码登录模式下显示 -->
-          <div v-if="loginByPassword" class="form-item">
+          <div v-if="loginMode" class="form-item">
             <el-input 
               v-model="formData.password" 
               class="input-field" 
@@ -125,7 +125,7 @@
         
         <!-- 忘记密码链接 - 使用固定位置，无论是否显示都保持位置 -->
         <div class="forgot-password-container">
-          <div v-if="loginByPassword" class="forgot-password">
+          <div v-if="loginMode" class="forgot-password">
             <el-button type="text" @click="forgotPassword">忘记密码?</el-button>
           </div>
         </div>
@@ -166,7 +166,7 @@ import { ElMessage } from 'element-plus';
 const router = useRouter();
 
 // 登录方式 - true为密码登录，false为验证码登录
-const loginByPassword = ref(false);
+const loginMode = ref(false);
 
 // 表单数据
 const formData = reactive({
@@ -181,7 +181,7 @@ const loading = ref(false);
 
 // 切换登录方式
 const toggleLoginType = () => {
-  loginByPassword.value = !loginByPassword.value;
+  loginMode.value = !loginMode.value;
   // 清空错误消息
   resultMessage.value = "";
 };
@@ -225,7 +225,7 @@ const isFormValid = computed(() => {
   // 基础验证：手机号和协议勾选必须有效
   const baseValid = isPhoneValid.value && formData.agreed;
   
-  if (loginByPassword.value) {
+  if (loginMode.value) {
     // 密码登录：必须有密码输入
     return baseValid && formData.password.length > 0;
   } else {
@@ -264,7 +264,7 @@ const forgotPassword = () => {
   }
   
   // 切换到验证码登录模式
-  loginByPassword.value = false;
+  loginMode.value = false;
   
   // 提示用户使用验证码重置密码
   ElMessage({
@@ -342,7 +342,7 @@ const login = async () => {
   }
 
   // 根据登录模式检查输入
-  if (loginByPassword.value) {
+  if (loginMode.value) {
     if (!isPasswordValid.value) {
       resultMessage.value = "密码长度不能少于6位";
       messageType.value = "warning";
@@ -364,7 +364,7 @@ const login = async () => {
     
     let response;
     
-    if (loginByPassword.value) {
+    if (loginMode.value) {
       // 密码登录
       response = await axios.post(`${API_BASE_URL}/login/`, {
         mobile: formData.phone,
@@ -1177,10 +1177,6 @@ const handleApiError = (error, action) => {
     0 8px 20px rgba(37, 99, 235, 0.3), 
     0 4px 8px rgba(37, 99, 235, 0.2) !important;
   background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
-}
-
-.login-btn:hover::after {
-  left: 100%;
 }
 
 .login-btn:active:not(:disabled) {

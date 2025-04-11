@@ -59,7 +59,7 @@
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
-
+import { API_BASE_URL } from "../config";
 // 导入组件
 import AppHeader from '@/components/AppHeader.vue';
 import SystemStatusCard from '@/components/SystemStatusCard.vue';
@@ -128,32 +128,52 @@ const showConfirm = (message) => {
 // 确认操作
 const confirmLogout = async () => {
   try {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      // 如果没有token，直接清除本地存储并跳转到登录页
+      clearLocalStorage();
+      router.push("/login");
+      return;
+    }
+
     // 调用后端退出登录 API
     const response = await fetch(`${API_BASE_URL}/logout/`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
       }
     });
 
+    // 无论响应如何，都清除本地存储
+    clearLocalStorage();
+
     if (!response.ok) {
-      throw new Error('退出登录失败');
+      // 如果是401错误，说明token已经无效，直接跳转到登录页
+      if (response.status === 401) {
+        router.push("/login");
+        return;
+      }
+      const data = await response.json();
+      throw new Error(data.message || '退出登录失败');
     }
 
-    // 清除本地存储的用户信息
-    localStorage.removeItem("isAuthenticated");
-    localStorage.removeItem("userId");
-    localStorage.removeItem("token");
-    localStorage.removeItem("mobile");
-    
     // 跳转到登录页面
     setTimeout(() => {
       router.push("/login");
     }, 200);
   } catch (error) {
     console.error("退出登录失败:", error);
-    ElMessage.error("退出登录失败，请重试");
+    ElMessage.error(error.message || "退出登录失败，请重试");
   }
+};
+
+// 清除本地存储的辅助函数
+const clearLocalStorage = () => {
+  localStorage.removeItem("isAuthenticated");
+  localStorage.removeItem("userId");
+  localStorage.removeItem("token");
+  localStorage.removeItem("mobile");
 };
 
 // 退出登录
