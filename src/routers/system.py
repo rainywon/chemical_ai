@@ -27,17 +27,21 @@ async def get_system_status() -> Dict[str, Any]:
         configs = execute_query("""
             SELECT config_key, config_value 
             FROM system_configs 
-            WHERE config_key IN ('data_source_count', 'response_time')
+            WHERE config_key IN ('data_source_count', 'response_time', 'system_status')
         """)
         
         # 转换为字典格式
         config_dict = {item['config_key']: item['config_value'] for item in configs}
         
+        # 获取系统运行状态
+        system_status = config_dict.get('system_status', 'normal')
+        
         return {
             "knowledge_base": version_info['knowledge_base_version'],
             "update_date": version_info['release_date'].strftime("%Y-%m-%d"),
             "data_sources": f"{config_dict.get('data_source_count', '0')}个专业库",
-            "response_time": f"≤ {config_dict.get('response_time', '2')}秒"
+            "response_time": f"≤ {config_dict.get('response_time', '2')}秒",
+            "system_status": system_status
         }
         
     except Exception as e:

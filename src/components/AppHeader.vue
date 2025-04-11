@@ -8,9 +8,9 @@
       <p class="subtitle">您的专业化工安全AI对话助手，提供实时咨询与安全指导</p>
     </div>
     <div class="status-section">
-      <div class="status-badge safe">
-        <span class="status-icon">✓</span>
-        <span>系统正常</span>
+      <div class="status-badge" :class="systemStatus">
+        <span class="status-icon">{{ statusIcon }}</span>
+        <span>{{ statusText }}</span>
       </div>
       <div class="settings-dropdown">
         <button class="settings-button" @click="toggleSettings">
@@ -36,7 +36,8 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed, onMounted } from 'vue';
+import { API_BASE_URL } from '../config';
 
 // Props
 const props = defineProps({
@@ -51,11 +52,61 @@ defineEmits(['toggle-theme', 'show-feedback', 'logout']);
 
 // State
 const showSettings = ref(false);
+const systemStatus = ref('normal');
+
+// 获取系统状态
+const fetchSystemStatus = async () => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/system/status`);
+    if (!response.ok) {
+      throw new Error('获取系统状态失败');
+    }
+    const data = await response.json();
+    systemStatus.value = data.system_status;
+  } catch (error) {
+    console.error('获取系统状态失败:', error);
+    systemStatus.value = 'error';
+  }
+};
+
+// 状态图标和文本
+const statusIcon = computed(() => {
+  switch (systemStatus.value) {
+    case 'normal':
+      return '✓';
+    case 'warning':
+      return '⚠️';
+    case 'error':
+      return '✕';
+    default:
+      return '✓';
+  }
+});
+
+const statusText = computed(() => {
+  switch (systemStatus.value) {
+    case 'normal':
+      return '系统正常';
+    case 'warning':
+      return '系统警告';
+    case 'error':
+      return '系统异常';
+    default:
+      return '系统正常';
+  }
+});
 
 // Methods
 const toggleSettings = () => {
   showSettings.value = !showSettings.value;
 };
+
+// 组件挂载时获取系统状态
+onMounted(() => {
+  fetchSystemStatus();
+  // 每30秒更新一次系统状态
+  setInterval(fetchSystemStatus, 30000);
+});
 </script>
 
 <style scoped>
@@ -122,9 +173,19 @@ const toggleSettings = () => {
   font-weight: 600;
 }
 
-.status-badge.safe {
+.status-badge.normal {
   background-color: rgba(16, 185, 129, 0.1);
   color: #10b981;
+}
+
+.status-badge.warning {
+  background-color: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+}
+
+.status-badge.error {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
 }
 
 .status-icon {

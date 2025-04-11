@@ -193,20 +193,20 @@ const currentChatHistory = ref([]);
 const currentChatId = ref(null);
 const totalChatHistory = ref([]);
 const isLoading = ref(false);
-const isSending = ref(false); // 发送状态，控制按钮的启用禁用
+const isSending = ref(false);
 let UserName = ref("AI用户");
-let abortController = null; // 用于控制请求的中断
+let abortController = null;
 const selectedOption = ref("知识库生成");
 const options = [
   { value: "llm", label: "大模型生成" },
   { value: "kb", label: "知识库生成" },
 ];
-const shouldAutoScroll = ref(true); // 新增滚动状态判断
-const showScrollButton = ref(false); // 控制滚动按钮显示
+const shouldAutoScroll = ref(true);
+const showScrollButton = ref(false);
 const showCustomConfirm = ref(false);
 const confirmTitle = ref('');
 const confirmMessage = ref('');
-const confirmType = ref('warning'); // 'warning' or 'danger'
+const confirmType = ref('warning');
 const confirmText = ref('确定');
 const cancelText = ref('取消');
 const confirmAction = ref(() => {});
@@ -257,35 +257,28 @@ const handleScroll = () => {
 /* ------------------ 生命周期钩子 ------------------ */
 onMounted(async () => {
   try {
-    // 尝试从 localStorage 中获取数据
+    // 获取用户信息
     const mobile = localStorage.getItem("mobile");
     const generateMode = localStorage.getItem("generateMode");
     if (generateMode) {
       selectedOption.value = generateMode;
-    } else {
-      console.log("No generateMode found in localStorage.");
     }
     if (mobile) {
       UserName = mobile;
-    } else {
-      console.log("未从 localStorage 中获取到 mobile 数据");
     }
+    
     setupScrollListener();
     // 初始化消息数据
-    await initializeChatData(); // 等待 initializeChatData 完成
+    await initializeChatData();
     nextTick(() => {
-      // 滚动到最底部
       scrollToBottom();
     });
 
-    // 检查 inputRef 是否存在并尝试聚焦
+    // 检查输入框并聚焦
     if (inputRef.value) {
       inputRef.value.focus();
-    } else {
-      console.log("输入框 inputRef 不存在，无法聚焦");
     }
   } catch (error) {
-    // 捕获任何错误并输出日志
     console.error("初始化过程中发生了错误:", error);
   }
 });
@@ -351,8 +344,18 @@ const handleSendMessage = async () => {
   userMsg.pairedAiId = aiMsg.id;
   currentChatHistory.value.push(aiMsg);
 
-  saveCurrentChatHistory();
-  await nextTick(() => scrollToBottom("auto")); // 初始滚动立即执行
+  saveCurrentChat();
+  
+  // 确保消息添加后立即滚动到底部
+  await nextTick(() => {
+    scrollToBottom("auto");
+    // 强制滚动到底部
+    const container = scrollContainer.value;
+    if (container) {
+      container.scrollTop = container.scrollHeight;
+    }
+  });
+  
   textarea2.value = "";
   saveCurrentChat();
 
@@ -459,7 +462,7 @@ const handleSendMessage = async () => {
     }
   } finally {
     isSending.value = false;
-    saveCurrentChatHistory();
+    saveCurrentChat();
   }
 };
 
@@ -595,7 +598,7 @@ const handleRegenerate = async (question, aiMsgId) => {
     );
   } finally {
     isSending.value = false;
-    saveCurrentChatHistory();
+    saveCurrentChat();
   }
 };
 
@@ -603,14 +606,12 @@ const handleRegenerate = async (question, aiMsgId) => {
 const handleChange = (value) => {
   if (value === "llm") {
     selectedOption.value = "大模型生成";
-
-    // 这里可以调用大模型生成的相关逻辑
   } else if (value === "kb") {
     selectedOption.value = "知识库生成";
-    // 这里可以调用知识库生成的相关逻辑
   }
   localStorage.setItem("generateMode", selectedOption.value);
 };
+
 // 退出登录
 const tologin = async () => {
   try {
@@ -621,112 +622,175 @@ const tologin = async () => {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       onConfirm: () => {
-    // 更新本地存储
-        localStorage.setItem("isAuthenticated", "false"); 
-    setTimeout(() => {
-      router.push("/login"); // 延迟跳转，确保退出逻辑完成
-    }, 200); // 延迟 200 毫秒
+        localStorage.setItem("isAuthenticated", "false");
+        setTimeout(() => {
+          router.push("/login");
+        }, 200);
       }
     });
   } catch (e) {
-    // 用户点击取消操作
     console.log("用户取消了退出操作", e);
   }
 };
 
 // 历史记录管理
-const newChat = () => {
-  if (currentChatHistory.value.length) saveCurrentChat();
-  resetCurrentChat();
-};
-const selectChat = (chat) => {
-  if (currentChatHistory.value.length) saveCurrentChat();
-  loadChat(chat);
-};
-const deleteChat = (chatId) => {
-  showConfirm({
-    title: '删除对话',
-    message: '确定要删除这个对话记录吗？',
-    type: 'danger',
-    confirmButtonText: '删除',
-    cancelButtonText: '取消',
-    onConfirm: () => {
-      // 删除当前对话记录
-      totalChatHistory.value = totalChatHistory.value.filter(
-        (c) => c.id !== chatId
-      );
-      persistTotalHistory(); // 保存更新后的历史记录
+const newChat = async () => {
+  try {
+    // 如果当前有对话，先保存
+    if (currentChatHistory.value.length) {
+      await saveCurrentChat();
+    }
+    
+    // 创建新会话
+    const userId = getUserId();
+    if (!userId) {
+      ElMessage.error("未找到用户ID");
+      return;
+    }
 
-      // 如果删除的是当前对话，重置当前对话
-      if (chatId === currentChatId.value) {
-        resetCurrentChat();
+    const response = await fetch(`${API_BASE_URL}/chat/sessions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        title: `对话 ${new Date().toLocaleTimeString()}`
+      })
+    });
+
+    if (!response.ok) throw new Error("创建会话失败");
+    
+    const data = await response.json();
+    currentChatId.value = data.id;
+    currentChatHistory.value = [];
+    
+    // 刷新会话列表
+    await fetchChatSessions();
+  } catch (error) {
+    console.error("创建新对话失败:", error);
+    ElMessage.error("创建新对话失败");
+  }
+};
+
+const selectChat = async (chat) => {
+  try {
+    // 如果当前有对话，先保存
+    if (currentChatHistory.value.length) {
+      await saveCurrentChat();
+    }
+    
+    // 加载选中的会话
+    currentChatId.value = chat.id;
+    const messages = await fetchChatMessages(chat.id);
+    currentChatHistory.value = messages;
+    nextTick(scrollToBottom);
+  } catch (error) {
+    console.error("加载对话失败:", error);
+    ElMessage.error("加载对话失败");
+  }
+};
+
+const deleteChat = async (chatId) => {
+  try {
+    await showConfirm({
+      title: '删除对话',
+      message: '确定要删除这个对话记录吗？',
+      type: 'danger',
+      confirmButtonText: '删除',
+      cancelButtonText: '取消',
+      onConfirm: async () => {
+        const response = await fetch(`${API_BASE_URL}/chat/sessions/${chatId}`, {
+          method: 'DELETE'
+        });
+
+        if (!response.ok) throw new Error("删除会话失败");
+        
+        // 更新本地状态
+        totalChatHistory.value = totalChatHistory.value.filter(
+          (c) => c.id !== chatId
+        );
+        
+        // 如果删除的是当前对话，创建新对话
+        if (chatId === currentChatId.value) {
+          await newChat();
+        }
+        
+        ElMessage.success("对话记录已删除");
       }
-
-      ElMessage.success("对话记录已删除");
-    }
-  }).catch(() => {
-      // 取消操作时不做任何处理
     });
+  } catch (error) {
+    console.error("删除对话失败:", error);
+    ElMessage.error("删除对话失败");
+  }
 };
 
-const clearTotalHistory = () => {
-  showConfirm({
-    title: '清空所有记录',
-    message: '确定删除所有历史记录吗？此操作无法恢复。',
-    type: 'danger',
-    confirmButtonText: '清空',
-    cancelButtonText: '取消',
-    onConfirm: () => {
-      // 清空历史记录
-      totalChatHistory.value = [];
-      localStorage.removeItem("totalChatHistory");
+const clearTotalHistory = async () => {
+  try {
+    await showConfirm({
+      title: '清空所有记录',
+      message: '确定删除所有历史记录吗？此操作无法恢复。',
+      type: 'danger',
+      confirmButtonText: '清空',
+      cancelText: '取消',
+      onConfirm: async () => {
+        const userId = getUserId();
+        if (!userId) {
+          ElMessage.error("未找到用户ID");
+          return;
+        }
 
-      // 重置当前对话
-      currentChatId.value = generateChatId();
-      currentChatHistory.value = [];
-      localStorage.setItem("currentChatHistory", JSON.stringify([]));
-
-      ElMessage.success("已清除所有历史记录");
-    }
-  }).catch(() => {
-      // 取消操作
+        const response = await fetch(`${API_BASE_URL}/chat/sessions/clear?user_id=${userId}`, {
+          method: 'DELETE'
+        });
+        
+        if (!response.ok) throw new Error("清空历史记录失败");
+        
+        totalChatHistory.value = [];
+        await newChat();
+        ElMessage.success("已清除所有历史记录");
+      }
     });
+  } catch (error) {
+    console.error("清空历史记录失败:", error);
+    ElMessage.error("清空历史记录失败");
+  }
 };
 
 // 数据持久化
-const saveCurrentChat = () => {
-  // 判断当前对话是否已经在历史记录中存在
-  const existingIndex = totalChatHistory.value.findIndex(
-    (c) => c.id === currentChatId.value
-  );
-  const chatData = {
-    id: currentChatId.value,
-    title: `对话 ${new Date().toLocaleTimeString()}`,
-    messages: [...currentChatHistory.value],
-    timestamp: Date.now(),
-  };
-  // 当前对话在历史记录中存在，则更新该对话的历史记录
-  existingIndex > -1
-    ? totalChatHistory.value.splice(existingIndex, 1, chatData)
-    : totalChatHistory.value.push(chatData);
+const saveCurrentChat = async () => {
+  try {
+    if (!currentChatId.value) {
+      await newChat();
+      return;
+    }
 
-  persistTotalHistory();
+    // 保存所有消息
+    for (const message of currentChatHistory.value) {
+      const response = await fetch(`${API_BASE_URL}/chat/messages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          session_id: currentChatId.value,
+          message_type: message.type,
+          content: message.text,
+          parent_id: message.parentId,
+          paired_ai_id: message.pairedAiId,
+          references: message.references,
+          question: message.question,
+          is_loading: message.isLoading
+        })
+      });
+
+      if (!response.ok) throw new Error("保存消息失败");
+    }
+  } catch (error) {
+    console.error("保存对话失败:", error);
+    ElMessage.error("保存对话失败");
+  }
 };
-
-const persistTotalHistory = () =>
-  localStorage.setItem(
-    "totalChatHistory",
-    JSON.stringify(totalChatHistory.value)
-  );
-
-const saveCurrentChatHistory = () =>
-  localStorage.setItem(
-    "currentChatHistory",
-    JSON.stringify({
-      id: currentChatId.value,
-      messages: currentChatHistory.value,
-    })
-  );
 
 /* ------------------ 工具方法 ------------------ */
 const checkLogin = () => localStorage.getItem("isAuthenticated") === "true"; //检查用户是否登录
@@ -744,37 +808,40 @@ const scrollToBottom = (behavior = "smooth") => {
   }
 };
 //历史记录内容初始化
-const initializeChatData = () => {
+const initializeChatData = async () => {
   try {
-    totalChatHistory.value =
-      JSON.parse(localStorage.getItem("totalChatHistory")) || [];
-    const current =
-      JSON.parse(localStorage.getItem("currentChatHistory")) || {};
-    currentChatId.value = current.id || generateChatId();
-    currentChatHistory.value = current.messages || [];
-  } catch (e) {
-    console.error("数据加载失败:", e);
-    initializeFreshChat();
-  }
-};
-const initializeFreshChat = () => {
-  currentChatId.value = generateChatId();
-  currentChatHistory.value = [];
-  totalChatHistory.value = [];
-  localStorage.removeItem("totalChatHistory");
-  localStorage.removeItem("currentChatHistory");
-};
-// 清空当前对话历史记录的内容
-const resetCurrentChat = () => {
-  currentChatId.value = generateChatId();
-  currentChatHistory.value = [];
-  localStorage.setItem("currentChatHistory", JSON.stringify([]));
-};
+    const userId = getUserId();
+    if (!userId) {
+      console.error("未找到用户ID");
+      return;
+    }
 
-const loadChat = (chat) => {
-  currentChatId.value = chat.id;
-  currentChatHistory.value = [...chat.messages];
-  nextTick(scrollToBottom);
+    // 获取会话列表
+    const response = await fetch(`${API_BASE_URL}/chat/sessions?user_id=${userId}`);
+    if (!response.ok) throw new Error("获取会话列表失败");
+    
+    const sessions = await response.json();
+    totalChatHistory.value = sessions.map(session => ({
+      id: session.id,
+      title: session.title,
+      messages: [],
+      timestamp: new Date(session.created_at).getTime()
+    }));
+
+    // 如果有会话，加载最新的
+    if (totalChatHistory.value.length > 0) {
+      const latestSession = totalChatHistory.value[0];
+      currentChatId.value = latestSession.id;
+      const messages = await fetchChatMessages(latestSession.id);
+      currentChatHistory.value = messages;
+    } else {
+      // 没有会话，创建新对话
+      await newChat();
+    }
+  } catch (error) {
+    console.error("初始化聊天数据失败:", error);
+    ElMessage.error("初始化聊天数据失败");
+  }
 };
 
 // 新增方法来显示自定义确认框
@@ -817,6 +884,140 @@ const handleScrollToBottom = () => {
 // 跳转到welcome页面
 const goToWelcome = () => {
   router.push('/');
+};
+
+// 获取用户ID
+const getUserId = () => {
+  return localStorage.getItem("userId");
+};
+
+// 获取聊天会话列表
+const fetchChatSessions = async () => {
+  try {
+    const userId = getUserId();
+    if (!userId) {
+      console.error("未找到用户ID");
+      return;
+    }
+    
+    const response = await fetch(`${API_BASE_URL}/chat/sessions?user_id=${userId}`);
+    if (!response.ok) throw new Error("获取会话列表失败");
+    
+    const data = await response.json();
+    totalChatHistory.value = data.map(session => ({
+      id: session.id,
+      title: session.title,
+      messages: [],
+      timestamp: new Date(session.created_at).getTime()
+    }));
+  } catch (error) {
+    console.error("获取会话列表失败:", error);
+    ElMessage.error("获取会话列表失败");
+  }
+};
+
+// 获取特定会话的消息
+const fetchChatMessages = async (sessionId) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/chat/messages?session_id=${sessionId}`);
+    if (!response.ok) throw new Error("获取消息失败");
+    
+    const data = await response.json();
+    return data.map(msg => ({
+      id: msg.id,
+      text: msg.content,
+      type: msg.message_type,
+      isLoading: msg.is_loading,
+      parentId: msg.parent_id,
+      pairedAiId: msg.paired_ai_id,
+      references: msg.references,
+      question: msg.question
+    }));
+  } catch (error) {
+    console.error("获取消息失败:", error);
+    ElMessage.error("获取消息失败");
+    return [];
+  }
+};
+
+// 保存新会话
+const saveNewSession = async () => {
+  try {
+    const userId = getUserId();
+    if (!userId) {
+      console.error("未找到用户ID");
+      return;
+    }
+
+    const response = await fetch(`${API_BASE_URL}/chat/sessions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        title: `对话 ${new Date().toLocaleTimeString()}`
+      })
+    });
+
+    if (!response.ok) throw new Error("创建会话失败");
+    
+    const data = await response.json();
+    currentChatId.value = data.id;
+    return data.id;
+  } catch (error) {
+    console.error("创建会话失败:", error);
+    ElMessage.error("创建会话失败");
+    return null;
+  }
+};
+
+// 保存消息
+const saveMessage = async (message) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/chat/messages`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        session_id: currentChatId.value,
+        message_type: message.type,
+        content: message.text,
+        parent_id: message.parentId,
+        paired_ai_id: message.pairedAiId,
+        references: message.references,
+        question: message.question,
+        is_loading: message.isLoading
+      })
+    });
+
+    if (!response.ok) throw new Error("保存消息失败");
+    
+    const data = await response.json();
+    return data.id;
+  } catch (error) {
+    console.error("保存消息失败:", error);
+    ElMessage.error("保存消息失败");
+    return null;
+  }
+};
+
+// 删除会话
+const deleteSession = async (sessionId) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/chat/sessions/${sessionId}`, {
+      method: 'DELETE'
+    });
+
+    if (!response.ok) throw new Error("删除会话失败");
+    
+    return true;
+  } catch (error) {
+    console.error("删除会话失败:", error);
+    ElMessage.error("删除会话失败");
+    return false;
+  }
 };
 </script>
 
