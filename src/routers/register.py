@@ -22,7 +22,6 @@ class RegisterRequest(BaseModel):
     code: str  # 验证码
     password: str
     confirm_password: str
-    nickname: str = None  # 可选字段，用户昵称
 
     # 验证器方法，确保两次输入的密码一致
     @validator('confirm_password')
@@ -69,14 +68,12 @@ async def register(request: RegisterRequest):
         # 使用MD5哈希处理密码
         hashed_password = hashlib.md5(request.password.encode()).hexdigest()
 
-        # 设置用户昵称，如果没有提供，则使用默认值
-        nickname = request.nickname if request.nickname else f"用户{request.mobile[-4:]}"
 
         # 注册用户，插入用户表
         user_id = execute_update(
-            """INSERT INTO users (mobile, password, nickname, theme_preference, register_time, status) 
-               VALUES (%s, %s, %s, 'light', NOW(), 1)""",
-            (request.mobile, hashed_password, nickname)
+            """INSERT INTO users (mobile, password, theme_preference, register_time, status) 
+               VALUES (%s, %s, 'light', NOW(), 1)""",
+            (request.mobile, hashed_password)
         )
 
         # 标记验证码为已使用

@@ -149,7 +149,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
 async def get_user_info(user_id: int = Depends(get_current_user)):
     try:
         # 查询用户信息
-        user_info = execute_query("SELECT user_id, mobile, nickname, avatar_url, theme_preference FROM users WHERE user_id = %s", (user_id,))
+        user_info = execute_query("SELECT user_id, mobile, theme_preference FROM users WHERE user_id = %s", (user_id,))
         
         if not user_info:
             raise HTTPException(status_code=404, detail="未找到用户信息")

@@ -7,26 +7,57 @@
     <div class="info-grid">
       <div class="info-item">
         <span class="info-label">知识库</span>
-        <span class="info-value">v3.2.1</span>
+        <span class="info-value">{{ systemStatus.knowledge_base }}</span>
       </div>
       <div class="info-item">
         <span class="info-label">更新日期</span>
-        <span class="info-value">2023-12-15</span>
+        <span class="info-value">{{ systemStatus.update_date }}</span>
       </div>
       <div class="info-item">
         <span class="info-label">数据源</span>
-        <span class="info-value">32个专业库</span>
+        <span class="info-value">{{ systemStatus.data_sources }}</span>
       </div>
       <div class="info-item">
         <span class="info-label">响应时间</span>
-        <span class="info-value">≤ 2秒</span>
+        <span class="info-value">{{ systemStatus.response_time }}</span>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-// No props or state needed for this component
+import { ref, onMounted } from 'vue'
+import { API_BASE_URL } from '../config'
+
+const systemStatus = ref({
+  knowledge_base: '加载中...',
+  update_date: '加载中...',
+  data_sources: '加载中...',
+  response_time: '加载中...'
+})
+
+const fetchSystemStatus = async () => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/system/status`)
+    if (!response.ok) {
+      throw new Error('获取系统状态失败')
+    }
+    const data = await response.json()
+    systemStatus.value = data
+  } catch (error) {
+    console.error('获取系统状态失败:', error)
+    systemStatus.value = {
+      knowledge_base: '获取失败',
+      update_date: '获取失败',
+      data_sources: '获取失败',
+      response_time: '获取失败'
+    }
+  }
+}
+
+onMounted(() => {
+  fetchSystemStatus()
+})
 </script>
 
 <style scoped>

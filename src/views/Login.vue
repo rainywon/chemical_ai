@@ -396,7 +396,7 @@ const login = async () => {
       
       // 跳转到首页
       setTimeout(() => {
-        router.push("/chat");
+        router.push("/");
       }, 1000);
     } else {
       resultMessage.value = response.data.message || "登录失败";

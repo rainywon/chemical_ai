@@ -11,10 +11,9 @@ router = APIRouter()
 class FeedbackRequest(BaseModel):
     feedback_type: str = Field(..., description="反馈类型：suggestion, bug, content, other")
     feedback_content: str = Field(..., description="反馈内容")
-    rating: Optional[int] = Field(None, description="评分 (1-5)", ge=1, le=5)
 
 # 创建一个 POST 请求的路由，路径为 "/submit-feedback/"
-@router.post("/submit-feedback/")
+@router.post("/submit-user-feedback/")
 # 异步处理函数，接收 FeedbackRequest 类型的请求体，以及用户身份验证
 async def submit_feedback(request: FeedbackRequest, user_id: Optional[int] = None):
     try:
@@ -32,9 +31,9 @@ async def submit_feedback(request: FeedbackRequest, user_id: Optional[int] = Non
             return {"code": 400, "message": "评分范围必须在1-5之间"}
 
         # 插入反馈数据到数据库中
-        query = """INSERT INTO user_feedback (user_id, feedback_type, feedback_content, rating, created_at, status) 
-                   VALUES (%s, %s, %s, %s, NOW(), 'pending')"""
-        params = (user_id, request.feedback_type, request.feedback_content, request.rating)
+        query = """INSERT INTO user_feedback (user_id, feedback_type, feedback_content, created_at, status) 
+                   VALUES (%s, %s, %s, NOW(), 'pending')"""
+        params = (user_id, request.feedback_type, request.feedback_content)
         
         feedback_id = execute_update(query, params)
 

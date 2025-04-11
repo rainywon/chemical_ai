@@ -63,20 +63,31 @@ async def send_sms(request: SmsRequest):
             (request.mobile, verification_code, request.purpose, expire_at)
         )
 
-        # 在实际生产环境中，应该调用短信服务发送验证码
-        # 这里仅作模拟，将验证码返回给前端
-        # 注意：实际项目中应该将验证码通过短信发送给用户，而不是返回给前端
+        # 构造发送短信的请求数据
+        data = {
+            "phone_number": request.mobile,
+            "content": f"code:{verification_code}",
+            "template_id": TEMPLATE_ID
+        }
+        
+        # 设置请求头
+        headers = {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Authorization": "APPCODE " + APPCODE
+        }
+        
+        # 发送短信请求
+        response = requests.post(URL, headers=headers, data=data)
+        response.raise_for_status()
         
         # 返回成功响应
         return {
             "code": 200, 
-            "message": "验证码已发送", 
-            "data": {
-                "verification_code": verification_code  # 注意：仅用于开发和测试环境
-            }
+            "message": "验证码已发送"
         }
 
-    # 捕获异常并返回HTTP 500错误，附带错误信息
+    except requests.RequestException as err:
+        raise HTTPException(status_code=500, detail=f"短信发送请求失败: {err}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

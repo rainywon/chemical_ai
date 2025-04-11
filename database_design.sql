@@ -33,12 +33,9 @@ CREATE TABLE users (
     user_id INT AUTO_INCREMENT PRIMARY KEY,
     mobile VARCHAR(15) NOT NULL UNIQUE COMMENT '用户手机号',
     password VARCHAR(255) COMMENT '加密后的密码',
-    nickname VARCHAR(50) DEFAULT 'AI用户' COMMENT '用户昵称',
-    avatar_url VARCHAR(255) DEFAULT NULL COMMENT '用户头像URL',
     theme_preference ENUM('light', 'dark') DEFAULT 'light' COMMENT '主题偏好',
     register_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '注册时间',
     last_login_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '最后登录时间',
-    login_count INT DEFAULT 0 COMMENT '登录次数',
     status TINYINT DEFAULT 1 COMMENT '账号状态: 0-禁用, 1-正常',
     INDEX idx_mobile (mobile)
 ) COMMENT='用户信息表';
@@ -70,29 +67,6 @@ CREATE TABLE user_tokens (
     INDEX idx_user_id (user_id)
 ) COMMENT='用户登录令牌表';
 
--- 聊天会话表
-CREATE TABLE chat_conversations (
-    conversation_id VARCHAR(50) PRIMARY KEY COMMENT '会话ID',
-    user_id INT NOT NULL COMMENT '用户ID',
-    title VARCHAR(100) DEFAULT NULL COMMENT '会话标题',
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
-    INDEX idx_user_id_created (user_id, created_at)
-) COMMENT='聊天会话表';
-
--- 聊天消息表
-CREATE TABLE chat_messages (
-    message_id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    conversation_id VARCHAR(50) NOT NULL COMMENT '会话ID',
-    sender_type ENUM('user', 'ai') NOT NULL COMMENT '发送者类型',
-    message_text TEXT NOT NULL COMMENT '消息内容',
-    message_type ENUM('text', 'image', 'file') DEFAULT 'text' COMMENT '消息类型',
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    is_thinking TINYINT DEFAULT 0 COMMENT '是否为AI思考过程: 0-否, 1-是',
-    FOREIGN KEY (conversation_id) REFERENCES chat_conversations(conversation_id) ON DELETE CASCADE,
-    INDEX idx_conversation_created (conversation_id, created_at)
-) COMMENT='聊天消息表';
 
 -- AI模型配置表
 CREATE TABLE ai_models (

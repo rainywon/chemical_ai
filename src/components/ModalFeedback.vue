@@ -51,12 +51,23 @@
 
 <script setup>
 import { ref } from 'vue';
+// API配置
+import { API_BASE_URL } from "../config";
+
 
 // Props
 const props = defineProps({
   show: {
     type: Boolean,
     required: true
+  },
+  message: {
+    type: String,
+    default: ''
+  },
+  question: {
+    type: String,
+    default: ''
   }
 });
 
@@ -71,10 +82,10 @@ const showFeedbackError = ref(false);
 
 // 反馈类型选项
 const feedbackTypes = [
-  { value: 'suggestion', label: '功能建议', icon: '💡' },
-  { value: 'bug', label: '问题反馈', icon: '🐛' },
-  { value: 'content', label: '内容改进', icon: '📝' },
-  { value: 'other', label: '其他', icon: '✨' },
+  { value: 'suggestion', label: '功能建议', icon: '' },
+  { value: 'bug', label: '问题反馈', icon: '' },
+  { value: 'content', label: '内容改进', icon: '' },
+  { value: 'other', label: '其他', icon: '' },
 ];
 
 // 关闭反馈弹窗
@@ -92,7 +103,7 @@ const resetForm = () => {
 };
 
 // 提交反馈
-const submitFeedback = () => {
+const submitFeedback = async () => {
   // 验证反馈内容
   if (feedbackText.value.trim().length < 5) {
     showFeedbackError.value = true;
@@ -107,23 +118,37 @@ const submitFeedback = () => {
   // 设置提交状态
   feedbackSubmitting.value = true;
   
-  // 模拟API调用
-  setTimeout(() => {
-    // 实际项目中这里应该有API调用
-    console.log('提交反馈:', {
-      type: feedbackType.value,
-      content: feedbackText.value
+  try {
+    const response = await fetch(`${API_BASE_URL}/submit-content-feedback`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        feedback_type: feedbackType.value,
+        feedback_content: feedbackText.value,
+      }),
     });
-    
-    // 恢复状态
+
+    if (!response.ok) {
+      throw new Error('提交失败');
+    }
+
+    const data = await response.json();
+    if (data.code === 200) {
+      // 发送成功信号
+      emit('submit-success');
+      // 关闭弹窗
+      closeFeedbackModal();
+    } else {
+      throw new Error(data.message || '提交失败');
+    }
+  } catch (error) {
+    console.error('提交反馈失败:', error);
+    // 这里可以添加错误提示
+  } finally {
     feedbackSubmitting.value = false;
-    
-    // 发送成功信号
-    emit('submit-success');
-    
-    // 关闭弹窗
-    closeFeedbackModal();
-  }, 1000);
+  }
 };
 </script>
 
@@ -234,7 +259,7 @@ const submitFeedback = () => {
 }
 
 .feedback-textarea {
-  width: 100%;
+  width: 90%;
   min-height: 150px;
   padding: 16px;
   border: 1px solid #e9ecef;

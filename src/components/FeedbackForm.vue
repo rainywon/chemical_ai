@@ -140,7 +140,7 @@ const closeFeedback = () => {
 const submitFeedback = async () => {
   if (rating.value) {
     try {
-      const response = await fetch(`${API_BASE_URL}/submit-feedback`, {
+      const response = await fetch(`${API_BASE_URL}/submit-content_feedback`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

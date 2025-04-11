@@ -2,9 +2,8 @@
 from .login import router as login_router
 from .sms import router as sms_router
 from .query import router as query_router
-from .submit_feedback import router as feedback_router
+from .user_feedback import router as feedback_router
 from .register import router as register_router
-from .chat_history import router as chat_history_router
 
 # 导出所有路由
 routers = [
@@ -13,5 +12,4 @@ routers = [
     query_router,
     feedback_router,
     register_router,
-    chat_history_router,
 ] 
