@@ -386,6 +386,7 @@ const login = async () => {
       localStorage.setItem("mobile", formData.phone);
       if (response.data.token) {
         localStorage.setItem("token", response.data.token);
+        localStorage.setItem("user_id", response.data.user_id);
       }
       
       resultMessage.value = "登录成功，正在跳转...";

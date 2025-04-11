@@ -183,68 +183,92 @@ import ChatContentTop from "../components/ChatContentTop.vue";
 import axios from "axios";
 
 /* ------------------ 状态管理 ------------------ */
-// 响应式状态
-const router = useRouter();
-const scrollContainer = ref(null);
-const inputRef = ref(null);
-const isCollapsed = ref(false);
-const showLoginPrompt = ref(false);
-const textarea2 = ref("");
-const currentChatHistory = ref([]);
-const currentChatId = ref(null);
-const totalChatHistory = ref([]);
-const isLoading = ref(false);
-const isSending = ref(false);
-let UserName = ref("AI用户");
-let abortController = null;
-const selectedOption = ref("知识库生成");
-const options = [
+// 响应式状态：用于管理组件的各种状态
+const router = useRouter(); // 路由实例，用于页面导航
+const scrollContainer = ref(null); // 滚动容器引用，用于控制消息区域的滚动
+const inputRef = ref(null); // 输入框引用，用于聚焦输入框
+const isCollapsed = ref(false); // 侧边栏折叠状态，控制侧边栏的展开/收起
+const showLoginPrompt = ref(false); // 登录提示显示状态，控制登录提示弹窗的显示/隐藏
+const textarea2 = ref(""); // 输入框内容，存储用户输入的消息
+const currentChatHistory = ref([]); // 当前对话历史，存储当前会话的所有消息
+const currentChatId = ref(null); // 当前对话ID，标识当前正在进行的会话
+const totalChatHistory = ref([]); // 所有对话历史，存储所有历史会话
+const isLoading = ref(false); // 加载状态，标识是否正在加载数据
+const isSending = ref(false); // 发送状态，标识是否正在发送消息
+let UserName = ref("AI用户"); // 用户名，显示当前登录用户
+let abortController = null; // 中止控制器，用于取消正在进行的请求
+const selectedOption = ref("知识库生成"); // 选中的生成模式，控制使用哪种方式生成回答
+const options = [ // 生成模式选项列表
   { value: "llm", label: "大模型生成" },
   { value: "kb", label: "知识库生成" },
 ];
-const shouldAutoScroll = ref(true);
-const showScrollButton = ref(false);
+const shouldAutoScroll = ref(true); // 是否自动滚动，控制消息区域是否自动滚动到底部
+const showScrollButton = ref(false); // 是否显示滚动按钮，控制滚动到底部按钮的显示/隐藏
 
-// 确认框状态
-const showCustomConfirm = ref(false);
-const confirmTitle = ref('');
-const confirmMessage = ref('');
-const confirmType = ref('warning');
-const confirmText = ref('确定');
-const cancelText = ref('取消');
-const confirmAction = ref(() => {});
-const confirmButtonClass = computed(() => confirmType.value === 'danger' ? 'danger' : 'confirm');
+// 确认框状态：用于管理确认弹窗的状态
+const showCustomConfirm = ref(false); // 是否显示确认框
+const confirmTitle = ref(''); // 确认框标题
+const confirmMessage = ref(''); // 确认框消息内容
+const confirmType = ref('warning'); // 确认框类型（warning/danger）
+const confirmText = ref('确定'); // 确认按钮文本
+const cancelText = ref('取消'); // 取消按钮文本
+const confirmAction = ref(() => {}); // 确认按钮点击事件
+const confirmButtonClass = computed(() => confirmType.value === 'danger' ? 'danger' : 'confirm'); // 确认按钮样式类
 
-// 计算属性
-const sidebarWidth = computed(() => (isCollapsed.value ? "64px" : "300px"));
-const selectedOptionLabel = computed(() => {
+// 计算属性：用于派生状态
+const sidebarWidth = computed(() => (isCollapsed.value ? "64px" : "300px")); // 侧边栏宽度，根据折叠状态动态计算
+const selectedOptionLabel = computed(() => { // 当前选中的生成模式标签
   const option = options.find(
     (option) => option.value === selectedOption.value
   );
   return option ? option.label : "";
 });
-const lastAiMessageId = computed(() => {
+const lastAiMessageId = computed(() => { // 最后一条AI消息的ID
   const aiMessages = currentChatHistory.value.filter((m) => m.type === "ai");
   return aiMessages.length ? aiMessages[aiMessages.length - 1].id : null;
 });
 
 /* ------------------ 用户操作 ------------------ */
-// 登录相关
-const checkLogin = () => localStorage.getItem("isAuthenticated") === "true";
-const getUserId = () => localStorage.getItem("userId");
+// 登录相关操作
+const checkLogin = () => localStorage.getItem("isAuthenticated") === "true"; // 检查用户是否已登录
+const getUserId = () => localStorage.getItem("userId"); // 获取当前用户ID
 const tologin = async () => {
   try {
     await showConfirm({
       title: '退出登录',
-      message: '您确定要退出登录吗？',
+      message: '确定要退出登录吗？',
       type: 'warning',
       confirmButtonText: '确定',
       cancelButtonText: '取消',
-      onConfirm: () => {
-        localStorage.setItem("isAuthenticated", "false");
-        setTimeout(() => {
-          router.push("/login");
-        }, 200);
+      onConfirm: async () => {
+        try {
+          // 调用后端退出登录 API
+          const response = await fetch(`${API_BASE_URL}/logout/`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+          });
+
+          if (!response.ok) {
+            throw new Error('退出登录失败');
+          }
+
+          // 清除本地存储的用户信息
+          localStorage.removeItem("isAuthenticated");
+          localStorage.removeItem("userId");
+          localStorage.removeItem("token");
+          localStorage.removeItem("mobile");
+          localStorage.removeItem("generateMode");
+          
+          // 延迟跳转到登录页面
+          setTimeout(() => {
+            router.push("/login");
+          }, 200);
+        } catch (error) {
+          console.error("退出登录失败:", error);
+          ElMessage.error("退出登录失败，请重试");
+        }
       }
     });
   } catch (e) {
@@ -283,10 +307,11 @@ const handleChange = (value) => {
 };
 
 /* ------------------ 消息处理 ------------------ */
-// 消息发送
-const handleEnter = (e) => !e.shiftKey && handleSendMessage();
-const handleShiftEnter = (e) => e.shiftKey && null;
+// 消息发送相关
+const handleEnter = (e) => !e.shiftKey && handleSendMessage(); // 处理回车键发送消息
+const handleShiftEnter = (e) => e.shiftKey && null; // 处理Shift+Enter换行
 
+// 发送消息
 const handleSendMessage = async () => {
   if (!checkLogin()) {
     showLoginPrompt.value = true;
@@ -295,6 +320,7 @@ const handleSendMessage = async () => {
   if (!textarea2.value.trim()) return;
   isSending.value = true;
 
+  // 添加用户消息
   const userText = textarea2.value;
   const userMsg = {
     text: userText,
@@ -304,6 +330,7 @@ const handleSendMessage = async () => {
   };
   currentChatHistory.value.push(userMsg);
 
+  // 添加AI占位消息
   const aiMsg = {
     text: "",
     type: "ai",
@@ -318,6 +345,7 @@ const handleSendMessage = async () => {
 
   saveCurrentChat();
   
+  // 滚动到底部
   await nextTick(() => {
     scrollToBottom("auto");
     const container = scrollContainer.value;
@@ -329,10 +357,11 @@ const handleSendMessage = async () => {
   textarea2.value = "";
   saveCurrentChat();
 
+  // 处理AI响应
   await processAIResponse(userText, aiMsg);
 };
 
-// 消息停止
+// 停止消息
 const handleStopMessage = () => {
   if (abortController) {
     abortController.abort();
@@ -343,7 +372,7 @@ const handleStopMessage = () => {
   isSending.value = false;
 };
 
-// 消息重新生成
+// 重新生成消息
 const regenerateResponse = (aiMsgId) => {
   const aiMessage = currentChatHistory.value.find((msg) => msg.id === aiMsgId);
   if (!aiMessage) return;
@@ -736,6 +765,7 @@ const isLastAiMessage = (msg) => {
 };
 
 /* ------------------ 生命周期钩子 ------------------ */
+// 组件挂载时执行
 onMounted(async () => {
   try {
     const mobile = localStorage.getItem("mobile");
@@ -761,6 +791,7 @@ onMounted(async () => {
   }
 });
 
+// 组件卸载前执行
 onBeforeUnmount(() => {
   const container = scrollContainer.value;
   if (container) {

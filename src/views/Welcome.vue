@@ -58,6 +58,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { ElMessage } from 'element-plus';
 
 // 导入组件
 import AppHeader from '@/components/AppHeader.vue';
@@ -125,14 +126,34 @@ const showConfirm = (message) => {
 };
 
 // 确认操作
-const confirmLogout = () => {
-  // 设置认证状态为false
-  localStorage.setItem("isAuthenticated", "false");
-  
-  // 跳转到登录页面
-  setTimeout(() => {
-    router.push("/login");
-  }, 200);
+const confirmLogout = async () => {
+  try {
+    // 调用后端退出登录 API
+    const response = await fetch(`${API_BASE_URL}/logout/`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('退出登录失败');
+    }
+
+    // 清除本地存储的用户信息
+    localStorage.removeItem("isAuthenticated");
+    localStorage.removeItem("userId");
+    localStorage.removeItem("token");
+    localStorage.removeItem("mobile");
+    
+    // 跳转到登录页面
+    setTimeout(() => {
+      router.push("/login");
+    }, 200);
+  } catch (error) {
+    console.error("退出登录失败:", error);
+    ElMessage.error("退出登录失败，请重试");
+  }
 };
 
 // 退出登录
