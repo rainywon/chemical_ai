@@ -75,6 +75,9 @@ const props = defineProps({
   isLast: Boolean,
 });
 
+// Log the original message
+console.log('Original Message:', props.message);
+
 // 存储 think 块的状态（展开/收起）
 const thinkBlocksState = ref(new Map());
 

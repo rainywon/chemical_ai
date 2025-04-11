@@ -1,397 +1,226 @@
 <template>
   <div class="welcome-container">
-    <div class="welcome-card">
-      <div class="top-section">
-        <div class="logo-container">
-          <img src="@/assets/product_logo.png" alt="应用Logo" class="logo" />
-        </div>
-        
-        <h1 class="title">欢迎使用智能助手</h1>
-        <p class="subtitle">您的化工安全AI对话助手，随时为您提供专业帮助</p>
+    <div class="welcome-content">
+      <!-- 系统概览区域 -->
+      <div class="system-overview">
+        <AppHeader 
+          :current-theme="currentTheme" 
+          @toggle-theme="toggleTheme" 
+          @show-feedback="showFeedback = true" 
+          @logout="logout" 
+        />
+        <SystemStatusCard />
       </div>
       
-      <!-- 核心特点简化展示 -->
-      <div class="features">
-        <div class="feature-item">
-          <div class="feature-icon">💬</div>
-          <div class="feature-text">智能对话</div>
-        </div>
-        <div class="feature-item">
-          <div class="feature-icon">📚</div>
-          <div class="feature-text">知识丰富</div>
-        </div>
-        <div class="feature-item">
-          <div class="feature-icon">⚡</div>
-          <div class="feature-text">快速响应</div>
-        </div>
-      </div>
-      
-      <!-- 新增的两个模块区域 -->
-      <div class="modules-container">
-        <!-- 化工安全智能问答模块 -->
-        <div class="module-card chemical-safety">
-          <div class="module-header">
-            <div class="module-icon">🧪</div>
-            <h2 class="module-title">化工安全智能问答</h2>
-          </div>
-          <p class="module-desc">针对化工安全知识的实时咨询，为您解答安全疑问</p>
-          <div class="module-features">
-            <div class="module-feature">
-              <span class="check-icon">✓</span>
-              <span>专业知识库</span>
-            </div>
-            <div class="module-feature">
-              <span class="check-icon">✓</span>
-              <span>安全建议</span>
-            </div>
-          </div>
-          <router-link to="/chat" class="module-btn">开始咨询</router-link>
-        </div>
-        
-        <!-- 文件浏览下载模块 -->
-        <div class="module-card file-browser">
-          <div class="module-header">
-            <div class="module-icon">📁</div>
-            <h2 class="module-title">安全资料库</h2>
-          </div>
-          <p class="module-desc">浏览与下载各类化工安全相关文档与标准</p>
-          <div class="module-features">
-            <div class="module-feature">
-              <span class="check-icon">✓</span>
-              <span>安全手册</span>
-            </div>
-            <div class="module-feature">
-              <span class="check-icon">✓</span>
-              <span>标准文件</span>
-            </div>
-          </div>
-          <router-link to="/files" class="module-btn">浏览文件</router-link>
+      <!-- 功能模块区域 -->
+      <div class="features-grid">
+        <!-- 智能问答模块 - 占据左半边 -->
+        <AIFeatureCard />
+
+        <!-- 右半边容器 -->
+        <div class="right-side">
+          <!-- 安全资料库模块 -->
+          <FileLibraryCard />
+
+          <!-- 应急处理模块 -->
+          <EmergencyResponseCard />
         </div>
       </div>
       
-      <div class="action-buttons">
-        <div class="secondary-actions">
-          <router-link to="/login" class="secondary-btn">登录</router-link>
-          <router-link to="/register" class="secondary-btn">注册</router-link>
-        </div>
-      </div>
+      <!-- 反馈弹窗 -->
+      <ModalFeedback 
+        :show="showFeedback" 
+        @close="showFeedback = false" 
+        @submit-success="handleFeedbackSuccess" 
+      />
+      
+      <!-- 退出登录确认弹窗 -->
+      <ModalConfirm
+        :show="showConfirmModal"
+        :message="confirmMessage"
+        @confirm="confirmLogout"
+        @cancel="showConfirmModal = false"
+      />
+      
+      <!-- 反馈提交成功通知 -->
+      <NotificationToast
+        :show="showSuccessNotification"
+        title="提交成功"
+        message="感谢您的反馈！我们会认真考虑您的意见。"
+        type="success"
+        :duration="3000"
+        @close="showSuccessNotification = false"
+      />
     </div>
   </div>
 </template>
 
 <script setup>
-// Welcome 页面逻辑
+import { ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+
+// 导入组件
+import AppHeader from '@/components/AppHeader.vue';
+import SystemStatusCard from '@/components/SystemStatusCard.vue';
+import AIFeatureCard from '@/components/AIFeatureCard.vue';
+import FileLibraryCard from '@/components/FileLibraryCard.vue';
+import EmergencyResponseCard from '@/components/EmergencyResponseCard.vue';
+import ModalFeedback from '@/components/ModalFeedback.vue';
+import ModalConfirm from '@/components/ModalConfirm.vue';
+import NotificationToast from '@/components/NotificationToast.vue';
+
+// 路由
+const router = useRouter();
+
+// 状态变量
+const showFeedback = ref(false);
+const showConfirmModal = ref(false);
+const confirmMessage = ref('');
+const currentTheme = ref('light');
+const showSuccessNotification = ref(false);
+
+// 检查并应用已保存的主题
+onMounted(() => {
+  // 检查本地存储中的主题设置
+  const savedTheme = localStorage.getItem('appTheme');
+  if (savedTheme) {
+    currentTheme.value = savedTheme;
+    applyTheme(savedTheme);
+  }
+  
+  // 检查系统首选主题
+  if (!savedTheme && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    currentTheme.value = 'dark';
+    applyTheme('dark');
+  }
+});
+
+// 应用主题
+const applyTheme = (theme) => {
+  if (theme === 'dark') {
+    document.body.classList.add('dark-theme');
+  } else {
+    document.body.classList.remove('dark-theme');
+  }
+  // 保存主题设置到本地存储
+  localStorage.setItem('appTheme', theme);
+};
+
+// 切换主题
+const toggleTheme = () => {
+  const newTheme = currentTheme.value === 'light' ? 'dark' : 'light';
+  currentTheme.value = newTheme;
+  applyTheme(newTheme);
+};
+
+// 处理反馈成功
+const handleFeedbackSuccess = () => {
+  showSuccessNotification.value = true;
+};
+
+// 显示确认对话框
+const showConfirm = (message) => {
+  confirmMessage.value = message;
+  showConfirmModal.value = true;
+};
+
+// 确认操作
+const confirmLogout = () => {
+  // 设置认证状态为false
+  localStorage.setItem("isAuthenticated", "false");
+  
+  // 跳转到登录页面
+  setTimeout(() => {
+    router.push("/login");
+  }, 200);
+};
+
+// 退出登录
+const logout = () => {
+  showConfirm('确定要退出登录吗？');
+};
 </script>
 
 <style scoped>
 .welcome-container {
+  height: 100vh;
+  background: linear-gradient(135deg, #f0f4fa 0%, #e6ebf5 100%);
+  padding: 24px;
   display: flex;
-  justify-content: center;
   align-items: center;
-  height: 100vh; /* 使用固定高度而非最小高度 */
-  background: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
-  padding: 0;
-  overflow: hidden; /* 防止滚动 */
+  justify-content: center;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
-.welcome-card {
-  max-width: 900px;
-  width: 90%;
+.welcome-content {
+  max-width: 1400px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-height: calc(100vh - 48px);
+}
+
+/* 系统概览样式 */
+.system-overview {
   background: white;
-  border-radius: 20px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-  padding: 30px;
-  text-align: center;
-  animation: fadeIn 0.8s ease-out;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  height: auto;
-  max-height: 90vh;
-}
-
-.top-section {
-  margin-bottom: 20px;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.logo-container {
-  margin-bottom: 15px;
-}
-
-.logo {
-  width: 60px;
-  height: 60px;
-  object-fit: contain;
-}
-
-.title {
-  font-size: 24px;
-  font-weight: 600;
-  color: #2b3674;
-  margin-bottom: 5px;
-  letter-spacing: -0.5px;
-}
-
-.subtitle {
-  font-size: 14px;
-  color: #606478;
-  margin-bottom: 15px;
-  line-height: 1.4;
-}
-
-.features {
-  display: flex;
-  justify-content: center;
-  gap: 30px;
-  margin-bottom: 25px;
-}
-
-.feature-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  transition: all 0.3s ease;
-}
-
-.feature-item:hover {
-  transform: translateY(-3px);
-}
-
-.feature-icon {
-  font-size: 24px;
-  margin-bottom: 8px;
-}
-
-.feature-text {
-  font-size: 13px;
-  font-weight: 500;
-  color: #4a5173;
-}
-
-/* 模块样式优化 */
-.modules-container {
-  display: flex;
-  gap: 20px;
-  margin-bottom: 25px;
-}
-
-.module-card {
-  flex: 1;
-  background: #f9fafc;
   border-radius: 16px;
   padding: 20px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  border: 1px solid rgba(223, 225, 230, 0.6);
-  transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
 }
 
-.module-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
-  border-color: rgba(223, 225, 230, 0.9);
-}
-
-.module-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 5px;
-  transition: all 0.3s ease;
-}
-
-.chemical-safety::before {
-  background: linear-gradient(to right, #4d72e3, #8175c9);
-}
-
-.file-browser::before {
-  background: linear-gradient(to right, #42b883, #35a56f);
-}
-
-.module-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 10px;
-  width: 100%;
-  justify-content: center;
-}
-
-.module-icon {
-  font-size: 24px;
-  background: rgba(255, 255, 255, 0.8);
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
-}
-
-.module-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #2b3674;
-  margin: 0;
-}
-
-.module-desc {
-  font-size: 13px;
-  color: #606478;
-  margin-bottom: 12px;
-  line-height: 1.4;
-}
-
-.module-features {
-  width: 100%;
-  margin-bottom: 15px;
-  text-align: left;
-}
-
-.module-feature {
-  display: flex;
-  align-items: center;
-  margin-bottom: 6px;
-  font-size: 13px;
-  color: #4a5173;
-}
-
-.check-icon {
-  color: #4a6ee0;
-  margin-right: 8px;
-  font-weight: bold;
-  font-size: 12px;
-}
-
-.file-browser .check-icon {
-  color: #42b883;
-}
-
-.module-btn {
-  background: #4a6ee0;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 8px;
-  font-weight: 500;
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  text-decoration: none;
-  display: inline-block;
-  box-shadow: 0 3px 8px rgba(74, 110, 224, 0.2);
-}
-
-.file-browser .module-btn {
-  background: #42b883;
-  box-shadow: 0 3px 8px rgba(66, 184, 131, 0.2);
-}
-
-.module-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 5px 12px rgba(74, 110, 224, 0.3);
-}
-
-.file-browser .module-btn:hover {
-  box-shadow: 0 5px 12px rgba(66, 184, 131, 0.3);
-}
-
-.action-buttons {
-  margin-top: 10px;
-}
-
-.secondary-actions {
-  display: flex;
-  justify-content: center;
+/* 功能模块网格样式 */
+.features-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 20px;
+  overflow: hidden;
+  flex: 1;
+  height: calc(100vh - 200px);
 }
 
-.secondary-btn {
-  color: #4a6ee0;
-  font-size: 13px;
-  font-weight: 500;
-  text-decoration: none;
-  padding: 5px 0;
-  position: relative;
-  transition: all 0.3s ease;
+.right-side {
+  grid-column: 2;
+  grid-row: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  max-height: calc(100vh - 200px);
 }
 
-.secondary-btn::after {
-  content: '';
-  position: absolute;
-  width: 0;
-  height: 2px;
-  bottom: 0;
-  left: 0;
-  background-color: #4a6ee0;
-  transition: width 0.3s ease;
-}
-
-.secondary-btn:hover {
-  color: #3a56b4;
-}
-
-.secondary-btn:hover::after {
-  width: 100%;
-}
-
-/* 响应式调整 */
-@media (max-width: 768px) {
-  .welcome-card {
-    padding: 20px 15px;
-    width: 95%;
-  }
-  
-  .features {
-    gap: 15px;
-  }
-  
-  .modules-container {
-    flex-direction: column;
-    gap: 15px;
-  }
-  
-  .module-card {
-    padding: 15px;
-    margin-bottom: 0;
-  }
-  
-  .module-feature {
-    font-size: 12px;
-  }
-  
-  .logo {
-    width: 50px;
-    height: 50px;
-  }
-  
-  .title {
-    font-size: 20px;
+/* 响应式设计 */
+@media (max-width: 1200px) {
+  .features-grid {
+    grid-template-columns: 1fr 1fr;
   }
 }
 
-/* 修复Safari中的特定问题 */
-@supports (-webkit-touch-callout: none) {
-  .welcome-container {
-    height: -webkit-fill-available;
+@media (max-width: 900px) {
+  .features-grid {
+    grid-template-columns: 1fr;
+    height: auto;
   }
+  
+  .right-side {
+    grid-column: 1;
+    grid-row: auto;
+    grid-template-columns: 1fr;
+    max-height: none;
+  }
+}
+
+/* 暗色模式适配 */
+body.dark-theme {
+  background: #111827;
+  color: #f3f4f6;
+}
+
+body.dark-theme .welcome-container {
+  background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+}
+
+body.dark-theme .system-overview {
+  background: #1f2937;
 }
 </style> 
