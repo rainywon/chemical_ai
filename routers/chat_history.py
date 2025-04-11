@@ -1,205 +1,215 @@
-from fastapi import APIRouter, HTTPException, Depends, Body, Request
-from fastapi.responses import JSONResponse
-import uuid
-import datetime
-from typing import Optional, Dict, Any, List
-from pydantic import BaseModel
-from database import execute_update, execute_query
+from fastapi import APIRouter, HTTPException, Depends, Body
+from pydantic import BaseModel, Field
+from typing import List, Optional
+from database import execute_query, execute_update, execute_transaction
 from routers.login import get_current_user
+import uuid
+from datetime import datetime
 
-# 初始化路由
+# 初始化 APIRouter 实例，用于定义路由
 router = APIRouter()
 
-# 定义请求/响应模型
-class ChatCreate(BaseModel):
-    title: str = "新的对话"
+# 定义消息模型
+class Message(BaseModel):
+    message_id: Optional[int] = None
+    sender_type: str
+    message_text: str
+    message_type: str = "text"
+    created_at: Optional[datetime] = None
 
-class ChatDelete(BaseModel):
-    chat_id: str
+# 定义聊天会话模型
+class Conversation(BaseModel):
+    conversation_id: str
+    title: Optional[str] = None
+    messages: List[Message] = []
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
-class MessageAdd(BaseModel):
-    chat_id: str
-    message_type: str  # 'user' 或 'assistant'
-    content: str
-
-class TitleUpdate(BaseModel):
-    chat_id: str
-    title: str
-
-# 获取用户历史记录列表
-@router.get("/api/chat/history")
-async def get_chat_history(current_user: int = Depends(get_current_user)):
+# 创建新的聊天会话
+@router.post("/conversations/")
+async def create_conversation(title: str = Body(None), user_id: int = Depends(get_current_user)):
     try:
-        history = execute_query(
-            """SELECT chat_id, title, create_time, update_time FROM chat_history 
-               WHERE user_id = %s AND is_deleted = FALSE ORDER BY update_time DESC""",
-            (current_user,)
-        )
+        # 生成会话ID
+        conversation_id = str(uuid.uuid4())
         
-        # 格式化日期时间
-        for item in history:
-            item['create_time'] = item['create_time'].strftime('%Y-%m-%d %H:%M:%S')
-            item['update_time'] = item['update_time'].strftime('%Y-%m-%d %H:%M:%S')
-        
-        return {"code": 200, "data": history}
-    
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"获取历史记录失败：{str(e)}")
-
-# 创建新的聊天记录
-@router.post("/api/chat/create")
-async def create_chat(chat_data: ChatCreate, current_user: int = Depends(get_current_user)):
-    try:
-        chat_id = str(uuid.uuid4())
-        now = datetime.datetime.now()
-        
+        # 默认标题
+        if not title:
+            title = f"新对话 {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+            
+        # 创建会话
         execute_update(
-            """INSERT INTO chat_history (user_id, chat_id, title, create_time, update_time) 
-               VALUES (%s, %s, %s, %s, %s)""",
-            (current_user, chat_id, chat_data.title, now, now)
+            """INSERT INTO chat_conversations (conversation_id, user_id, title, created_at, updated_at) 
+               VALUES (%s, %s, %s, NOW(), NOW())""",
+            (conversation_id, user_id, title)
         )
         
         return {
-            "code": 200, 
+            "code": 200,
+            "message": "会话创建成功",
             "data": {
-                "chat_id": chat_id,
-                "title": chat_data.title,
-                "create_time": now.strftime('%Y-%m-%d %H:%M:%S'),
-                "update_time": now.strftime('%Y-%m-%d %H:%M:%S')
+                "conversation_id": conversation_id,
+                "title": title
             }
         }
-        
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"创建聊天失败：{str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
-# 删除聊天记录
-@router.post("/api/chat/delete")
-async def delete_chat(chat_data: ChatDelete, current_user: int = Depends(get_current_user)):
+# 获取用户的所有聊天会话
+@router.get("/conversations/")
+async def get_conversations(user_id: int = Depends(get_current_user)):
     try:
-        # 检查该聊天是否属于当前用户
-        result = execute_query(
-            """SELECT COUNT(*) as count FROM chat_history WHERE user_id = %s AND chat_id = %s""",
-            (current_user, chat_data.chat_id)
+        conversations = execute_query(
+            """SELECT conversation_id, title, created_at, updated_at 
+               FROM chat_conversations 
+               WHERE user_id = %s 
+               ORDER BY updated_at DESC""",
+            (user_id,)
         )
         
-        if not result or result[0]['count'] == 0:
-            raise HTTPException(status_code=403, detail="无权操作此聊天记录")
-        
-        # 逻辑删除（将is_deleted标记为TRUE）
-        execute_update(
-            """UPDATE chat_history SET is_deleted = TRUE WHERE chat_id = %s""",
-            (chat_data.chat_id,)
-        )
-        
-        return {"code": 200, "message": "删除成功"}
-        
-    except HTTPException:
-        raise
+        return {
+            "code": 200,
+            "message": "获取会话列表成功",
+            "data": conversations
+        }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"删除聊天失败：{str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
-# 获取聊天消息
-@router.get("/api/chat/messages")
-async def get_chat_messages(chat_id: str, current_user: int = Depends(get_current_user)):
+# 获取特定会话的所有消息
+@router.get("/conversations/{conversation_id}/messages/")
+async def get_messages(conversation_id: str, user_id: int = Depends(get_current_user)):
     try:
-        if not chat_id:
-            raise HTTPException(status_code=400, detail="缺少chat_id参数")
-        
-        # 验证用户是否有权限访问该聊天
-        result = execute_query(
-            """SELECT COUNT(*) as count FROM chat_history WHERE user_id = %s AND chat_id = %s""",
-            (current_user, chat_id)
+        # 验证会话所有权
+        conversation = execute_query(
+            """SELECT * FROM chat_conversations 
+               WHERE conversation_id = %s AND user_id = %s""",
+            (conversation_id, user_id)
         )
         
-        if not result or result[0]['count'] == 0:
-            raise HTTPException(status_code=403, detail="无权访问此聊天记录")
+        if not conversation:
+            return {"code": 404, "message": "会话不存在或无权访问"}
         
-        # 获取聊天消息
+        # 获取会话中的所有消息
         messages = execute_query(
-            """SELECT id, message_type, content, send_time FROM chat_messages 
-               WHERE chat_id = %s ORDER BY send_time ASC""",
-            (chat_id,)
+            """SELECT message_id, sender_type, message_text, message_type, created_at 
+               FROM chat_messages 
+               WHERE conversation_id = %s 
+               ORDER BY created_at ASC""",
+            (conversation_id,)
         )
         
-        # 格式化日期时间
-        for msg in messages:
-            msg['send_time'] = msg['send_time'].strftime('%Y-%m-%d %H:%M:%S')
-        
-        return {"code": 200, "data": messages}
-        
-    except HTTPException:
-        raise
+        return {
+            "code": 200,
+            "message": "获取消息成功",
+            "data": {
+                "conversation": conversation[0],
+                "messages": messages
+            }
+        }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"获取聊天消息失败：{str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
-# 添加聊天消息
-@router.post("/api/chat/message/add")
-async def add_chat_message(message_data: MessageAdd, current_user: int = Depends(get_current_user)):
+# 添加消息到会话
+@router.post("/conversations/{conversation_id}/messages/")
+async def add_message(
+    conversation_id: str, 
+    message: Message,
+    user_id: int = Depends(get_current_user)
+):
     try:
-        # 验证用户是否有权限访问该聊天
-        result = execute_query(
-            """SELECT COUNT(*) as count FROM chat_history WHERE user_id = %s AND chat_id = %s""",
-            (current_user, message_data.chat_id)
+        # 验证会话所有权
+        conversation = execute_query(
+            """SELECT * FROM chat_conversations 
+               WHERE conversation_id = %s AND user_id = %s""",
+            (conversation_id, user_id)
         )
         
-        if not result or result[0]['count'] == 0:
-            raise HTTPException(status_code=403, detail="无权操作此聊天记录")
+        if not conversation:
+            return {"code": 404, "message": "会话不存在或无权访问"}
+        
+        # 验证发送者类型
+        if message.sender_type not in ["user", "ai"]:
+            return {"code": 400, "message": "发送者类型无效，必须是 'user' 或 'ai'"}
         
         # 添加消息
-        now = datetime.datetime.now()
-        execute_update(
-            """INSERT INTO chat_messages (chat_id, message_type, content, send_time) 
-               VALUES (%s, %s, %s, %s)""",
-            (message_data.chat_id, message_data.message_type, message_data.content, now)
+        message_id = execute_update(
+            """INSERT INTO chat_messages 
+               (conversation_id, sender_type, message_text, message_type, created_at) 
+               VALUES (%s, %s, %s, %s, NOW())""",
+            (conversation_id, message.sender_type, message.message_text, message.message_type)
         )
         
-        # 获取最后插入的ID
-        last_id = execute_query("SELECT LAST_INSERT_ID() as id")[0]['id']
-        
-        # 更新聊天记录的更新时间
+        # 更新会话的更新时间
         execute_update(
-            """UPDATE chat_history SET update_time = %s WHERE chat_id = %s""",
-            (now, message_data.chat_id)
+            """UPDATE chat_conversations SET updated_at = NOW() WHERE conversation_id = %s""",
+            (conversation_id,)
         )
         
         return {
-            "code": 200, 
+            "code": 200,
+            "message": "消息添加成功",
             "data": {
-                "id": last_id,
-                "chat_id": message_data.chat_id,
-                "message_type": message_data.message_type,
-                "content": message_data.content,
-                "send_time": now.strftime('%Y-%m-%d %H:%M:%S')
+                "message_id": message_id
             }
         }
-        
-    except HTTPException:
-        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"添加消息失败：{str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
-# 更新聊天标题
-@router.post("/api/chat/update_title")
-async def update_chat_title(title_data: TitleUpdate, current_user: int = Depends(get_current_user)):
+# 删除会话
+@router.delete("/conversations/{conversation_id}/")
+async def delete_conversation(conversation_id: str, user_id: int = Depends(get_current_user)):
     try:
-        # 验证用户是否有权限操作该聊天
-        result = execute_query(
-            """SELECT COUNT(*) as count FROM chat_history WHERE user_id = %s AND chat_id = %s""",
-            (current_user, title_data.chat_id)
+        # 验证会话所有权
+        conversation = execute_query(
+            """SELECT * FROM chat_conversations 
+               WHERE conversation_id = %s AND user_id = %s""",
+            (conversation_id, user_id)
         )
         
-        if not result or result[0]['count'] == 0:
-            raise HTTPException(status_code=403, detail="无权操作此聊天记录")
+        if not conversation:
+            return {"code": 404, "message": "会话不存在或无权访问"}
+        
+        # 使用事务删除会话及其消息
+        queries = [
+            ("""DELETE FROM chat_messages WHERE conversation_id = %s""", (conversation_id,)),
+            ("""DELETE FROM chat_conversations WHERE conversation_id = %s""", (conversation_id,))
+        ]
+        
+        execute_transaction(queries)
+        
+        return {
+            "code": 200,
+            "message": "会话删除成功"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# 修改会话标题
+@router.put("/conversations/{conversation_id}/")
+async def update_conversation(
+    conversation_id: str, 
+    title: str = Body(..., embed=True),
+    user_id: int = Depends(get_current_user)
+):
+    try:
+        # 验证会话所有权
+        conversation = execute_query(
+            """SELECT * FROM chat_conversations 
+               WHERE conversation_id = %s AND user_id = %s""",
+            (conversation_id, user_id)
+        )
+        
+        if not conversation:
+            return {"code": 404, "message": "会话不存在或无权访问"}
         
         # 更新标题
         execute_update(
-            """UPDATE chat_history SET title = %s, update_time = %s WHERE chat_id = %s""",
-            (title_data.title, datetime.datetime.now(), title_data.chat_id)
+            """UPDATE chat_conversations SET title = %s WHERE conversation_id = %s""",
+            (title, conversation_id)
         )
         
-        return {"code": 200, "message": "更新标题成功"}
-        
-    except HTTPException:
-        raise
+        return {
+            "code": 200,
+            "message": "会话标题更新成功"
+        }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"更新标题失败：{str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
