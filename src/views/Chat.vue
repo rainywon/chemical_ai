@@ -231,7 +231,7 @@ const lastAiMessageId = computed(() => { // 最后一条AI消息的ID
 /* ------------------ 用户操作 ------------------ */
 // 登录相关操作
 const checkLogin = () => localStorage.getItem("isAuthenticated") === "true"; // 检查用户是否已登录
-const getUserId = () => localStorage.getItem("userId"); // 获取当前用户ID
+const getUserId = () => localStorage.getItem("user_id"); // 获取当前用户ID
 const tologin = async () => {
   try {
     await showConfirm({
@@ -256,7 +256,7 @@ const tologin = async () => {
 
           // 清除本地存储的用户信息
           localStorage.removeItem("isAuthenticated");
-          localStorage.removeItem("userId");
+          localStorage.removeItem("user_id");
           localStorage.removeItem("token");
           localStorage.removeItem("mobile");
           localStorage.removeItem("generateMode");
@@ -762,6 +762,40 @@ const cancelConfirm = () => {
 // 判断是否为最后一条AI消息
 const isLastAiMessage = (msg) => {
   return msg.type === "ai" && msg.id === lastAiMessageId.value;
+};
+
+/* ------------------ 初始化相关 ------------------ */
+// 初始化聊天数据
+const initializeChatData = async () => {
+  try {
+    // 检查是否已登录
+    if (!checkLogin()) {
+      showLoginPrompt.value = true;
+      return;
+    }
+
+    // 获取用户ID
+    const userId = getUserId();
+    if (!userId) {
+      console.error("未找到用户ID");
+      return;
+    }
+
+    // 获取会话列表
+    await fetchChatSessions();
+
+    // 如果有历史会话，选择最新的一个
+    if (totalChatHistory.value.length > 0) {
+      const latestChat = totalChatHistory.value[totalChatHistory.value.length - 1];
+      await selectChat(latestChat);
+    } else {
+      // 如果没有历史会话，创建新会话
+      await newChat();
+    }
+  } catch (error) {
+    console.error("初始化聊天数据失败:", error);
+    ElMessage.error("初始化聊天数据失败");
+  }
 };
 
 /* ------------------ 生命周期钩子 ------------------ */
