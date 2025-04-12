@@ -114,10 +114,32 @@
           <div class="chat-scroll-container" ref="scrollContainer">
             <div class="chat-content-container">
               <ChatContentTop />
-              <ChatMessage v-for="(message, index) in currentChatHistory" :key="index" :message="message.text"
-                :messageType="message.type" :isLoading="message.isLoading" @regenerate="regenerateResponse"
-                :messageId="message.id" :references="message.references" :question="message.question"
-                :isLast="isLastAiMessage(message)" />
+              <!-- 使用虚拟滚动优化大量消息渲染 -->
+              <template v-if="currentChatHistory.length > 0">
+                <div 
+                  v-for="(message, index) in visibleMessages" 
+                  :key="message.id" 
+                  :id="`message-${message.id}`"
+                  class="message-item"
+                >
+                  <ChatMessage 
+                    :message="message.text"
+                    :messageType="message.type" 
+                    :isLoading="message.isLoading" 
+                    @regenerate="regenerateResponse"
+                    :messageId="message.id" 
+                    :references="message.references" 
+                    :question="message.question"
+                    :isLast="isLastAiMessage(message)" 
+                  />
+                </div>
+              </template>
+              <div v-else-if="isChatHistoryLoading" class="loading-messages">
+                <div class="loading-spinner">
+                  <i class="el-icon-loading"></i>
+                  <span>加载消息中...</span>
+                </div>
+              </div>
             </div>
             <!-- 添加滑动到底部按钮 -->
             <div class="scroll-to-bottom-btn" v-show="showScrollButton" @click="handleScrollToBottom">
@@ -189,7 +211,7 @@
 </template>
 
 <script setup name="Chat">
-import { ref, onMounted, nextTick, computed, onBeforeUnmount } from "vue";
+import { ref, onMounted, nextTick, computed, onBeforeUnmount, watch } from "vue";
 import { useRouter } from "vue-router";
 import { ElMessageBox, ElMessage, ElSelect, ElOption } from "element-plus";
 import { API_BASE_URL } from "../config";
@@ -207,11 +229,13 @@ const isCollapsed = ref(false); // 侧边栏折叠状态，控制侧边栏的展
 const showLoginPrompt = ref(false); // 登录提示显示状态，控制登录提示弹窗的显示/隐藏
 const textarea2 = ref(""); // 输入框内容，存储用户输入的消息
 const currentChatHistory = ref([]); // 当前对话历史，存储当前会话的所有消息
+const visibleMessages = ref([]); // 当前可见的消息，用于虚拟滚动
 const currentChatId = ref(null); // 当前对话ID，标识当前正在进行的会话
 const currentChatTitle = ref(""); // 当前对话标题
 const totalChatHistory = ref([]); // 所有对话历史，存储所有历史会话
 const isLoading = ref(false); // 加载状态，标识是否正在加载数据
 const isSending = ref(false); // 发送状态，标识是否正在发送消息
+const isChatHistoryLoading = ref(false); // 消息历史加载状态
 const isEditingTitle = ref(false); // 是否正在编辑标题
 const editingTitle = ref(""); // 编辑中的标题
 let UserName = ref("AI用户"); // 用户名，显示当前登录用户
@@ -223,6 +247,7 @@ const options = [ // 生成模式选项列表
 ];
 const shouldAutoScroll = ref(true);
 const showScrollButton = ref(false);
+const debounceTimer = ref(null); // 用于防抖
 
 // 确认框状态
 const showCustomConfirm = ref(false);
@@ -246,6 +271,159 @@ const lastAiMessageId = computed(() => {
   const aiMessages = currentChatHistory.value.filter((m) => m.type === "ai");
   return aiMessages.length ? aiMessages[aiMessages.length - 1].id : null;
 });
+
+// 消息虚拟滚动实现
+watch(currentChatHistory, () => {
+  updateVisibleMessages();
+}, { deep: true });
+
+// 先定义简单的工具函数，不依赖其他函数
+// 防抖函数
+const debounce = (fn, delay = 300) => {
+  return (...args) => {
+    if (debounceTimer.value) clearTimeout(debounceTimer.value);
+    debounceTimer.value = setTimeout(() => {
+      fn(...args);
+      debounceTimer.value = null;
+    }, delay);
+  };
+};
+
+// 滚动相关
+const handleScroll = () => {
+  const container = scrollContainer.value;
+  if (!container) return;
+  
+  const threshold = 50;
+  const { scrollTop, scrollHeight, clientHeight } = container;
+  const isNearBottom = scrollHeight - (scrollTop + clientHeight) < threshold;
+  
+  shouldAutoScroll.value = isNearBottom;
+  showScrollButton.value = !isNearBottom && scrollHeight > clientHeight + 150;
+};
+
+// 滚动到底部
+const scrollToBottom = (behavior = "smooth") => {
+  if (scrollContainer.value && shouldAutoScroll.value) {
+    const container = scrollContainer.value;
+    container.scrollTo({
+      top: container.scrollHeight,
+      behavior: behavior,
+    });
+  }
+};
+
+const handleScrollToBottom = () => {
+  const container = scrollContainer.value;
+  if (container) {
+    container.scrollTo({
+      top: container.scrollHeight,
+      behavior: 'smooth'
+    });
+    shouldAutoScroll.value = true;
+  }
+};
+
+// 现在可以安全地引用上面定义的函数
+// 防抖处理滚动事件
+const debouncedHandleScroll = debounce(handleScroll, 100);
+
+// 设置滚动监听
+const setupScrollListener = () => {
+  const container = scrollContainer.value;
+  if (container) {
+    // 使用防抖处理滚动事件，提高性能
+    container.addEventListener("scroll", debouncedHandleScroll);
+  }
+};
+
+// 更新可见消息列表
+const updateVisibleMessages = () => {
+  // 使用批处理更新来减少重绘
+  requestAnimationFrame(() => {
+    visibleMessages.value = currentChatHistory.value;
+  });
+};
+
+// 流式响应文本优化
+const optimizedUpdateMessageText = debounce((messageId, text) => {
+  currentChatHistory.value = currentChatHistory.value.map((msg) =>
+    msg.id === messageId ? { ...msg, text: text } : msg
+  );
+}, 30); // 30ms防抖，平衡更新频率和响应速度
+
+// 分批加载历史消息的实现
+const loadMessagesBatch = (messages, batchSize = 10, delay = 50) => {
+  return new Promise((resolve) => {
+    const totalMessages = messages.length;
+    let loadedCount = 0;
+    
+    const loadNextBatch = () => {
+      const end = Math.min(loadedCount + batchSize, totalMessages);
+      const batch = messages.slice(loadedCount, end);
+      
+      // 添加这批消息
+      currentChatHistory.value = [...currentChatHistory.value, ...batch];
+      loadedCount = end;
+      
+      // 更新后滚动到最新消息
+      nextTick(() => {
+        if (scrollContainer.value) {
+          scrollContainer.value.scrollTo({
+            top: scrollContainer.value.scrollHeight,
+            behavior: 'auto'
+          });
+        }
+      });
+      
+      // 是否加载完所有消息
+      if (loadedCount < totalMessages) {
+        setTimeout(loadNextBatch, delay);
+      } else {
+        // 所有消息加载完成后，再次确保滚动到底部
+        setTimeout(() => {
+          if (scrollContainer.value) {
+            scrollContainer.value.scrollTo({
+              top: scrollContainer.value.scrollHeight,
+              behavior: 'auto'
+            });
+          }
+        }, 100);
+        resolve();
+      }
+    };
+    
+    loadNextBatch();
+  });
+};
+
+// 判断是否为最后一条AI消息
+const isLastAiMessage = (msg) => {
+  return msg.type === "ai" && msg.id === lastAiMessageId.value;
+};
+
+// 确认框相关
+const showConfirm = (options) => {
+  confirmTitle.value = options.title || '确认操作';
+  confirmMessage.value = options.message || '确定要执行此操作吗？';
+  confirmType.value = options.type || 'warning'; 
+  confirmText.value = options.confirmButtonText || '确定';
+  cancelText.value = options.cancelButtonText || '取消';
+  confirmAction.value = options.onConfirm || (() => {});
+  showCustomConfirm.value = true;
+  
+  return new Promise((resolve, reject) => {
+    confirmAction.value = () => {
+      showCustomConfirm.value = false;
+      if (options.onConfirm) options.onConfirm();
+      resolve(true);
+    };
+  });
+};
+
+const cancelConfirm = () => {
+  showCustomConfirm.value = false;
+};
 
 /* ------------------ 用户操作 ------------------ */
 // 登录相关操作
@@ -337,6 +515,13 @@ const handleSendMessage = async () => {
   isSending.value = true;
 
   try {
+    // 记录输入文本并清空输入框，提升用户体验
+    const userText = textarea2.value;
+    textarea2.value = "";
+    
+    // 始终启用自动滚动
+    shouldAutoScroll.value = true;
+    
     // 如果没有会话ID，需要确定是新建会话还是使用现有会话
     if (!currentChatId.value) {
       // 检查是否有现有会话可以使用
@@ -381,8 +566,6 @@ const handleSendMessage = async () => {
       }
     }
 
-    // 添加用户消息
-    const userText = textarea2.value;
     const userMsgId = Date.now().toString();
     const aiMsgId = (Date.now() + 1).toString();
     
@@ -405,9 +588,23 @@ const handleSendMessage = async () => {
       question: userText,
     };
     
-    // 添加消息到前端显示
-    currentChatHistory.value.push(userMsg);
-    currentChatHistory.value.push(aiMsg);
+    // 使用批处理添加消息，减少重绘
+    requestAnimationFrame(() => {
+      // 添加消息到前端显示
+      currentChatHistory.value = [...currentChatHistory.value, userMsg, aiMsg];
+      
+      // 立即强制滚动到底部，确保用户能看到自己发送的消息
+      nextTick(() => {
+        // 增加小延时确保DOM完全更新
+        setTimeout(() => {
+          if (scrollContainer.value) {
+            // 强制设置滚动位置到绝对底部
+            const container = scrollContainer.value;
+            container.scrollTop = container.scrollHeight;
+          }
+        }, 50);
+      });
+    });
     
     // 保存用户消息到数据库
     await saveMessage(userMsg);
@@ -420,13 +617,6 @@ const handleSendMessage = async () => {
       await updateSessionTitle(currentChatId.value, userText);
     }
     
-    // 滚动到底部
-    await nextTick(() => {
-      scrollToBottom("auto");
-    });
-    
-    textarea2.value = "";
-
     // 处理AI响应
     await processAIResponse(userText, aiMsg);
   } catch (error) {
@@ -493,8 +683,6 @@ const processAIResponse = async (question, aiMsgOrId) => {
       }
     }
     
-    // 移除非必要的日志
-    
     let generate_mode = "";
     if (selectedOption.value === "大模型生成") {
       generate_mode = "query_model";
@@ -515,6 +703,8 @@ const processAIResponse = async (question, aiMsgOrId) => {
     const decoder = new TextDecoder("utf-8");
     let buffer = "";
     let partialText = "";
+    let lastUpdateTime = Date.now();
+    const updateInterval = 100; // 控制UI更新频率 (ms)
     
     while (true) {
       const { done, value } = await reader.read();
@@ -535,39 +725,44 @@ const processAIResponse = async (question, aiMsgOrId) => {
             currentChatHistory.value = currentChatHistory.value.map((msg) =>
               msg.id === aiMsg.id ? { ...msg, references: data } : msg
             );
-            
-            // 此处不急于更新数据库中的消息，等待一些内容再更新
           } else if (type === "content") {
             partialText += data;
             
-            // 更新前端显示的消息内容
-            currentChatHistory.value = currentChatHistory.value.map((msg) =>
-              msg.id === aiMsg.id ? { ...msg, text: partialText } : msg
-            );
-            
-            // 每隔一段文本更新一次数据库（避免频繁更新）
-            if (partialText.length % 100 === 0 && currentChatId.value) {
-              const updatedMsg = currentChatHistory.value.find(msg => msg.id === aiMsg.id);
-              if (updatedMsg) {
-                // 移除非必要的日志
+            // 控制UI更新频率，防止过度渲染
+            const now = Date.now();
+            if (now - lastUpdateTime > updateInterval) {
+              // 使用优化后的更新函数
+              optimizedUpdateMessageText(aiMsg.id, partialText);
+              lastUpdateTime = now;
+              
+              // 每次添加内容后检查是否需要滚动
+              if (shouldAutoScroll.value && scrollContainer.value) {
+                // 使用requestAnimationFrame确保在下一帧渲染前执行滚动
+                requestAnimationFrame(() => {
+                  const container = scrollContainer.value;
+                  // 直接使用scrollTop属性而非scrollTo方法确保滚动到底部
+                  container.scrollTop = container.scrollHeight + 100; // 加上额外的100px确保滚动到底部
+                });
+              }
+              
+              // 更新数据库仅在积累一定量的文本后进行
+              if (partialText.length % 300 === 0 && currentChatId.value) {
+                const updatedMsg = { ...aiMsg, text: partialText };
                 await updateMessage(updatedMsg);
               }
             }
           } else if (type === "error") {
             partialText += data;
             
-            // 更新前端显示的错误消息
+            // 错误消息立即更新UI
             currentChatHistory.value = currentChatHistory.value.map((msg) =>
               msg.id === aiMsg.id ? { ...msg, text: partialText } : msg
             );
             
             // 出错时立即更新数据库
             if (currentChatId.value) {
-              const updatedMsg = currentChatHistory.value.find(msg => msg.id === aiMsg.id);
-              if (updatedMsg) {
-                // 移除非必要的日志
-                await updateMessage(updatedMsg);
-              }
+              const updatedMsg = { ...aiMsg, text: partialText };
+              await updateMessage(updatedMsg);
             }
           }
         } catch (e) {
@@ -575,68 +770,65 @@ const processAIResponse = async (question, aiMsgOrId) => {
         }
       }
 
-      await nextTick(() => scrollToBottom("auto"));
+      // 此处不再需要额外的滚动逻辑，内容循环中已经处理了滚动
     }
 
+    // 处理剩余的buffer
     if (buffer) {
       try {
         const { type, data } = JSON.parse(buffer);
         if (type === "content" || type === "error") {
           partialText += data;
-          currentChatHistory.value = currentChatHistory.value.map((msg) =>
-            msg.id === aiMsg.id ? { ...msg, text: partialText } : msg
-          );
         }
       } catch (e) {
         console.error("解析剩余内容失败:", e);
       }
     }
 
-    // 更新消息状态为完成
+    // 确保最终文本被更新到UI
     currentChatHistory.value = currentChatHistory.value.map((msg) =>
-      msg.id === aiMsg.id ? { ...msg, isLoading: false } : msg
+      msg.id === aiMsg.id ? { ...msg, text: partialText, isLoading: false } : msg
     );
     
     // 保存完整的AI消息
     if (currentChatId.value) {
-      const completedAiMsg = currentChatHistory.value.find(msg => msg.id === aiMsg.id);
-      if (completedAiMsg) {
-        // 移除非必要的日志
-        await updateMessage(completedAiMsg);
-      }
+      const completedAiMsg = { ...aiMsg, text: partialText, isLoading: false };
+      await updateMessage(completedAiMsg);
     }
+    
+    // 最后进行一次滚动确保所有内容可见
+    await nextTick(() => {
+      if (scrollContainer.value && shouldAutoScroll.value) {
+        setTimeout(() => {
+          const container = scrollContainer.value;
+          // 直接设置scrollTop而不是使用scrollTo
+          container.scrollTop = container.scrollHeight + 200;
+        }, 100); // 增加延时，确保内容完全渲染
+      }
+    });
+    
   } catch (error) {
-    if (error.name === "AbortError") {
-      // 移除非必要的日志
+    if (error.name === 'AbortError') {
+      console.log('请求被用户中断');
+    } else {
+      console.error("处理AI响应时出错:", error);
+      
+      // 在当前AI消息中显示错误信息
+      const errorMsg = "抱歉，生成回复时出错: " + error.message;
+      
+      // 更新界面中的消息
       currentChatHistory.value = currentChatHistory.value.map((msg) =>
-        msg.id === aiMsgOrId.id || msg.id === aiMsgOrId ? { ...msg, isLoading: false } : msg
+        msg.id === aiMsg.id ? { ...msg, text: errorMsg, isLoading: false } : msg
       );
       
-      // 更新消息状态
+      // 更新数据库
       if (currentChatId.value) {
-        const abortedMsg = currentChatHistory.value.find(msg => 
-          msg.id === (typeof aiMsgOrId === 'object' ? aiMsgOrId.id : aiMsgOrId));
-        if (abortedMsg) {
-          // 移除非必要的日志
-          await updateMessage(abortedMsg);
-        }
-      }
-      return;
-    }
-    console.error("流式传输出错:", error);
-    currentChatHistory.value = currentChatHistory.value.map((msg) =>
-      msg.id === aiMsgOrId.id || msg.id === aiMsgOrId
-        ? { ...msg, text: msg.text + "\n[生成出错，请重试]", isLoading: false }
-        : msg
-    );
-    
-    // 更新错误消息
-    if (currentChatId.value) {
-      const errorMsg = currentChatHistory.value.find(msg => 
-        msg.id === (typeof aiMsgOrId === 'object' ? aiMsgOrId.id : aiMsgOrId));
-      if (errorMsg) {
-        // 移除非必要的日志
-        await updateMessage(errorMsg);
+        const updatedMsg = { 
+          ...aiMsg, 
+          text: errorMsg, 
+          isLoading: false 
+        };
+        await updateMessage(updatedMsg);
       }
     }
   } finally {
@@ -646,76 +838,6 @@ const processAIResponse = async (question, aiMsgOrId) => {
 
 
 
-
-/* ------------------ 工具方法 ------------------ */
-// 滚动相关
-const setupScrollListener = () => {
-  const container = scrollContainer.value;
-  if (container) {
-    container.addEventListener("scroll", handleScroll);
-  }
-};
-
-const handleScroll = () => {
-  const container = scrollContainer.value;
-  if (!container) return;
-  
-  const threshold = 50;
-  const { scrollTop, scrollHeight, clientHeight } = container;
-  const isNearBottom = scrollHeight - (scrollTop + clientHeight) < threshold;
-  
-  shouldAutoScroll.value = isNearBottom;
-  showScrollButton.value = !isNearBottom && scrollHeight > clientHeight + 150;
-};
-
-const scrollToBottom = (behavior = "smooth") => {
-  if (scrollContainer.value && shouldAutoScroll.value) {
-    const container = scrollContainer.value;
-    container.scrollTo({
-      top: container.scrollHeight,
-      behavior: behavior,
-    });
-  }
-};
-
-const handleScrollToBottom = () => {
-  const container = scrollContainer.value;
-  if (container) {
-    container.scrollTo({
-      top: container.scrollHeight,
-      behavior: 'smooth'
-    });
-    shouldAutoScroll.value = true;
-  }
-};
-
-// 确认框相关
-const showConfirm = (options) => {
-  confirmTitle.value = options.title || '确认操作';
-  confirmMessage.value = options.message || '确定要执行此操作吗？';
-  confirmType.value = options.type || 'warning'; 
-  confirmText.value = options.confirmButtonText || '确定';
-  cancelText.value = options.cancelButtonText || '取消';
-  confirmAction.value = options.onConfirm || (() => {});
-  showCustomConfirm.value = true;
-  
-  return new Promise((resolve, reject) => {
-    confirmAction.value = () => {
-      showCustomConfirm.value = false;
-      if (options.onConfirm) options.onConfirm();
-      resolve(true);
-    };
-  });
-};
-
-const cancelConfirm = () => {
-  showCustomConfirm.value = false;
-};
-
-// 判断是否为最后一条AI消息
-const isLastAiMessage = (msg) => {
-  return msg.type === "ai" && msg.id === lastAiMessageId.value;
-};
 
 /* ------------------ 聊天历史管理 ------------------ */
 // 加载用户的所有聊天会话
@@ -745,6 +867,9 @@ const loadUserChatSessions = async () => {
 
 // 加载特定会话的消息
 const loadChatSessionMessages = async (sessionId) => {
+  isChatHistoryLoading.value = true;
+  currentChatHistory.value = []; // 清空当前消息
+  
   try {
     const response = await fetch(`${API_BASE_URL}/chat/sessions/${sessionId}/messages`);
     
@@ -786,7 +911,14 @@ const loadChatSessionMessages = async (sessionId) => {
       };
     });
     
-    currentChatHistory.value = messages;
+    // 使用批处理加载消息，提升性能
+    if (messages.length > 20) {
+      // 大量消息使用分批加载
+      await loadMessagesBatch(messages);
+    } else {
+      // 少量消息直接设置
+      currentChatHistory.value = messages;
+    }
     
     // 查找该会话的标题
     const session = totalChatHistory.value.find(s => s.id === sessionId);
@@ -809,6 +941,23 @@ const loadChatSessionMessages = async (sessionId) => {
   } catch (error) {
     console.error("加载聊天消息失败:", error);
     ElMessage.error("加载聊天消息失败");
+  } finally {
+    isChatHistoryLoading.value = false;
+    // 更新可见消息
+    updateVisibleMessages();
+    
+    // 强制启用自动滚动并滚动到底部
+    shouldAutoScroll.value = true;
+    
+    // 确保滚动到底部，使用50ms延迟确保DOM已更新
+    setTimeout(() => {
+      if (scrollContainer.value) {
+        scrollContainer.value.scrollTo({
+          top: scrollContainer.value.scrollHeight,
+          behavior: 'auto'
+        });
+      }
+    }, 50);
   }
 };
 
@@ -872,12 +1021,20 @@ const selectChatSession = async (sessionId) => {
   // 设置当前会话ID
   currentChatId.value = sessionId;
   
+  // 始终启用自动滚动
+  shouldAutoScroll.value = true;
+  
   // 加载会话消息
   await loadChatSessionMessages(sessionId);
   
-  // 滚动到底部
+  // 强制滚动到底部，使用auto立即滚动不带动画效果
   await nextTick(() => {
-    scrollToBottom("auto");
+    if (scrollContainer.value) {
+      scrollContainer.value.scrollTo({
+        top: scrollContainer.value.scrollHeight,
+        behavior: 'auto'
+      });
+    }
   });
   
   // 聚焦输入框
@@ -1193,7 +1350,13 @@ onMounted(async () => {
       UserName = mobile;
     }
     
-    // 加载用户的所有聊天历史
+    // 先预加载资源
+    preloadAssets();
+    
+    // 再设置滚动监听
+    setupScrollListener();
+    
+    // 最后加载用户的所有聊天历史
     if (checkLogin()) {
       await loadUserChatSessions();
       
@@ -1205,9 +1368,13 @@ onMounted(async () => {
       }
     }
     
-    setupScrollListener();
     nextTick(() => {
-      scrollToBottom();
+      if (scrollContainer.value) {
+        scrollContainer.value.scrollTo({
+          top: scrollContainer.value.scrollHeight,
+          behavior: 'auto'
+        });
+      }
     });
 
     if (inputRef.value) {
@@ -1218,15 +1385,77 @@ onMounted(async () => {
   }
 });
 
+// 预加载资源，提升UI响应速度
+const preloadAssets = () => {
+  // 预加载常用图片
+  const imageUrls = [
+    '../assets/product.png',
+    '../assets/aside.png',
+    '../assets/newchat.png',
+    '../assets/delete_history.png',
+    '../assets/user_img.png',
+    '../assets/leave.png',
+    '../assets/send_message.png',
+    '../assets/stop_message.png'
+  ];
+  
+  imageUrls.forEach(url => {
+    const img = new Image();
+    img.src = url;
+  });
+};
+
 // 组件卸载前执行
 onBeforeUnmount(() => {
   const container = scrollContainer.value;
   if (container) {
-    container.removeEventListener("scroll", handleScroll);
+    container.removeEventListener("scroll", debouncedHandleScroll);
+  }
+  // 清除所有定时器
+  if (debounceTimer.value) {
+    clearTimeout(debounceTimer.value);
   }
 });
 </script>
 
 <style scoped lang="less">
 @import '../styles/chat.less';
+
+/* 添加性能优化相关的CSS */
+.message-item {
+  will-change: transform, opacity;
+  transition: opacity 0.3s ease;
+  contain: content;
+  content-visibility: auto;
+}
+
+.loading-messages {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100px;
+  margin-top: 20px;
+  
+  .loading-spinner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    color: #909399;
+    
+    i {
+      font-size: 24px;
+    }
+  }
+}
+
+/* 优化消息淡入效果 */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.message-item {
+  animation: fadeIn 0.3s ease;
+}
 </style>

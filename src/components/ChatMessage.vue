@@ -48,8 +48,10 @@
   </div>
 
   <!-- Feedback Component -->
-  <FeedbackForm :visible="dialogVisible" :message="message" @update:visible="dialogVisible = $event"
-    @submitFeedback="handleFeedbackSubmit" :question="question" />
+  <Teleport to="body">
+    <FeedbackForm :visible="dialogVisible" :message="message" @update:visible="dialogVisible = $event"
+      @submitFeedback="handleFeedbackSubmit" :question="question" />
+  </Teleport>
 </template>
 
 <script setup>
@@ -216,7 +218,6 @@ const openFeedbackDialog = () => {
 
 // 处理用户反馈
 const handleFeedbackSubmit = (feedback) => {
-  console.log("用户反馈:", feedback);
   ElMessage.success("感谢您的反馈！");
 };
 </script>
