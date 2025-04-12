@@ -61,8 +61,9 @@
       <!-- 登录方式切换 -->
       <div class="login-type-selector">
         <el-radio-group v-model="loginMode">
-          <el-radio-button :value="false">验证码登录</el-radio-button>
-          <el-radio-button :value="true">密码登录</el-radio-button>
+          <el-radio-button :value="0">验证码登录</el-radio-button>
+          <el-radio-button :value="1">密码登录</el-radio-button>
+          <el-radio-button :value="2">管理员登录</el-radio-button>
         </el-radio-group>
       </div>
 
@@ -86,12 +87,12 @@
         
         <!-- 使用固定高度容器包裹切换的表单元素 -->
         <div class="form-container">
-          <!-- 密码输入框 - 仅在密码登录模式下显示 -->
-          <div v-if="loginMode" class="form-item">
+          <!-- 密码输入框 - 在密码登录或管理员登录模式下显示 -->
+          <div v-if="loginMode === 1 || loginMode === 2" class="form-item">
             <el-input 
               v-model="formData.password" 
               class="input-field" 
-              placeholder="请输入密码" 
+              :placeholder="loginMode === 2 ? '请输入管理员密码' : '请输入密码'" 
               :prefix-icon="Lock" 
               size="large" 
               type="password"
@@ -125,14 +126,14 @@
         
         <!-- 忘记密码链接 - 使用固定位置，无论是否显示都保持位置 -->
         <div class="forgot-password-container">
-          <div v-if="loginMode" class="forgot-password">
+          <div v-if="loginMode === 1" class="forgot-password">
             <el-button type="text" @click="forgotPassword">忘记密码?</el-button>
           </div>
         </div>
       </div>
 
       <!-- 隐私协议 -->
-      <div class="privacy-agreement">
+      <div class="privacy-agreement" v-if="loginMode !== 2">
         <el-checkbox v-model="formData.agreed" class="checkbox">
           我已阅读并同意协议，未注册的手机号将自动注册
         </el-checkbox>
@@ -146,8 +147,8 @@
           登录
         </el-button>
         
-        <!-- 注册按钮 -->
-        <el-button type="default" class="action-btn register-btn" @click="goToRegister">
+        <!-- 注册按钮, 管理员模式下不显示 -->
+        <el-button v-if="loginMode !== 2" type="default" class="action-btn register-btn" @click="goToRegister">
           注册账号
         </el-button>
       </div>
@@ -156,7 +157,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onUnmounted } from "vue";
+import { ref, reactive, computed, onUnmounted, watch } from "vue";
 import { PhoneFilled, Search, Iphone, Lock } from "@element-plus/icons-vue";
 import { useRouter } from "vue-router";
 import { API_BASE_URL } from "../config";
@@ -165,8 +166,8 @@ import { ElMessage } from 'element-plus';
 
 const router = useRouter();
 
-// 登录方式 - true为密码登录，false为验证码登录
-const loginMode = ref(false);
+// 登录方式 - 0为验证码登录，1为密码登录，2为管理员登录
+const loginMode = ref(0);
 
 // 表单数据
 const formData = reactive({
@@ -181,7 +182,6 @@ const loading = ref(false);
 
 // 切换登录方式
 const toggleLoginType = () => {
-  loginMode.value = !loginMode.value;
   // 清空错误消息
   resultMessage.value = "";
 };
@@ -222,15 +222,18 @@ const isPasswordValid = computed(() => {
 
 // 表单整体验证
 const isFormValid = computed(() => {
-  // 基础验证：手机号和协议勾选必须有效
-  const baseValid = isPhoneValid.value && formData.agreed;
+  // 基础验证：手机号必须有效
+  const baseValid = isPhoneValid.value;
   
-  if (loginMode.value) {
-    // 密码登录：必须有密码输入
+  if (loginMode.value === 1) {
+    // 普通用户密码登录：必须有密码输入且同意协议
+    return baseValid && formData.password.length > 0 && formData.agreed;
+  } else if (loginMode.value === 2) {
+    // 管理员登录：必须有密码输入（不需要同意协议）
     return baseValid && formData.password.length > 0;
   } else {
-    // 验证码登录：必须有验证码输入
-    return baseValid && formData.verificationCode.length > 0;
+    // 验证码登录：必须有验证码输入且同意协议
+    return baseValid && formData.verificationCode.length > 0 && formData.agreed;
   }
 });
 
@@ -264,7 +267,7 @@ const forgotPassword = () => {
   }
   
   // 切换到验证码登录模式
-  loginMode.value = false;
+  loginMode.value = 0;
   
   // 提示用户使用验证码重置密码
   ElMessage({
@@ -278,7 +281,7 @@ const sendVerificationCode = async () => {
   // 先清空之前的提示信息
   resultMessage.value = "";
 
-  // 检查是否同意协议
+  // 检查是否同意协议（非管理员登录模式才需要检查）
   if (!formData.agreed) {
     resultMessage.value = "请勾选同意隐私协议";
     messageType.value = "warning";
@@ -342,15 +345,25 @@ const login = async () => {
   }
 
   // 根据登录模式检查输入
-  if (loginMode.value) {
+  if (loginMode.value === 1 || loginMode.value === 2) {
     if (!isPasswordValid.value) {
       resultMessage.value = "密码长度不能少于6位";
+      messageType.value = "warning";
+      return;
+    }
+    if (loginMode.value === 1 && !formData.agreed) {
+      resultMessage.value = "请勾选同意隐私协议";
       messageType.value = "warning";
       return;
     }
   } else {
     if (!isVerificationCodeValid.value) {
       resultMessage.value = "验证码必须是6位数字";
+      messageType.value = "warning";
+      return;
+    }
+    if (!formData.agreed) {
+      resultMessage.value = "请勾选同意隐私协议";
       messageType.value = "warning";
       return;
     }
@@ -364,12 +377,18 @@ const login = async () => {
     
     let response;
     
-    if (loginMode.value) {
-      // 密码登录
+    if (loginMode.value === 1) {
+      // 普通用户密码登录
       response = await axios.post(`${API_BASE_URL}/login/`, {
         mobile: formData.phone,
         password: formData.password,
         mode: 'password'
+      });
+    } else if (loginMode.value === 2) {
+      // 管理员密码登录
+      response = await axios.post(`${API_BASE_URL}/admin_login/`, {
+        mobile: formData.phone,
+        password: formData.password
       });
     } else {
       // 验证码登录
@@ -389,15 +408,37 @@ const login = async () => {
         localStorage.setItem("user_id", response.data.user_id);
       }
       
+      // 管理员状态处理
+      if (loginMode.value === 2) {
+        localStorage.setItem("isAdmin", "true");
+        // 可能还需要保存其他管理员特定信息
+        if (response.data.admin_id) {
+          localStorage.setItem("admin_id", response.data.admin_id);
+        }
+        if (response.data.admin_name) {
+          localStorage.setItem("admin_name", response.data.admin_name);
+        }
+      } else {
+        // 非管理员登录时清除管理员状态
+        localStorage.removeItem("isAdmin");
+        localStorage.removeItem("admin_id");
+        localStorage.removeItem("admin_name");
+      }
+      
       resultMessage.value = "登录成功，正在跳转...";
       messageType.value = "success";
       
       // 显示登录成功提示
-      ElMessage.success('登录成功');
+      ElMessage.success(loginMode.value === 2 ? '管理员登录成功' : '登录成功');
       
-      // 跳转到首页
+      // 跳转到首页或管理员页面
       setTimeout(() => {
-        router.push("/");
+        if (loginMode.value === 2 && response.data.admin_dashboard) {
+          // 如果后端提供了管理员专用页面路径
+          router.push(response.data.admin_dashboard);
+        } else {
+          router.push("/");
+        }
       }, 1000);
     } else {
       resultMessage.value = response.data.message || "登录失败";
@@ -438,6 +479,26 @@ const handleApiError = (error, action) => {
   }
   return "网络连接异常，请检查网络";
 };
+
+// 当登录模式改变时，清除错误消息和相关输入
+const loginModeChangeHandler = (newMode) => {
+  // 清空错误消息
+  resultMessage.value = "";
+  
+  // 清空验证码或密码
+  if (newMode === 0) {
+    // 切换到验证码登录
+    formData.password = "";
+  } else if (newMode === 1 || newMode === 2) {
+    // 切换到密码登录或管理员登录
+    formData.verificationCode = "";
+  }
+};
+
+// 监听loginMode变化
+watch(loginMode, (newValue) => {
+  loginModeChangeHandler(newValue);
+});
 </script>
 
 <style scoped>
@@ -1069,7 +1130,8 @@ const handleApiError = (error, action) => {
   color: #64748b;
   font-weight: 500;
   transition: all 0.3s;
-  font-size: 15px;
+  font-size: 14px;
+  padding: 0 8px;
 }
 
 .login-type-selector .el-radio-button__original {
@@ -1252,6 +1314,12 @@ const handleApiError = (error, action) => {
   .button-group {
     flex-direction: column;
     gap: 10px;
+  }
+  
+  /* 为小屏幕设备调整选项卡文字大小 */
+  .login-type-selector .el-radio-button__inner {
+    font-size: 12px;
+    padding: 0 4px;
   }
 }
 </style>

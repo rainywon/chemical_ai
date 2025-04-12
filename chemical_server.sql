@@ -11,7 +11,7 @@
  Target Server Version : 80041 (8.0.41)
  File Encoding         : 65001
 
- Date: 12/04/2025 12:13:25
+ Date: 12/04/2025 15:17:07
 */
 
 SET NAMES utf8mb4;
@@ -23,25 +23,25 @@ SET FOREIGN_KEY_CHECKS = 0;
 DROP TABLE IF EXISTS `admins`;
 CREATE TABLE `admins`  (
   `admin_id` int NOT NULL AUTO_INCREMENT,
-  `username` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '管理员用户名',
+  `phone_number` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '管理员手机号',
   `password` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '加密后的密码',
   `full_name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '管理员姓名',
-  `role` enum('super_admin','admin','operator') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT 'operator' COMMENT '角色类型',
+  `role` enum('admin','operator') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT 'operator' COMMENT '角色类型',
   `email` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '邮箱',
-  `mobile` varchar(15) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '手机号',
   `status` tinyint NULL DEFAULT 1 COMMENT '状态: 0-禁用, 1-正常',
   `last_login_time` datetime NULL DEFAULT NULL COMMENT '最后登录时间',
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (`admin_id`) USING BTREE,
-  UNIQUE INDEX `username`(`username` ASC) USING BTREE,
-  INDEX `idx_username`(`username` ASC) USING BTREE,
+  UNIQUE INDEX `username`(`phone_number` ASC) USING BTREE,
+  INDEX `idx_username`(`phone_number` ASC) USING BTREE,
   INDEX `idx_role`(`role` ASC) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '管理员表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '管理员表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of admins
 -- ----------------------------
+INSERT INTO `admins` VALUES (1, 'admin', 'c412e04cf954373dfea8db43c5984438', '吴凯歌', 'admin', '1028418330@qq.com', 1, NULL, '2025-04-12 14:52:07', '2025-04-12 14:59:03');
 
 -- ----------------------------
 -- Table structure for ai_models
@@ -56,7 +56,7 @@ CREATE TABLE `ai_models`  (
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (`model_id`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = 'AI模型配置表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = 'AI模型配置表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of ai_models
@@ -85,6 +85,14 @@ CREATE TABLE `chat_messages`  (
 -- ----------------------------
 -- Records of chat_messages
 -- ----------------------------
+INSERT INTO `chat_messages` VALUES ('1744440370894', '3ad1b243-41c0-4a2b-aee7-d9772300d832', 'user', '粉尘治理怎么做\n', NULL, '1744440370895', '[]', NULL, 0, '2025-04-12 14:46:10');
+INSERT INTO `chat_messages` VALUES ('1744440370895', '3ad1b243-41c0-4a2b-aee7-d9772300d832', 'ai', '<think>\n【问题分析】\n1. 核心安全风险：粉尘爆炸、粉尘窒息、中毒等\n2. 相关法规标准：GB/T 16297-2006《工作场所职业病危害因素分类与代码》、AQ 3009-2007《化工企业粉尘防爆安全规范》\n3. 可能原因：粉尘产生源、粉尘收集不良、通风不足、设备维护不当等\n4. 误操作后果：可能导致人员伤亡、财产损失和环境污染\n\n【解决思路】\n- 分步骤展开解决方案\n- 比较不同方法的优缺点\n- 结合最新行业案例\n- 特殊情况的应急处理\n</think>\n\n【专业回答】\n<|im_start|>system\n1. **立即行动方案（带编号步骤）**：\n   (1) 立即停止产生粉尘的作业，并关闭相关设备。\n   (2) 对现场进行通风，确保空气流通。\n   (3) 使用防爆工具和个人防护装备进行紧急清理。\n\n2. **根本原因排查（检查清单）**：\n   √ 检查粉尘产生源的设备是否正常运行。\n   √ 评估现有粉尘收集系统的效率。\n   √ 检查通风系统是否有效。\n   √ 检查设备维护记录，确保定期维护。\n\n3. **长期预防措施**：\n   - 定期对粉尘收集系统进行清洁和维护。\n   - 安装高效的粉尘过滤器。\n   - 实施严格的通风管理计划。\n   - 对员工进行粉尘危害意识培训。\n\n4. **培训建议**：\n   * 定期组织粉尘安全培训，提高员工对粉尘危害的认识。\n   * 培训员工正确使用个人防护装备和紧急疏散程序。\n   * 强调在高风险区域工作时必须佩戴防爆服。\n\n', '1744440370894', NULL, '[]', '粉尘治理怎么做\n', 0, '2025-04-12 14:46:10');
+INSERT INTO `chat_messages` VALUES ('1744440383290', '3ad1b243-41c0-4a2b-aee7-d9772300d832', 'user', '粉尘治理怎么做', NULL, '1744440383291', '[]', NULL, 0, '2025-04-12 14:46:23');
+INSERT INTO `chat_messages` VALUES ('1744440383291', '3ad1b243-41c0-4a2b-aee7-d9772300d832', 'ai', '', '1744440383290', NULL, '[]', '粉尘治理怎么做', 1, '2025-04-12 14:46:23');
+INSERT INTO `chat_messages` VALUES ('1744440404702', '3ad1b243-41c0-4a2b-aee7-d9772300d832', 'user', '粉尘治理怎么做', NULL, '1744440404703', '[]', NULL, 0, '2025-04-12 14:46:45');
+INSERT INTO `chat_messages` VALUES ('1744440404703', '3ad1b243-41c0-4a2b-aee7-d9772300d832', 'ai', '<think>\n【问题分析】\n1. 核心安全风险：粉尘爆炸、粉尘中毒、粉尘火灾等。\n2. 相关法规标准：GB/T 16297《工作场所职业病危害因素分类与代码》、AQ 3009《化工企业粉尘防爆安全规范》。\n3. 可能原因：粉尘产生源、粉尘收集不良、粉尘清理不及时等。\n\n【解决思路】\n- 分步骤展开解决方案\n- 比较不同方法的优缺点\n- 结合最新行业案例\n- 特殊情况的应急处理\n</think>\n\n【专业回答】\n<|im_start|>\n1. **立即行动方案（带编号步骤）**\n   (1) 立即对粉尘源进行隔离，防止粉尘扩散。\n   (2) 对工作场所进行通风，降低粉尘浓度。\n   (3) 对受影响区域进行风险评估，确保人员安全撤离。\n\n2. **根本原因排查（检查清单）**\n   √ 检查粉尘产生设备是否正常运行\n   √ 确认粉尘收集系统是否有效\n   √ 检查粉尘清理系统的工作状态\n\n3. **长期预防措施**\n   - 定期对粉尘收集和排放系统进行维护保养。\n   - 安装粉尘检测仪，实时监控粉尘浓度。\n   - 对员工进行粉尘危害意识培训。\n\n4. **应急处理方案**\n   - 在粉尘浓度超标时，立即启动应急预案。\n   - 使用防爆设备和防护装备进行清理工作。\n   - 设置隔离区域，防止无关人员进入。\n\n', '1744440404702', NULL, '[]', '粉尘治理怎么做', 0, '2025-04-12 14:46:45');
+INSERT INTO `chat_messages` VALUES ('1744440494401', '3ad1b243-41c0-4a2b-aee7-d9772300d832', 'user', '你能做什么\n', NULL, '1744440494402', '[]', NULL, 0, '2025-04-12 14:48:14');
+INSERT INTO `chat_messages` VALUES ('1744440494402', '3ad1b243-41c0-4a2b-aee7-d9772300d832', 'ai', '<think>\n我是DeepSeek-R1，一个由深度求索公司开发的智能助手，我擅长通过思考来帮您解答复杂的数学、代码和逻辑推理等问题。如果你有任何问题，随时可以告诉我！\n', '1744440494401', NULL, '[]', '你能做什么\n', 0, '2025-04-12 14:48:14');
 
 -- ----------------------------
 -- Table structure for chat_sessions
@@ -103,7 +111,7 @@ CREATE TABLE `chat_sessions`  (
 -- ----------------------------
 -- Records of chat_sessions
 -- ----------------------------
-INSERT INTO `chat_sessions` VALUES ('76b9a614-aafb-454d-8c28-eb33c765e6f7', '13', '对话 12:12:26', '2025-04-12 12:12:26', '2025-04-12 12:12:26');
+INSERT INTO `chat_sessions` VALUES ('3ad1b243-41c0-4a2b-aee7-d9772300d832', '13', '粉尘治理怎么做', '2025-04-12 14:46:10', '2025-04-12 14:48:14');
 
 -- ----------------------------
 -- Table structure for content_feedbacks
@@ -138,7 +146,7 @@ CREATE TABLE `emergency_plans`  (
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (`plan_id`) USING BTREE,
   INDEX `idx_plan_type`(`plan_type` ASC) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '应急处理方案表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '应急处理方案表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of emergency_plans
@@ -213,7 +221,7 @@ CREATE TABLE `knowledge_documents`  (
   INDEX `idx_category_id`(`category_id` ASC) USING BTREE,
   INDEX `idx_title`(`title` ASC) USING BTREE,
   CONSTRAINT `knowledge_documents_ibfk_1` FOREIGN KEY (`category_id`) REFERENCES `knowledge_categories` (`category_id`) ON DELETE CASCADE ON UPDATE RESTRICT
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '知识库文档表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '知识库文档表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of knowledge_documents
@@ -239,7 +247,7 @@ CREATE TABLE `operation_logs`  (
   INDEX `idx_created_at`(`created_at` ASC) USING BTREE,
   CONSTRAINT `operation_logs_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE SET NULL ON UPDATE RESTRICT,
   CONSTRAINT `operation_logs_ibfk_2` FOREIGN KEY (`admin_id`) REFERENCES `admins` (`admin_id`) ON DELETE SET NULL ON UPDATE RESTRICT
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '操作日志表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '操作日志表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of operation_logs
@@ -306,7 +314,7 @@ CREATE TABLE `user_feedback`  (
   INDEX `idx_feedback_type`(`feedback_type` ASC) USING BTREE,
   INDEX `idx_created_at`(`created_at` ASC) USING BTREE,
   CONSTRAINT `user_feedback_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE SET NULL ON UPDATE RESTRICT
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '用户反馈表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '用户反馈表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of user_feedback
@@ -335,7 +343,7 @@ CREATE TABLE `user_tokens`  (
 -- Records of user_tokens
 -- ----------------------------
 INSERT INTO `user_tokens` VALUES (1, 13, '546f227d-d04a-4e1a-afd7-2de18a6009a5', NULL, NULL, '2025-04-11 18:52:58', '2025-04-18 18:52:59', 0);
-INSERT INTO `user_tokens` VALUES (2, 13, '2c26e5ac-8dce-4bed-a11d-3b9776ae1772', NULL, NULL, '2025-04-11 22:04:20', '2025-04-18 22:04:20', 1);
+INSERT INTO `user_tokens` VALUES (2, 13, '2c26e5ac-8dce-4bed-a11d-3b9776ae1772', NULL, NULL, '2025-04-11 22:04:20', '2025-04-18 22:04:20', 0);
 
 -- ----------------------------
 -- Table structure for users
