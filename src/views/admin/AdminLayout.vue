@@ -129,7 +129,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { 
   Monitor, User, Setting, Document, 
@@ -195,6 +195,11 @@ const updateActiveMenu = () => {
   
   breadcrumbs.value = crumbs;
 };
+
+// 监听路由变化，实时更新菜单和面包屑
+watch(() => route.path, (newPath) => {
+  updateActiveMenu();
+});
 </script>
 
 <style scoped>
@@ -208,6 +213,11 @@ const updateActiveMenu = () => {
   background-color: #001529;
   color: white;
   overflow-y: auto;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  z-index: 1000;
 }
 
 .logo {
@@ -239,6 +249,7 @@ const updateActiveMenu = () => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  margin-left: 240px; /* 与侧边栏宽度相同 */
 }
 
 .header {
@@ -249,6 +260,11 @@ const updateActiveMenu = () => {
   height: 64px;
   background-color: white;
   box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
+  position: fixed;
+  top: 0;
+  left: 240px; /* 与侧边栏宽度相同 */
+  right: 0;
+  z-index: 999;
 }
 
 .breadcrumb {
@@ -272,6 +288,7 @@ const updateActiveMenu = () => {
   padding: 20px;
   background-color: #f0f2f5;
   overflow: auto;
+  margin-top: 64px; /* 与头部高度相同 */
 }
 
 /* 深色模式下menu样式调整 */
