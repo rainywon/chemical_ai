@@ -72,20 +72,6 @@
       <div class="chart" ref="conversationTrendChart"></div>
     </div>
     
-    <!-- 消息类型分布 -->
-    <div class="charts-row">
-      <div class="chart-container half-width">
-        <h2>消息类型分布</h2>
-        <div class="chart" ref="messageTypeChart"></div>
-      </div>
-      
-      <!-- 热门对话主题 -->
-      <div class="chart-container half-width">
-        <h2>热门对话主题</h2>
-        <div class="chart" ref="topicsChart"></div>
-      </div>
-    </div>
-    
     <!-- 最近对话列表 -->
     <div class="recent-conversations">
       <h2>最近对话</h2>
@@ -127,11 +113,7 @@ const currentPage = ref(1);
 
 // 图表引用
 const conversationTrendChart = ref(null);
-const messageTypeChart = ref(null);
-const topicsChart = ref(null);
 let trendChartInstance = null;
-let messageTypeChartInstance = null;
-let topicsChartInstance = null;
 
 // 计算属性和方法
 const handleDateChange = () => {
@@ -209,8 +191,6 @@ const fetchRecentConversations = () => {
 // 图表渲染函数
 const renderCharts = () => {
   renderConversationTrendChart();
-  renderMessageTypeChart();
-  renderTopicsChart();
 };
 
 const renderConversationTrendChart = () => {
@@ -299,92 +279,6 @@ const renderConversationTrendChart = () => {
   trendChartInstance.setOption(option);
 };
 
-const renderMessageTypeChart = () => {
-  if (!messageTypeChartInstance) {
-    messageTypeChartInstance = echarts.init(messageTypeChart.value);
-  }
-  
-  const option = {
-    tooltip: {
-      trigger: 'item'
-    },
-    legend: {
-      top: 'bottom'
-    },
-    series: [
-      {
-        name: '消息类型',
-        type: 'pie',
-        radius: ['40%', '70%'],
-        avoidLabelOverlap: false,
-        itemStyle: {
-          borderRadius: 10,
-          borderColor: '#fff',
-          borderWidth: 2
-        },
-        label: {
-          show: false,
-          position: 'center'
-        },
-        emphasis: {
-          label: {
-            show: true,
-            fontSize: '20',
-            fontWeight: 'bold'
-          }
-        },
-        labelLine: {
-          show: false
-        },
-        data: [
-          { value: 5238, name: '用户消息' },
-          { value: 4329, name: 'AI回复' }
-        ]
-      }
-    ]
-  };
-  
-  messageTypeChartInstance.setOption(option);
-};
-
-const renderTopicsChart = () => {
-  if (!topicsChartInstance) {
-    topicsChartInstance = echarts.init(topicsChart.value);
-  }
-  
-  const option = {
-    tooltip: {
-      trigger: 'axis',
-      axisPointer: {
-        type: 'shadow'
-      }
-    },
-    grid: {
-      left: '3%',
-      right: '4%',
-      bottom: '3%',
-      containLabel: true
-    },
-    xAxis: {
-      type: 'value',
-      boundaryGap: [0, 0.01]
-    },
-    yAxis: {
-      type: 'category',
-      data: ['粉尘治理', '危险化学品', '安全预案', '设备检查', '防护装备', '泄漏处理']
-    },
-    series: [
-      {
-        name: '对话次数',
-        type: 'bar',
-        data: [89, 76, 65, 54, 48, 42]
-      }
-    ]
-  };
-  
-  topicsChartInstance.setOption(option);
-};
-
 // 生命周期钩子
 onMounted(() => {
   fetchStatisticsData();
@@ -393,8 +287,6 @@ onMounted(() => {
   // 窗口大小变化时重新调整图表大小
   window.addEventListener('resize', () => {
     trendChartInstance?.resize();
-    messageTypeChartInstance?.resize();
-    topicsChartInstance?.resize();
   });
 });
 </script>
