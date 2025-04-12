@@ -23,6 +23,16 @@
           <div class="stat-label">当前在线用户</div>
         </div>
       </div>
+      
+      <div class="stat-card">
+        <div class="stat-icon">
+          <i class="el-icon-plus"></i>
+        </div>
+        <div class="stat-content">
+          <div class="stat-value">{{ newUsers }}</div>
+          <div class="stat-label">新增用户</div>
+        </div>
+      </div>
     </div>
     
     <!-- 时间筛选 -->
@@ -64,16 +74,9 @@
         :header-cell-style="{background:'#f5f7fa', color:'#606266', fontWeight: 'bold'}"
         :cell-style="{padding: '8px 0'}"
         table-layout="fixed">
-        <el-table-column prop="user_id" label="用户ID" min-width="15%" align="center"></el-table-column>
-        <el-table-column prop="mobile" label="手机号" min-width="25%" align="center"></el-table-column>
-        <el-table-column prop="login_time" label="登录时间" min-width="40%" align="center"></el-table-column>
-        <el-table-column prop="login_status" label="状态" min-width="20%" align="center">
-          <template #default="scope">
-            <el-tag :type="scope.row.login_status === 'success' ? 'success' : 'danger'" size="small">
-              {{ scope.row.login_status === 'success' ? '成功' : '失败' }}
-            </el-tag>
-          </template>
-        </el-table-column>
+        <el-table-column prop="user_id" label="用户ID" min-width="33%" align="center"></el-table-column>
+        <el-table-column prop="mobile" label="手机号" min-width="33%" align="center"></el-table-column>
+        <el-table-column prop="login_time" label="登录时间" min-width="33%" align="center"></el-table-column>
       </el-table>
       <div class="pagination">
         <el-pagination
@@ -102,7 +105,6 @@ const router = useRouter();
 const activeUsers = ref(0);
 const onlineUsers = ref(0);
 const newUsers = ref(0);
-const retentionRate = ref(0);
 const dateRange = ref([]);
 const timeUnit = ref('day');
 const recentLogins = ref([]);
@@ -173,25 +175,12 @@ const fetchActivityStats = async () => {
       activeUsers.value = data.data.active_users;
       onlineUsers.value = data.data.online_users;
       newUsers.value = data.data.new_users;
-      retentionRate.value = data.data.retention_rate;
     } else {
       ElMessage.error(data.message || '获取用户活跃度统计失败');
-      
-      // 使用模拟数据用于演示
-      activeUsers.value = 142;
-      onlineUsers.value = 18;
-      newUsers.value = 36;
-      retentionRate.value = 78.5;
     }
   } catch (error) {
     ElMessage.error('网络连接异常，请检查网络');
     console.error('获取用户活跃度统计错误:', error);
-    
-    // 使用模拟数据用于演示
-    activeUsers.value = 142;
-    onlineUsers.value = 18;
-    newUsers.value = 36;
-    retentionRate.value = 78.5;
   }
 };
 
@@ -222,55 +211,11 @@ const fetchActivityTrendData = async () => {
       renderActivityTrendChart(data.data);
     } else {
       ElMessage.error(data.message || '获取活跃趋势数据失败');
-      
-      // 使用模拟数据用于演示
-      renderActivityTrendChart(generateMockActivityData());
     }
   } catch (error) {
     ElMessage.error('网络连接异常，请检查网络');
     console.error('获取用户活跃趋势数据错误:', error);
-    
-    // 使用模拟数据用于演示
-    renderActivityTrendChart(generateMockActivityData());
   }
-};
-
-// 生成模拟的活跃趋势数据（在API未实现时使用）
-const generateMockActivityData = () => {
-  const dates = [];
-  const activeUserData = [];
-  const newUserData = [];
-  
-  const today = new Date();
-  let daysToShow = 14; // 默认显示两周
-  
-  if (timeUnit.value === 'week') daysToShow = 12; // 12周
-  if (timeUnit.value === 'month') daysToShow = 12; // 12个月
-  
-  for (let i = daysToShow - 1; i >= 0; i--) {
-    const date = new Date();
-    
-    if (timeUnit.value === 'day') {
-      date.setDate(today.getDate() - i);
-      dates.push(date.getMonth() + 1 + '/' + date.getDate());
-    } else if (timeUnit.value === 'week') {
-      date.setDate(today.getDate() - i * 7);
-      dates.push('第' + (daysToShow - i) + '周');
-    } else {
-      date.setMonth(today.getMonth() - i);
-      dates.push(date.getMonth() + 1 + '月');
-    }
-    
-    // 生成随机数据
-    activeUserData.push(Math.floor(Math.random() * 30) + 10);
-    newUserData.push(Math.floor(Math.random() * 10) + 1);
-  }
-  
-  return {
-    dates,
-    active_user_data: activeUserData,
-    new_user_data: newUserData
-  };
 };
 
 // 获取最近登录记录
@@ -290,42 +235,11 @@ const fetchRecentLogins = async () => {
       totalLoginCount.value = data.data.total;
     } else {
       ElMessage.error(data.message || '获取最近登录记录失败');
-      
-      // 使用模拟数据用于演示
-      generateMockLoginData();
     }
   } catch (error) {
     ElMessage.error('网络连接异常，请检查网络');
     console.error('获取最近登录记录错误:', error);
-    
-    // 使用模拟数据用于演示
-    generateMockLoginData();
   }
-};
-
-// 生成模拟的登录记录数据（在API未实现时使用）
-const generateMockLoginData = () => {
-  const mockLogins = [];
-  const phonePrefix = ['138', '139', '158', '188', '177'];
-  
-  for (let i = 0; i < 10; i++) {
-    const userId = Math.floor(Math.random() * 20) + 1;
-    const phoneNumber = phonePrefix[Math.floor(Math.random() * phonePrefix.length)] + 
-                         Math.floor(Math.random() * 10000000).toString().padStart(8, '0');
-    
-    const date = new Date();
-    date.setHours(date.getHours() - Math.floor(Math.random() * 72));
-    
-    mockLogins.push({
-      user_id: userId,
-      mobile: phoneNumber,
-      login_time: date.toISOString().replace('T', ' ').substring(0, 19),
-      login_status: Math.random() > 0.1 ? 'success' : 'failed'
-    });
-  }
-  
-  recentLogins.value = mockLogins;
-  totalLoginCount.value = 53; // 模拟总记录数
 };
 
 // 渲染用户活跃趋势图
