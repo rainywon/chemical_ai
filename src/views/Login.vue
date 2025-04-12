@@ -450,9 +450,9 @@ const login = async () => {
       
       // 跳转到首页或管理员页面
       setTimeout(() => {
-        if (loginMode.value === 2 && data.admin_dashboard) {
-          // 如果后端提供了管理员专用页面路径
-          router.push(data.admin_dashboard);
+        if (loginMode.value === 2) {
+          // 管理员登录成功后跳转到管理系统首页
+          router.push("/admin");
         } else {
           router.push("/");
         }
