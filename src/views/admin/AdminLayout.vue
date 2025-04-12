@@ -153,11 +153,18 @@ const updateActiveMenu = () => {
   const pathParts = route.path.split('/').filter(Boolean);
   const crumbs = [];
   
+  // 如果是管理后台首页(/admin 或 /admin/dashboard)，不添加额外的面包屑
+  if (route.path === '/admin' || route.path === '/admin/dashboard') {
+    breadcrumbs.value = [];
+    return;
+  }
+  
   if (pathParts.length > 1) {
     pathParts.slice(1).forEach(part => {
       // 转换路径为可读性更好的文本
       let text = '';
       switch (part) {
+        case 'dashboard': return; // 跳过dashboard，不添加到面包屑
         case 'monitor': text = '系统监控'; break;
         case 'conversation': text = '对话数据统计'; break;
         case 'users': 
@@ -212,12 +219,19 @@ watch(() => route.path, (newPath) => {
   width: 240px;
   background-color: #001529;
   color: white;
-  overflow-y: auto;
+  overflow-y: scroll;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
   position: fixed;
   top: 0;
   left: 0;
   bottom: 0;
   z-index: 1000;
+}
+
+/* 隐藏WebKit浏览器(Chrome, Safari)的滚动条 */
+.sidebar::-webkit-scrollbar {
+  display: none;
 }
 
 .logo {
