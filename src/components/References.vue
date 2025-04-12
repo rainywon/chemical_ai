@@ -1,14 +1,14 @@
 <template>
   <div>
     <!-- 文档参考小方框 -->
-    <div v-if="references.length > 0" class="references-summary" @click="toggleDetails">
+    <div v-if="Array.isArray(references) ? references.length > 0 : Object.keys(references).length > 0" class="references-summary" @click="toggleDetails">
       <svg class="reference-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path d="M19 3H5C3.9 3 3 3.9 3 5V19C3 20.1 3.9 21 5 21H19C20.1 21 21 20.1 21 19V5C21 3.9 20.1 3 19 3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         <path d="M7 7H17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
         <path d="M7 12H17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
         <path d="M7 17H13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
       </svg>
-      <span>参考了 {{ references.length }} 篇文档</span>
+      <span>参考了 {{ Array.isArray(references) ? references.length : Object.keys(references).length }} 篇文档</span>
     </div>
 
     <!-- 遮罩层 -->
@@ -27,7 +27,7 @@
           </button>
         </div>
         <div class="references-content">
-          <div class="reference-card" v-for="(reference, index) in references" :key="index">
+          <div class="reference-card" v-for="(reference, index) in referencesArray" :key="index">
             <div class="reference-header">
               <div class="reference-source">
                 <svg class="file-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -52,13 +52,20 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, computed } from "vue";
 
 const props = defineProps({
   references: {
-    type: Array,
+    type: [Array, Object],
     required: true,
   },
+});
+
+// Computed property to handle both array and object references
+const referencesArray = computed(() => {
+  return Array.isArray(props.references) 
+    ? props.references 
+    : Object.values(props.references);
 });
 
 const showDetails = ref(false); // 控制显示详细信息

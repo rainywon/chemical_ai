@@ -288,7 +288,7 @@ const tologin = async () => {
       }
     });
   } catch (e) {
-    console.log("用户取消了退出操作", e);
+    // 移除非必要的日志
   }
 };
 
@@ -337,37 +337,48 @@ const handleSendMessage = async () => {
   isSending.value = true;
 
   try {
-    // 如果没有会话ID，先创建新会话
+    // 如果没有会话ID，需要确定是新建会话还是使用现有会话
     if (!currentChatId.value) {
-      const userId = getUserId();
-      const title = `对话 ${new Date().toLocaleTimeString()}`;
-      
-      const response = await fetch(`${API_BASE_URL}/chat/sessions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          user_id: userId,
-          title: title
-        })
-      });
+      // 检查是否有现有会话可以使用
+      if (totalChatHistory.value.length > 0) {
+        // 使用最近的会话
+        const mostRecentSession = totalChatHistory.value[0];
+        currentChatId.value = mostRecentSession.id;
+        currentChatTitle.value = mostRecentSession.title;
+        // 加载会话消息
+        await loadChatSessionMessages(mostRecentSession.id);
+      } else {
+        // 没有现有会话，创建新会话
+        const userId = getUserId();
+        const title = `新对话`;
+        
+        const response = await fetch(`${API_BASE_URL}/chat/sessions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            user_id: userId,
+            title: title
+          })
+        });
 
-      if (!response.ok) throw new Error("创建会话失败");
-      
-      const data = await response.json();
-      currentChatId.value = data.id;
-      currentChatTitle.value = data.title;
-      
-      // 添加到会话列表
-      const newSession = {
-        id: data.id,
-        title: data.title,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
-      
-      totalChatHistory.value = [newSession, ...totalChatHistory.value];
+        if (!response.ok) throw new Error("创建会话失败");
+        
+        const data = await response.json();
+        currentChatId.value = data.id;
+        currentChatTitle.value = data.title;
+        
+        // 添加到会话列表
+        const newSession = {
+          id: data.id,
+          title: data.title,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+        
+        totalChatHistory.value = [newSession, ...totalChatHistory.value];
+      }
     }
 
     // 添加用户消息
@@ -398,14 +409,16 @@ const handleSendMessage = async () => {
     currentChatHistory.value.push(userMsg);
     currentChatHistory.value.push(aiMsg);
     
-    console.log("创建用户消息: ", userMsg);
-    console.log("创建AI占位消息: ", aiMsg);
-
     // 保存用户消息到数据库
     await saveMessage(userMsg);
     
     // 保存空的AI占位消息到数据库
     await saveMessage(aiMsg);
+    
+    // 如果是会话的第一条消息，则使用这条消息的内容作为会话标题
+    if (currentChatHistory.value.length === 2) {
+      await updateSessionTitle(currentChatId.value, userText);
+    }
     
     // 滚动到底部
     await nextTick(() => {
@@ -427,9 +440,9 @@ const handleSendMessage = async () => {
 const handleStopMessage = () => {
   if (abortController) {
     abortController.abort();
-    console.log("请求已被中止");
+    // 移除非必要的日志
   } else {
-    console.log("没有活动的请求可以中止");
+    // 移除非必要的日志
   }
   isSending.value = false;
 };
@@ -480,8 +493,7 @@ const processAIResponse = async (question, aiMsgOrId) => {
       }
     }
     
-    // 日志记录开始处理AI响应
-    console.log(`开始处理AI响应，AI消息ID: ${aiMsg.id}`);
+    // 移除非必要的日志
     
     let generate_mode = "";
     if (selectedOption.value === "大模型生成") {
@@ -537,7 +549,7 @@ const processAIResponse = async (question, aiMsgOrId) => {
             if (partialText.length % 100 === 0 && currentChatId.value) {
               const updatedMsg = currentChatHistory.value.find(msg => msg.id === aiMsg.id);
               if (updatedMsg) {
-                console.log(`更新AI消息内容: ID ${updatedMsg.id}, 长度 ${updatedMsg.text.length}`);
+                // 移除非必要的日志
                 await updateMessage(updatedMsg);
               }
             }
@@ -553,7 +565,7 @@ const processAIResponse = async (question, aiMsgOrId) => {
             if (currentChatId.value) {
               const updatedMsg = currentChatHistory.value.find(msg => msg.id === aiMsg.id);
               if (updatedMsg) {
-                console.log(`更新AI错误消息: ID ${updatedMsg.id}`);
+                // 移除非必要的日志
                 await updateMessage(updatedMsg);
               }
             }
@@ -589,13 +601,13 @@ const processAIResponse = async (question, aiMsgOrId) => {
     if (currentChatId.value) {
       const completedAiMsg = currentChatHistory.value.find(msg => msg.id === aiMsg.id);
       if (completedAiMsg) {
-        console.log(`保存完整的AI消息: ID ${completedAiMsg.id}, 内容长度 ${completedAiMsg.text.length}`);
+        // 移除非必要的日志
         await updateMessage(completedAiMsg);
       }
     }
   } catch (error) {
     if (error.name === "AbortError") {
-      console.log("请求已被中止");
+      // 移除非必要的日志
       currentChatHistory.value = currentChatHistory.value.map((msg) =>
         msg.id === aiMsgOrId.id || msg.id === aiMsgOrId ? { ...msg, isLoading: false } : msg
       );
@@ -605,7 +617,7 @@ const processAIResponse = async (question, aiMsgOrId) => {
         const abortedMsg = currentChatHistory.value.find(msg => 
           msg.id === (typeof aiMsgOrId === 'object' ? aiMsgOrId.id : aiMsgOrId));
         if (abortedMsg) {
-          console.log(`更新中止的AI消息: ID ${abortedMsg.id}`);
+          // 移除非必要的日志
           await updateMessage(abortedMsg);
         }
       }
@@ -623,7 +635,7 @@ const processAIResponse = async (question, aiMsgOrId) => {
       const errorMsg = currentChatHistory.value.find(msg => 
         msg.id === (typeof aiMsgOrId === 'object' ? aiMsgOrId.id : aiMsgOrId));
       if (errorMsg) {
-        console.log(`更新出错的AI消息: ID ${errorMsg.id}`);
+        // 移除非必要的日志
         await updateMessage(errorMsg);
       }
     }
@@ -745,14 +757,20 @@ const loadChatSessionMessages = async (sessionId) => {
     // 转换消息格式以适应前端展示
     const messages = (data.messages || []).map(msg => {
       // 解析 message_references 字符串为对象
-      let references = {};
+      let references = [];
       try {
         if (msg.message_references) {
-          references = JSON.parse(msg.message_references);
+          // 检查类型，确保只对字符串使用 trim
+          if (typeof msg.message_references === 'string' && msg.message_references.trim() !== '') {
+            references = JSON.parse(msg.message_references);
+          } else if (typeof msg.message_references === 'object') {
+            // 已经是对象，直接使用
+            references = msg.message_references;
+          }
         }
       } catch (error) {
-        console.error("解析 message_references 失败:", error);
-        references = {};
+        console.error("解析 message_references 失败:", error, "原始数据:", msg.message_references);
+        references = [];
       }
       
       return {
@@ -761,7 +779,7 @@ const loadChatSessionMessages = async (sessionId) => {
         type: msg.message_type,
         parentId: msg.parent_id,
         pairedAiId: msg.paired_ai_id,
-        references: references, // 使用解析后的对象
+        references: references, // 使用解析后的对象，如果解析失败则使用空数组
         question: msg.question || "",
         isLoading: Boolean(msg.is_loading),
         createdAt: msg.created_at
@@ -770,10 +788,23 @@ const loadChatSessionMessages = async (sessionId) => {
     
     currentChatHistory.value = messages;
     
-    // 更新当前会话标题
+    // 查找该会话的标题
     const session = totalChatHistory.value.find(s => s.id === sessionId);
     if (session) {
       currentChatTitle.value = session.title;
+      
+      // 检查标题是否为默认标题（包含"新对话"或"对话"字样）
+      const isDefaultTitle = session.title === '新对话' || 
+                            session.title.includes('对话 ');
+      
+      // 如果是默认标题且有消息记录，则用第一条用户消息更新标题
+      if (isDefaultTitle && messages.length > 0) {
+        // 查找第一条用户消息
+        const firstUserMsg = messages.find(msg => msg.type === 'user');
+        if (firstUserMsg && firstUserMsg.text) {
+          await updateSessionTitle(sessionId, firstUserMsg.text);
+        }
+      }
     }
   } catch (error) {
     console.error("加载聊天消息失败:", error);
@@ -791,7 +822,7 @@ const createNewChatSession = async () => {
   try {
     // 创建新会话
     const userId = getUserId();
-    const title = `对话 ${new Date().toLocaleTimeString()}`;
+    const title = `新对话`;
     
     const response = await fetch(`${API_BASE_URL}/chat/sessions`, {
       method: 'POST',
@@ -848,6 +879,11 @@ const selectChatSession = async (sessionId) => {
   await nextTick(() => {
     scrollToBottom("auto");
   });
+  
+  // 聚焦输入框
+  if (inputRef.value) {
+    inputRef.value.focus();
+  }
 };
 
 // 删除聊天会话
@@ -887,7 +923,7 @@ const deleteChatSession = async (sessionId) => {
       }
     });
   } catch (e) {
-    console.log("用户取消了删除操作", e);
+    // 移除非必要的日志
   }
 };
 
@@ -935,7 +971,7 @@ const clearAllChatHistory = async () => {
       }
     });
   } catch (e) {
-    console.log("用户取消了清除操作", e);
+    // 移除非必要的日志
   }
 };
 
@@ -948,13 +984,13 @@ const saveMessage = async (message) => {
   
   try {
     // 处理 references 字段，将对象转换为 JSON 字符串
-    let referencesJson = '{}';
+    let referencesJson = '[]';
     if (message.references) {
       try {
         referencesJson = JSON.stringify(message.references);
       } catch (error) {
         console.error("序列化 references 失败:", error);
-        referencesJson = JSON.stringify({});
+        referencesJson = '[]';
       }
     }
     
@@ -970,11 +1006,7 @@ const saveMessage = async (message) => {
       is_loading: message.isLoading || false
     };
     
-    console.log(`保存${message.type}消息到数据库:`, 
-      `ID=${message.id}`, 
-      `会话ID=${currentChatId.value}`, 
-      `内容长度=${(message.text || '')}`, 
-      `加载状态=${message.isLoading}`);
+    // 移除非必要的日志
     
     const response = await fetch(`${API_BASE_URL}/chat/messages`, {
       method: 'POST',
@@ -989,7 +1021,7 @@ const saveMessage = async (message) => {
       console.error("保存消息失败，状态码:", response.status, "错误详情:", errorData);
       throw new Error(`保存消息失败: ${response.status} ${response.statusText}`);
     } else {
-      console.log(`成功保存消息 ID=${message.id}`);
+      // 移除非必要的日志
     }
   } catch (error) {
     console.error(`保存消息失败 ID=${message.id}:`, error);
@@ -1005,13 +1037,13 @@ const updateMessage = async (message) => {
   
   try {
     // 处理 references 字段，将对象转换为 JSON 字符串
-    let referencesJson = '{}';
+    let referencesJson = '[]';
     if (message.references) {
       try {
         referencesJson = JSON.stringify(message.references);
       } catch (error) {
         console.error("序列化 references 失败:", error);
-        referencesJson = JSON.stringify({});
+        referencesJson = '[]';
       }
     }
     
@@ -1021,10 +1053,7 @@ const updateMessage = async (message) => {
       is_loading: message.isLoading
     };
     
-    console.log(`更新${message.type}消息:`, 
-      `ID=${message.id}`, 
-      `内容=${(message.text || '')}`, 
-      `加载状态=${message.isLoading}`);
+    // 移除非必要的日志
     
     const response = await fetch(`${API_BASE_URL}/chat/messages/${message.id}`, {
       method: 'PUT',
@@ -1039,7 +1068,7 @@ const updateMessage = async (message) => {
       console.error("更新消息失败，状态码:", response.status, "错误详情:", errorData);
       throw new Error(`更新消息失败: ${response.status} ${response.statusText}`);
     } else {
-      console.log(`成功更新消息 ID=${message}`);
+      // 移除非必要的日志
     }
   } catch (error) {
     console.error(`更新消息失败 ID=${message.id}:`, error);
@@ -1108,6 +1137,49 @@ const cancelEditingTitle = () => {
   isEditingTitle.value = false;
 };
 
+// 新增：更新会话标题为第一条消息内容
+const updateSessionTitle = async (sessionId, messageText) => {
+  if (!sessionId) return;
+  
+  try {
+    // 截取消息的前20个字符作为标题
+    let title = messageText.trim();
+    if (title.length > 20) {
+      title = title.substring(0, 20) + "...";
+    }
+    
+    // 更新数据库中的会话标题
+    const response = await fetch(`${API_BASE_URL}/chat/sessions/${sessionId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        title: title
+      })
+    });
+    
+    if (!response.ok) {
+      throw new Error("更新会话标题失败");
+    }
+    
+    // 更新前端显示
+    currentChatTitle.value = title;
+    
+    // 更新会话列表中的标题
+    totalChatHistory.value = totalChatHistory.value.map(session => {
+      if (session.id === sessionId) {
+        return { ...session, title: title };
+      }
+      return session;
+    });
+    
+    // 移除非必要的日志
+  } catch (error) {
+    console.error("更新会话标题失败:", error);
+  }
+};
+
 /* ------------------ 初始化相关 ------------------ */
 // 组件挂载时执行
 onMounted(async () => {
@@ -1124,6 +1196,13 @@ onMounted(async () => {
     // 加载用户的所有聊天历史
     if (checkLogin()) {
       await loadUserChatSessions();
+      
+      // 如果有历史会话且没有指定当前会话，自动选择最近的一个
+      if (totalChatHistory.value.length > 0 && !currentChatId.value) {
+        // 历史会话已按更新时间降序排序，所以第一个就是最近的
+        const mostRecentSession = totalChatHistory.value[0];
+        await selectChatSession(mostRecentSession.id);
+      }
     }
     
     setupScrollListener();

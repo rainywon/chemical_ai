@@ -4,9 +4,9 @@
       <div class="ai-message-content">
         <img src="@/assets/product_logo.png" alt="AI Image" class="ai-image" />
         <!-- 显示文档参考的小方框 -->
-        <template v-if="references.length > 0">
+        <template v-if="(Array.isArray(references) && references.length > 0) || (!Array.isArray(references) && Object.keys(references).length > 0)">
           <div class="references-box">
-            <References :references="references" />
+            <References :references="Array.isArray(references) ? references : Object.values(references)" />
           </div>
         </template>
         <div class="chat-message ai">
@@ -70,13 +70,11 @@ const props = defineProps({
   messageType: String,
   isLoading: Boolean,
   messageId: [Number, String],
-  references: Array,
+  references: [Array, Object],
   question: String,
   isLast: Boolean,
 });
 
-// Log the original message
-console.log('Original Message:', props.message);
 
 // 存储 think 块的状态（展开/收起）
 const thinkBlocksState = ref(new Map());
