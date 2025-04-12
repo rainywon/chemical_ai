@@ -301,11 +301,19 @@ const sendVerificationCode = async () => {
     resultMessage.value = "正在发送验证码...";
     messageType.value = "info";
 
-    const response = await axios.post(`${API_BASE_URL}/send_sms/`, {
-      mobile: formData.phone, // 发送的手机号
+    const response = await fetch(`${API_BASE_URL}/send_sms/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        mobile: formData.phone // 发送的手机号
+      })
     });
+    
+    const data = await response.json();
 
-    if (response.status === 200) {
+    if (response.ok) {
       resultMessage.value = "验证码已发送，请查收";
       messageType.value = "success"; // 成功发送设置为success类型
       // 启动倒计时
@@ -321,16 +329,12 @@ const sendVerificationCode = async () => {
         }
       }, 1000);
     } else {
-      resultMessage.value = "验证码发送失败，请稍后重试";
+      resultMessage.value = data.message || "验证码发送失败，请稍后重试";
       messageType.value = "error";
     }
   } catch (error) {
     // 网络请求失败的处理
-    if (error.response) {
-      resultMessage.value = error.response.data.message || "验证码发送失败";
-    } else {
-      resultMessage.value = "网络连接异常，请检查网络";
-    }
+    resultMessage.value = "网络连接异常，请检查网络";
     messageType.value = "error";
   }
 };
@@ -375,48 +379,61 @@ const login = async () => {
     resultMessage.value = "正在登录...";
     messageType.value = "info";
     
-    let response;
+    let url, requestData;
     
     if (loginMode.value === 1) {
       // 普通用户密码登录
-      response = await axios.post(`${API_BASE_URL}/login/`, {
+      url = `${API_BASE_URL}/login/`;
+      requestData = {
         mobile: formData.phone,
         password: formData.password,
         mode: 'password'
-      });
+      };
     } else if (loginMode.value === 2) {
       // 管理员密码登录
-      response = await axios.post(`${API_BASE_URL}/admin_login/`, {
+      url = `${API_BASE_URL}/admin_login/`;
+      requestData = {
         mobile: formData.phone,
         password: formData.password
-      });
+      };
     } else {
       // 验证码登录
-      response = await axios.post(`${API_BASE_URL}/login/`, {
+      url = `${API_BASE_URL}/login/`;
+      requestData = {
         mobile: formData.phone,
         code: formData.verificationCode,
         mode: 'code'
-      });
+      };
     }
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(requestData)
+    });
+    
+    const data = await response.json();
 
-    if (response.data.code === 200) {
+    if (data.code === 200) {
       // 存储登录状态和Token
       localStorage.setItem("isAuthenticated", "true");
       localStorage.setItem("mobile", formData.phone);
-      if (response.data.token) {
-        localStorage.setItem("token", response.data.token);
-        localStorage.setItem("user_id", response.data.user_id);
+      if (data.token && loginMode.value !== 2) {
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("user_id", data.user_id);
       }
       
       // 管理员状态处理
       if (loginMode.value === 2) {
         localStorage.setItem("isAdmin", "true");
         // 可能还需要保存其他管理员特定信息
-        if (response.data.admin_id) {
-          localStorage.setItem("admin_id", response.data.admin_id);
+        if (data.admin_id) {
+          localStorage.setItem("admin_id", data.admin_id);
         }
-        if (response.data.admin_name) {
-          localStorage.setItem("admin_name", response.data.admin_name);
+        if (data.admin_name) {
+          localStorage.setItem("admin_name", data.admin_name);
         }
       } else {
         // 非管理员登录时清除管理员状态
@@ -433,19 +450,19 @@ const login = async () => {
       
       // 跳转到首页或管理员页面
       setTimeout(() => {
-        if (loginMode.value === 2 && response.data.admin_dashboard) {
+        if (loginMode.value === 2 && data.admin_dashboard) {
           // 如果后端提供了管理员专用页面路径
-          router.push(response.data.admin_dashboard);
+          router.push(data.admin_dashboard);
         } else {
           router.push("/");
         }
       }, 1000);
     } else {
-      resultMessage.value = response.data.message || "登录失败";
+      resultMessage.value = data.message || "登录失败";
       messageType.value = "error";
     }
   } catch (error) {
-    resultMessage.value = handleLoginError(error);
+    resultMessage.value = "网络连接异常，请检查网络";
     messageType.value = "error";
   } finally {
     loading.value = false;
@@ -453,7 +470,12 @@ const login = async () => {
 };
 
 const handleLoginError = (error) => {
-  return handleApiError(error, "登录");
+  return "网络连接异常，请检查网络";
+};
+
+// 统一错误处理
+const handleApiError = (error, action) => {
+  return `${action}失败，请稍后重试`;
 };
 
 // 添加生成随机数字字符串的方法
@@ -470,14 +492,6 @@ const generateRandomDigits = () => {
 // 在script setup中添加注册页面跳转
 const goToRegister = () => {
   router.push('/register');
-};
-
-// 统一错误处理
-const handleApiError = (error, action) => {
-  if (error.response) {
-    return error.response.data.message || `${action}失败，请稍后重试`;
-  }
-  return "网络连接异常，请检查网络";
 };
 
 // 当登录模式改变时，清除错误消息和相关输入
