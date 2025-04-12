@@ -32,9 +32,7 @@
             <el-icon><User /></el-icon>
             <span>用户管理</span>
           </template>
-          <el-menu-item index="/admin/users/list">用户列表查看</el-menu-item>
-          <el-menu-item index="/admin/users/status">用户账号状态管理</el-menu-item>
-          <el-menu-item index="/admin/users/search">用户搜索和筛选</el-menu-item>
+          <el-menu-item index="/admin/users/management">用户查询与管理</el-menu-item>
           <el-menu-item index="/admin/users/login-history">用户登录历史</el-menu-item>
         </el-sub-menu>
         
@@ -174,10 +172,8 @@ const updateActiveMenu = () => {
             text = '用户管理';
           }
           break;
-        case 'list': text = '用户列表'; break;
-        case 'status': text = '账号状态管理'; break;
-        case 'search': text = '用户搜索'; break;
-        case 'login-history': text = '登录历史'; break;
+        case 'management': text = '用户查询与管理'; break;
+        case 'login-history': text = '用户登录历史'; break;
         case 'admins': text = '管理员管理'; break;
         case 'edit': text = '添加/编辑管理员'; break;
         case 'roles': text = '角色权限设置'; break;

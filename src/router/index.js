@@ -65,22 +65,10 @@ const routes = [
             },
             // 用户管理
             {
-                path: 'users/list',
-                name: 'UserList',
-                component: () => import('../components/admin/users/UserList.vue'),
-                meta: { title: '用户列表', requiresAdmin: true }
-            },
-            {
-                path: 'users/status',
-                name: 'UserStatus',
-                component: () => import('../components/admin/users/UserStatus.vue'),
-                meta: { title: '用户账号状态管理', requiresAdmin: true }
-            },
-            {
-                path: 'users/search',
-                name: 'UserSearch',
-                component: () => import('../components/admin/users/UserSearch.vue'),
-                meta: { title: '用户搜索和筛选', requiresAdmin: true }
+                path: 'users/management',
+                name: 'UserManagement',
+                component: () => import('../components/admin/users/UserManagement.vue'), // 重用UserList组件或创建新的组件
+                meta: { title: '用户查询与管理', requiresAdmin: true }
             },
             {
                 path: 'users/login-history',
