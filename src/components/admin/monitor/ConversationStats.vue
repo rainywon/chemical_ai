@@ -63,9 +63,9 @@
         <h2>对话趋势</h2>
         <div class="chart-actions">
           <el-radio-group v-model="timeUnit" @change="handleTimeUnitChange">
-            <el-radio-button label="day">日</el-radio-button>
-            <el-radio-button label="week">周</el-radio-button>
-            <el-radio-button label="month">月</el-radio-button>
+            <el-radio-button value="day">日</el-radio-button>
+            <el-radio-button value="week">周</el-radio-button>
+            <el-radio-button value="month">月</el-radio-button>
           </el-radio-group>
         </div>
       </div>
@@ -96,8 +96,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import * as echarts from 'echarts';
+import { API_BASE_URL } from '../../../config';
+import { ElMessage } from 'element-plus';
+import { useRouter } from 'vue-router';
+
+// 添加路由器
+const router = useRouter();
 
 // 状态变量
 const totalSessions = ref(0);
@@ -110,6 +116,7 @@ const recentConversations = ref([]);
 const totalSessionsCount = ref(0);
 const pageSize = ref(10);
 const currentPage = ref(1);
+const isAuthenticated = ref(false); // 添加认证状态
 
 // 图表引用
 const conversationTrendChart = ref(null);
@@ -117,11 +124,11 @@ let trendChartInstance = null;
 
 // 计算属性和方法
 const handleDateChange = () => {
-  fetchStatisticsData();
+  fetchTrendData();
 };
 
 const handleTimeUnitChange = () => {
-  renderConversationTrendChart();
+  fetchTrendData();
 };
 
 const handlePageChange = (page) => {
@@ -129,104 +136,122 @@ const handlePageChange = (page) => {
   fetchRecentConversations();
 };
 
-// 模拟数据 (后续替换为真实API调用)
-const fetchStatisticsData = () => {
-  // 模拟数据
-  totalSessions.value = 1243;
-  totalMessages.value = 9567;
-  activeUsers.value = 378;
-  avgMessagesPerSession.value = 7.7;
+// 检查用户是否是管理员
+const checkAdminStatus = () => {
+  const isAdmin = localStorage.getItem('isAdmin') === 'true';
   
-  renderCharts();
-};
-
-const fetchRecentConversations = () => {
-  // 模拟最近对话数据
-  recentConversations.value = [
-    {
-      id: '3ad1b243-41c0-4a2b-aee7-d9772300d832',
-      title: '粉尘治理怎么做',
-      user_id: '13',
-      message_count: 4,
-      created_at: '2025-04-12 14:46:10',
-      updated_at: '2025-04-12 14:48:14'
-    },
-    {
-      id: 'fd8a7b52-6c1e-4f53-9e28-8a419b76c123',
-      title: '化学泄漏应急预案',
-      user_id: '15',
-      message_count: 12,
-      created_at: '2025-04-11 10:23:45',
-      updated_at: '2025-04-11 10:45:12'
-    },
-    {
-      id: 'a5e1c983-0f21-4d67-b32a-9c81e567d890',
-      title: '危险化学品存储规范',
-      user_id: '22',
-      message_count: 8,
-      created_at: '2025-04-10 16:12:33',
-      updated_at: '2025-04-10 16:30:44'
-    },
-    {
-      id: '7b4e9f12-8d23-4a56-b789-0c12d3e4f567',
-      title: '工厂消防设备检查',
-      user_id: '8',
-      message_count: 15,
-      created_at: '2025-04-09 09:45:21',
-      updated_at: '2025-04-09 10:15:33'
-    },
-    {
-      id: '2c3d4e5f-6a7b-8c9d-0e1f-2a3b4c5d6e7f',
-      title: '有毒气体检测方法',
-      user_id: '17',
-      message_count: 6,
-      created_at: '2025-04-08 14:27:39',
-      updated_at: '2025-04-08 14:38:52'
-    }
-  ];
-  
-  totalSessionsCount.value = 126;
-};
-
-// 图表渲染函数
-const renderCharts = () => {
-  renderConversationTrendChart();
-};
-
-const renderConversationTrendChart = () => {
-  if (!trendChartInstance) {
-    trendChartInstance = echarts.init(conversationTrendChart.value);
+  if (!isAdmin) {
+    ElMessage.error('只有管理员才能访问此页面');
+    router.push('/login');
+    return false;
   }
   
-  // 生成模拟数据
-  const dates = [];
-  const sessionData = [];
-  const messageData = [];
-  
-  // 根据选择的时间单位生成数据
-  let daysToShow = 14; // 默认显示两周
-  if (timeUnit.value === 'week') daysToShow = 12; // 12周
-  if (timeUnit.value === 'month') daysToShow = 12; // 12个月
-  
-  const today = new Date();
-  
-  for (let i = daysToShow - 1; i >= 0; i--) {
-    const date = new Date();
+  isAuthenticated.value = true;
+  return true;
+};
+
+// 获取API所需的请求头
+const getAuthHeaders = () => {
+  // 不检查token，只返回Content-Type
+  return {
+    'Content-Type': 'application/json'
+  };
+};
+
+// 格式化日期
+const formatDate = (date) => {
+  const d = new Date(date);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
+// 获取统计概览数据
+const fetchStatisticsData = async () => {
+  try {
+    const headers = getAuthHeaders();
     
-    if (timeUnit.value === 'day') {
-      date.setDate(today.getDate() - i);
-      dates.push(date.getMonth() + 1 + '/' + date.getDate());
-    } else if (timeUnit.value === 'week') {
-      date.setDate(today.getDate() - i * 7);
-      dates.push('第' + (daysToShow - i) + '周');
+    const response = await fetch(`${API_BASE_URL}/admin/conversation/stats`, {
+      method: 'GET',
+      headers: headers
+    });
+    
+    const data = await response.json();
+    
+    if (data.code === 200) {
+      totalSessions.value = data.data.total_sessions;
+      totalMessages.value = data.data.total_messages;
+      activeUsers.value = data.data.active_users;
+      avgMessagesPerSession.value = data.data.avg_messages_per_session;
     } else {
-      date.setMonth(today.getMonth() - i);
-      dates.push(date.getMonth() + 1 + '月');
+      ElMessage.error(data.message || '获取统计数据失败');
+    }
+  } catch (error) {
+    ElMessage.error('网络连接异常，请检查网络');
+    console.error('获取统计数据错误:', error);
+  }
+};
+
+// 获取趋势数据
+const fetchTrendData = async () => {
+  try {
+    const headers = getAuthHeaders();
+    
+    let requestData = {
+      time_unit: timeUnit.value
+    };
+    
+    // 如果设置了日期范围，添加到请求中
+    if (dateRange.value && dateRange.value.length === 2) {
+      requestData.start_date = formatDate(dateRange.value[0]);
+      requestData.end_date = formatDate(dateRange.value[1]);
     }
     
-    // 生成随机数据
-    sessionData.push(Math.floor(Math.random() * 50) + 20);
-    messageData.push(Math.floor(Math.random() * 300) + 100);
+    const response = await fetch(`${API_BASE_URL}/admin/conversation/trend`, {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify(requestData)
+    });
+    
+    const data = await response.json();
+    
+    if (data.code === 200) {
+      renderConversationTrendChart(data.data);
+    } else {
+      ElMessage.error(data.message || '获取趋势数据失败');
+    }
+  } catch (error) {
+    ElMessage.error('网络连接异常，请检查网络');
+    console.error('获取趋势数据错误:', error);
+  }
+};
+
+// 获取最近对话列表
+const fetchRecentConversations = async () => {
+  try {
+    const headers = getAuthHeaders();
+    
+    const response = await fetch(`${API_BASE_URL}/admin/conversation/recent?page=${currentPage.value}&page_size=${pageSize.value}`, {
+      method: 'GET',
+      headers: headers
+    });
+    
+    const data = await response.json();
+    
+    if (data.code === 200) {
+      recentConversations.value = data.data.conversations;
+      totalSessionsCount.value = data.data.total;
+    } else {
+      ElMessage.error(data.message || '获取最近对话列表失败');
+    }
+  } catch (error) {
+    ElMessage.error('网络连接异常，请检查网络');
+    console.error('获取最近对话列表错误:', error);
+  }
+};
+
+// 渲染对话趋势图
+const renderConversationTrendChart = (data) => {
+  if (!trendChartInstance) {
+    trendChartInstance = echarts.init(conversationTrendChart.value);
   }
   
   const option = {
@@ -247,7 +272,7 @@ const renderConversationTrendChart = () => {
     },
     xAxis: {
       type: 'category',
-      data: dates
+      data: data.dates
     },
     yAxis: [
       {
@@ -265,13 +290,13 @@ const renderConversationTrendChart = () => {
       {
         name: '对话数',
         type: 'bar',
-        data: sessionData
+        data: data.session_data
       },
       {
         name: '消息数',
         type: 'line',
         yAxisIndex: 1,
-        data: messageData
+        data: data.message_data
       }
     ]
   };
@@ -279,9 +304,25 @@ const renderConversationTrendChart = () => {
   trendChartInstance.setOption(option);
 };
 
+// 监听时间单位变化
+watch(timeUnit, () => {
+  fetchTrendData();
+});
+
 // 生命周期钩子
 onMounted(() => {
+  // 检查管理员身份
+  if (!checkAdminStatus()) {
+    return; // 如果不是管理员，不加载数据
+  }
+  
+  // 加载统计数据
   fetchStatisticsData();
+  
+  // 加载趋势数据
+  fetchTrendData();
+  
+  // 加载最近对话列表
   fetchRecentConversations();
   
   // 窗口大小变化时重新调整图表大小

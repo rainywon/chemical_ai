@@ -435,6 +435,9 @@ const login = async () => {
         if (data.admin_name) {
           localStorage.setItem("admin_name", data.admin_name);
         }
+        if(data.token){
+          localStorage.setItem("token", data.token);
+        }
       } else {
         // 非管理员登录时清除管理员状态
         localStorage.removeItem("isAdmin");
