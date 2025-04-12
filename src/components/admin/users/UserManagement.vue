@@ -229,14 +229,22 @@ const handleStatusChange = (user) => {
   
   const action = user.status === 1 ? '禁用' : '启用';
   const newStatus = user.status === 1 ? 0 : 1;
+  const adminId = localStorage.getItem('admin_id');
   
+  // 自定义确认对话框样式
   ElMessageBox.confirm(
     `确定要${action}用户 ${user.mobile} 的账号吗？`,
     `${action}确认`,
     {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
-      type: 'warning'
+      type: user.status === 1 ? 'warning' : 'success',
+      customClass: 'custom-message-box',
+      distinguishCancelAndClose: true,
+      center: true,
+      roundButton: true,
+      showClose: false,
+      draggable: true
     }
   ).then(async () => {
     try {
@@ -247,14 +255,20 @@ const handleStatusChange = (user) => {
         },
         body: JSON.stringify({
           user_id: user.user_id,
-          status: newStatus
+          status: newStatus,
+          admin_id:adminId
         })
       });
       
       const data = await response.json();
       
       if (data.code === 200) {
-        ElMessage.success(`用户账号${action}成功`);
+        ElMessage({
+          type: 'success',
+          message: `用户账号${action}成功`,
+          duration: 2000,
+          showClose: true
+        });
         
         // 更新本地数据
         if (currentUser.value && currentUser.value.user_id === user.user_id) {
@@ -320,5 +334,206 @@ onMounted(() => {
   .table-container {
     overflow-x: auto;
   }
+}
+
+/* 移除按钮点击后的黑色边框 */
+.el-button:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* 改善按钮点击状态 */
+.el-button:active {
+  opacity: 0.9;
+  transform: scale(0.98);
+}
+
+/* 确保表格内的按钮也没有黑框 */
+.el-table .el-button:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+</style>
+
+<style>
+/* 自定义对话框样式 */
+.custom-message-box {
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  padding: 0;
+  border: none;
+}
+
+.custom-message-box .el-message-box__header {
+  padding: 16px 20px 8px;
+  border-bottom: 1px solid #ebeef5;
+  background-color: #f8f9fa;
+}
+
+.custom-message-box .el-message-box__title {
+  font-size: 18px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+}
+
+.custom-message-box .el-message-box__content {
+  padding: 24px 20px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: #5a5a5a;
+}
+
+.custom-message-box .el-message-box__btns {
+  padding: 12px 20px;
+  border-top: 1px solid #ebeef5;
+  background-color: #f8f9fa;
+}
+
+.custom-message-box .el-button {
+  border-radius: 24px;
+  padding: 9px 22px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.25s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.custom-message-box .el-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12);
+}
+
+.custom-message-box .el-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* 为不同类型确认框定制样式 */
+.el-message-box.el-message-box--warning .el-message-box__title {
+  color: #e6a23c;
+}
+
+.el-message-box.el-message-box--success .el-message-box__title {
+  color: #67c23a;
+}
+
+.el-message-box__status.el-icon-warning {
+  color: #e6a23c;
+  font-size: 24px;
+  margin-right: 10px;
+}
+
+.el-message-box__status.el-icon-success {
+  color: #67c23a;
+  font-size: 24px;
+  margin-right: 10px;
+}
+
+/* 去除按钮焦点状态 - 全局应用到所有对话框按钮 */
+.el-message-box .el-button:focus,
+.el-dialog .el-button:focus,
+.el-dialog__wrapper .el-button:focus {
+  outline: none !important;
+  box-shadow: none !important;
+  border-color: transparent;
+}
+
+/* 改进禁用按钮样式 */
+.custom-message-box .el-button--danger {
+  background-color: #f56c6c;
+  border-color: #f56c6c;
+  color: white;
+}
+
+.custom-message-box .el-button--success {
+  background-color: #67c23a;
+  border-color: #67c23a;
+  color: white;
+}
+
+/* 改进确认按钮动效 */
+.custom-message-box .el-button--primary {
+  position: relative;
+  overflow: hidden;
+}
+
+.custom-message-box .el-button--primary:after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg, 
+    rgba(255, 255, 255, 0) 0%, 
+    rgba(255, 255, 255, 0.2) 50%, 
+    rgba(255, 255, 255, 0) 100%
+  );
+  transition: all 0.5s ease;
+}
+
+.custom-message-box .el-button--primary:hover:after {
+  left: 100%;
+}
+</style>
+
+<style scoped>
+/* 添加用户详情对话框样式 */
+:deep(.el-dialog) {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+:deep(.el-dialog__header) {
+  background-color: #f8f9fa;
+  padding: 15px 20px;
+  margin: 0;
+  border-bottom: 1px solid #ebeef5;
+}
+
+:deep(.el-dialog__title) {
+  font-weight: bold;
+  color: #333;
+}
+
+:deep(.el-dialog__body) {
+  padding: 20px;
+}
+
+:deep(.el-dialog__footer) {
+  padding: 12px 20px;
+  border-top: 1px solid #ebeef5;
+  background-color: #f8f9fa;
+}
+
+:deep(.el-button) {
+  border-radius: 20px;
+  padding: 8px 20px;
+  transition: all 0.25s ease;
+}
+
+:deep(.el-button:hover) {
+  transform: translateY(-2px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+:deep(.el-button:active) {
+  transform: translateY(0px);
+  box-shadow: none;
+}
+
+:deep(.el-descriptions-item__label) {
+  background-color: #f8f9fa;
+}
+
+/* 修复按钮点击后出现的黑色边框 */
+:deep(.el-button:focus),
+:deep(.el-button:focus-visible) {
+  outline: none !important;
+  box-shadow: none !important;
+  border-color: initial;
 }
 </style> 

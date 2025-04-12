@@ -1,357 +1,388 @@
 <template>
   <div class="login-history-container">
-    <h1 class="text-h5 mb-4">用户登录历史</h1>
+    <h1 class="page-title">用户登录历史</h1>
     
     <!-- 搜索过滤区域 -->
-    <v-card class="mb-4 pa-3">
-      <v-row>
-        <v-col cols="12" sm="3">
-          <v-text-field
-            v-model="searchParams.userId"
-            label="用户ID"
-            type="number"
+    <div class="search-container">
+      <el-form :inline="true" :model="searchParams" class="search-form">
+        <el-form-item label="用户ID">
+          <el-input v-model="searchParams.userId" placeholder="请输入用户ID" clearable></el-input>
+        </el-form-item>
+        <el-form-item label="手机号">
+          <el-input v-model="searchParams.mobile" placeholder="请输入手机号" clearable></el-input>
+        </el-form-item>
+        <el-form-item label="日期范围">
+          <el-date-picker
+            v-model="dateRange"
+            type="daterange"
+            range-separator="至"
+            start-placeholder="开始日期"
+            end-placeholder="结束日期"
+            format="YYYY-MM-DD"
+            value-format="YYYY-MM-DD"
             clearable
-            outlined
-            dense
-          ></v-text-field>
-        </v-col>
-        <v-col cols="12" sm="3">
-          <v-text-field
-            v-model="searchParams.mobile"
-            label="手机号"
-            clearable
-            outlined
-            dense
-          ></v-text-field>
-        </v-col>
-        <v-col cols="12" sm="3">
-          <v-menu
-            ref="startDateMenu"
-            v-model="startDateMenu"
-            :close-on-content-click="false"
-            min-width="auto"
-          >
-            <template v-slot:activator="{ on, attrs }">
-              <v-text-field
-                v-model="searchParams.startDate"
-                label="起始日期"
-                readonly
-                outlined
-                dense
-                clearable
-                v-bind="attrs"
-                v-on="on"
-                @click:clear="searchParams.startDate = null"
-              ></v-text-field>
-            </template>
-            <v-date-picker
-              v-model="searchParams.startDate"
-              @input="startDateMenu = false"
-            ></v-date-picker>
-          </v-menu>
-        </v-col>
-        <v-col cols="12" sm="3">
-          <v-menu
-            ref="endDateMenu"
-            v-model="endDateMenu"
-            :close-on-content-click="false"
-            min-width="auto"
-          >
-            <template v-slot:activator="{ on, attrs }">
-              <v-text-field
-                v-model="searchParams.endDate"
-                label="结束日期"
-                readonly
-                outlined
-                dense
-                clearable
-                v-bind="attrs"
-                v-on="on"
-                @click:clear="searchParams.endDate = null"
-              ></v-text-field>
-            </template>
-            <v-date-picker
-              v-model="searchParams.endDate"
-              @input="endDateMenu = false"
-            ></v-date-picker>
-          </v-menu>
-        </v-col>
-      </v-row>
-      <v-row>
-        <v-col cols="12" class="text-right">
-          <v-btn color="primary" @click="searchLoginHistory">
-            <v-icon left>mdi-magnify</v-icon>
-            搜索
-          </v-btn>
-          <v-btn
-            class="ml-2"
-            outlined
-            color="grey"
-            @click="resetSearchParams"
-          >
-            <v-icon left>mdi-refresh</v-icon>
-            重置
-          </v-btn>
-        </v-col>
-      </v-row>
-    </v-card>
+          ></el-date-picker>
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" @click="searchLoginHistory">
+            <i class="el-icon-search"></i> 搜索
+          </el-button>
+          <el-button @click="resetSearchParams">
+            <i class="el-icon-refresh"></i> 重置
+          </el-button>
+        </el-form-item>
+      </el-form>
+    </div>
 
     <!-- 登录历史表格 -->
-    <v-card>
-      <v-data-table
-        :headers="headers"
-        :items="loginHistory"
-        :loading="loading"
-        :items-per-page="pageSize"
-        :server-items-length="totalItems"
-        :page.sync="currentPage"
-        :options.sync="options"
-        @update:options="fetchLoginHistory"
-        class="elevation-1"
+    <div class="table-container">
+      <el-table
+        :data="loginHistory"
+        border
+        stripe
+        style="width: 100%"
+        v-loading="loading"
+        :header-cell-style="{background:'#f5f7fa', color:'#606266', fontWeight: 'bold'}"
+        :cell-style="{ padding: '12px 8px' }"
       >
-        <template v-slot:item.status="{ item }">
-          <v-chip
-            small
-            :color="item.status === '有效' ? 'success' : 'error'"
-            text-color="white"
-          >
-            {{ item.status }}
-          </v-chip>
-        </template>
-
-        <template v-slot:item.actions="{ item }">
-          <v-btn
-            small
-            text
-            color="primary"
-            @click="viewUserDetails(item.user_id)"
-          >
-            <v-icon small>mdi-account-details</v-icon>
-            用户详情
-          </v-btn>
-        </template>
-
-        <template v-slot:no-data>
-          <div class="text-center pa-5">
-            <v-icon large color="grey">mdi-database-off</v-icon>
-            <div class="mt-2 grey--text">暂无登录记录</div>
-          </div>
-        </template>
-      </v-data-table>
-    </v-card>
+        <el-table-column prop="id" label="ID" min-width="80" align="center"></el-table-column>
+        <el-table-column prop="user_id" label="用户ID" min-width="80" align="center"></el-table-column>
+        <el-table-column prop="mobile" label="手机号" min-width="120" align="center"></el-table-column>
+        <el-table-column prop="login_time" label="登录时间" min-width="160" align="center"></el-table-column>
+        <el-table-column prop="status" label="登录状态" min-width="100" align="center">
+          <template #default="scope">
+            <el-tag :type="scope.row.status === '有效' ? 'success' : 'info'">
+              {{ scope.row.status }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="expire_at" label="过期时间" min-width="160" align="center"></el-table-column>
+        <el-table-column prop="device_info" label="设备信息" min-width="120" align="center">
+          <template #default="scope">
+            {{ scope.row.device_info || '未知' }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="ip_address" label="IP地址" min-width="120" align="center">
+          <template #default="scope">
+            {{ scope.row.ip_address || '未知' }}
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" min-width="120" align="center">
+          <template #default="scope">
+            <el-button
+              size="small"
+              type="primary"
+              @click="viewUserDetails(scope.row.user_id)"
+            >
+              用户详情
+            </el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      
+      <!-- 分页 -->
+      <div class="pagination-container">
+        <el-pagination
+          background
+          layout="total, sizes, prev, pager, next, jumper"
+          :total="totalItems"
+          :page-size="pageSize"
+          :page-sizes="[10, 20, 50, 100]"
+          :current-page="currentPage"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        ></el-pagination>
+      </div>
+    </div>
 
     <!-- 用户详情对话框 -->
-    <v-dialog v-model="userDialogVisible" max-width="600px">
-      <v-card v-if="selectedUser">
-        <v-card-title class="headline">
-          用户详情 (ID: {{ selectedUser.user_id }})
-        </v-card-title>
-        <v-card-text>
-          <v-row>
-            <v-col cols="6">
-              <v-text-field
-                label="手机号"
-                :value="selectedUser.mobile"
-                readonly
-                outlined
-                dense
-              ></v-text-field>
-            </v-col>
-            <v-col cols="6">
-              <v-text-field
-                label="用户名"
-                :value="selectedUser.username || '未设置'"
-                readonly
-                outlined
-                dense
-              ></v-text-field>
-            </v-col>
-          </v-row>
-          <v-row>
-            <v-col cols="6">
-              <v-text-field
-                label="注册时间"
-                :value="selectedUser.created_at"
-                readonly
-                outlined
-                dense
-              ></v-text-field>
-            </v-col>
-            <v-col cols="6">
-              <v-text-field
-                label="最后登录"
-                :value="selectedUser.last_login || '未记录'"
-                readonly
-                outlined
-                dense
-              ></v-text-field>
-            </v-col>
-          </v-row>
-          <v-row>
-            <v-col cols="6">
-              <v-text-field
-                label="账户状态"
-                :value="selectedUser.status === 1 ? '正常' : '禁用'"
-                readonly
-                outlined
-                dense
-              ></v-text-field>
-            </v-col>
-            <v-col cols="6">
-              <v-text-field
-                label="用户类型"
-                :value="selectedUser.role === 'admin' ? '管理员' : '普通用户'"
-                readonly
-                outlined
-                dense
-              ></v-text-field>
-            </v-col>
-          </v-row>
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer></v-spacer>
-          <v-btn color="primary" text @click="userDialogVisible = false">
-            关闭
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <el-dialog 
+      title="用户详情" 
+      v-model="userDialogVisible" 
+      width="600px" 
+      :close-on-click-modal="false"
+    >
+      <div v-if="selectedUser" class="user-detail">
+        <el-descriptions :column="2" border>
+          <el-descriptions-item label="用户ID">{{ selectedUser.user_id }}</el-descriptions-item>
+          <el-descriptions-item label="手机号">{{ selectedUser.mobile }}</el-descriptions-item>
+          <el-descriptions-item label="注册时间">{{ selectedUser.register_time || '未记录' }}</el-descriptions-item>
+          <el-descriptions-item label="最后登录">{{ selectedUser.last_login_time || '未记录' }}</el-descriptions-item>
+          <el-descriptions-item label="账户状态">
+            <el-tag :type="selectedUser.status === 1 ? 'success' : 'danger'">
+              {{ selectedUser.status === 1 ? '正常' : '禁用' }}
+            </el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="主题偏好">
+            {{ selectedUser.theme_preference === 'light' ? '浅色' : '深色' }}
+          </el-descriptions-item>
+        </el-descriptions>
+      </div>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="userDialogVisible = false">关闭</el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
-<script>
-import axios from 'axios'
+<script setup>
+import { ref, reactive, onMounted, computed, watch } from 'vue';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import { API_BASE_URL } from '../../../config';
 
-export default {
-  name: 'LoginHistory',
-  data() {
-    return {
-      // 搜索参数
-      searchParams: {
-        userId: null,
-        mobile: null,
-        startDate: null,
-        endDate: null
-      },
-      // 日期选择器状态
-      startDateMenu: false,
-      endDateMenu: false,
-      // 表格相关
-      loading: false,
-      headers: [
-        { text: 'ID', value: 'id', align: 'start' },
-        { text: '用户ID', value: 'user_id', align: 'start' },
-        { text: '手机号', value: 'mobile', align: 'start' },
-        { text: '登录时间', value: 'login_time', align: 'start' },
-        { text: '登录状态', value: 'status', align: 'start' },
-        { text: '过期时间', value: 'expire_at', align: 'start' },
-        { text: '设备信息', value: 'device_info', align: 'start' },
-        { text: 'IP地址', value: 'ip_address', align: 'start' },
-        { text: '操作', value: 'actions', sortable: false, align: 'center' }
-      ],
-      loginHistory: [],
-      totalItems: 0,
-      currentPage: 1,
-      pageSize: 10,
-      options: {},
-      // 用户详情相关
-      userDialogVisible: false,
-      selectedUser: null
-    }
-  },
-  mounted() {
-    this.fetchLoginHistory()
-  },
-  methods: {
-    // 获取登录历史记录
-    async fetchLoginHistory() {
-      this.loading = true
-      try {
-        // 根据选项构建查询参数
-        if (this.options.page) {
-          this.currentPage = this.options.page
-        }
-        if (this.options.itemsPerPage) {
-          this.pageSize = this.options.itemsPerPage
-        }
+// 状态变量
+const loading = ref(false);
+const loginHistory = ref([]);
+const totalItems = ref(0);
+const currentPage = ref(1);
+const pageSize = ref(10);
+const userDialogVisible = ref(false);
+const selectedUser = ref(null);
+const dateRange = ref([]);
 
-        // 构建参数
-        const params = {
-          page: this.currentPage,
-          page_size: this.pageSize
-        }
-
-        // 添加筛选条件
-        if (this.searchParams.userId) {
-          params.user_id = this.searchParams.userId
-        }
-        if (this.searchParams.mobile) {
-          params.mobile = this.searchParams.mobile
-        }
-        if (this.searchParams.startDate) {
-          params.start_date = this.searchParams.startDate
-        }
-        if (this.searchParams.endDate) {
-          params.end_date = this.searchParams.endDate
-        }
-
-        // 发送请求获取登录历史
-        const response = await axios.get('/api/admin/users/login-history', { params })
-        
-        if (response.data.code === 200) {
-          this.loginHistory = response.data.data.logins
-          this.totalItems = response.data.data.total
-        } else {
-          this.$toast.error(`获取登录历史失败: ${response.data.message}`)
-        }
-      } catch (error) {
-        console.error('获取登录历史失败:', error)
-        this.$toast.error(`获取登录历史失败: ${error.message || '服务器错误'}`)
-      } finally {
-        this.loading = false
-      }
-    },
-    // 搜索登录历史
-    searchLoginHistory() {
-      this.currentPage = 1
-      this.fetchLoginHistory()
-    },
-    // 重置搜索参数
-    resetSearchParams() {
-      this.searchParams = {
-        userId: null,
-        mobile: null,
-        startDate: null,
-        endDate: null
-      }
-      this.currentPage = 1
-      this.fetchLoginHistory()
-    },
-    // 查看用户详情
-    async viewUserDetails(userId) {
-      this.loading = true
-      try {
-        const response = await axios.get(`/api/admin/users/${userId}`)
-        
-        if (response.data.code === 200) {
-          this.selectedUser = response.data.data
-          this.userDialogVisible = true
-        } else {
-          this.$toast.error(`获取用户详情失败: ${response.data.message}`)
-        }
-      } catch (error) {
-        console.error('获取用户详情失败:', error)
-        this.$toast.error(`获取用户详情失败: ${error.message || '服务器错误'}`)
-      } finally {
-        this.loading = false
-      }
-    }
+// API基础URL，确保没有尾斜杠
+const apiBaseUrl = computed(() => {
+  if (API_BASE_URL.endsWith('/')) {
+    return API_BASE_URL.slice(0, -1);
   }
-}
+  return API_BASE_URL;
+});
+
+// 搜索参数
+const searchParams = reactive({
+  userId: '',
+  mobile: '',
+  dateRange: [],
+});
+
+// 监听日期范围变化，更新搜索参数
+watch(dateRange, (newValue) => {
+  if (newValue && newValue.length === 2) {
+    searchParams.startDate = newValue[0];
+    searchParams.endDate = newValue[1];
+  } else {
+    searchParams.startDate = null;
+    searchParams.endDate = null;
+  }
+});
+
+// 获取登录历史记录
+const fetchLoginHistory = async () => {
+  loading.value = true;
+  try {
+    // 构建查询参数
+    const params = new URLSearchParams();
+    params.append('page', currentPage.value.toString());
+    params.append('page_size', pageSize.value.toString());
+    
+    if (searchParams.userId && searchParams.userId.trim()) {
+      const userIdNum = parseInt(searchParams.userId.trim());
+      if (!isNaN(userIdNum)) {
+        params.append('user_id', userIdNum.toString());
+      }
+    }
+    
+    if (searchParams.mobile && searchParams.mobile.trim()) {
+      params.append('mobile', searchParams.mobile.trim());
+    }
+    
+    // 修复日期处理
+    if (dateRange.value && dateRange.value.length === 2) {
+      if (dateRange.value[0]) params.append('start_date', dateRange.value[0]);
+      if (dateRange.value[1]) params.append('end_date', dateRange.value[1]);
+    }
+
+    // 获取并添加管理员ID
+    const adminId = localStorage.getItem('admin_id');
+    if (adminId) {
+      const adminIdNum = parseInt(adminId);
+      if (!isNaN(adminIdNum)) {
+        params.append('admin_id', adminIdNum.toString());
+      }
+    }
+
+    
+    // 使用新的API路径
+    const response = await fetch(`${apiBaseUrl.value}/admin/login-history/all?${params.toString()}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+    
+    // 检查响应状态
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('API错误响应:', response.status, errorText);
+      throw new Error(`API请求失败: ${response.status} ${errorText}`);
+    }
+    
+    const data = await response.json();
+    
+    if (data.code === 200) {
+      loginHistory.value = data.data.logins;
+      totalItems.value = data.data.total;
+    } else {
+      ElMessage.error(data.message || '获取登录历史失败');
+    }
+  } catch (error) {
+    console.error('获取登录历史失败:', error);
+    ElMessage.error('网络连接异常，请稍后再试');
+  } finally {
+    loading.value = false;
+  }
+};
+
+// 搜索登录历史
+const searchLoginHistory = () => {
+  currentPage.value = 1;
+  fetchLoginHistory();
+};
+
+// 重置搜索参数 - 确保清空为null而非空字符串
+const resetSearchParams = () => {
+  Object.keys(searchParams).forEach(key => {
+    searchParams[key] = null;
+  });
+  dateRange.value = [];
+  currentPage.value = 1;
+  fetchLoginHistory();
+};
+
+// 处理分页大小变化
+const handleSizeChange = (size) => {
+  pageSize.value = size;
+  fetchLoginHistory();
+};
+
+// 处理当前页变化
+const handleCurrentChange = (page) => {
+  currentPage.value = page;
+  fetchLoginHistory();
+};
+
+// 查看用户详情
+const viewUserDetails = async (userId) => {
+  loading.value = true;
+  try {
+    // 确保userId是整数
+    const userIdNum = parseInt(userId);
+    if (isNaN(userIdNum)) {
+      ElMessage.error('无效的用户ID');
+      loading.value = false;
+      return;
+    }
+
+    // 获取管理员ID并转换为整数
+    const adminId = localStorage.getItem('admin_id');
+    const params = new URLSearchParams();
+    
+    if (adminId && adminId.trim() !== '') {
+      const adminIdNum = parseInt(adminId);
+      if (!isNaN(adminIdNum)) {
+        params.append('admin_id', adminIdNum);
+      }
+    }
+    
+    // 调试输出
+    
+    const response = await fetch(`${apiBaseUrl.value}/admin/users/${userIdNum}?${params.toString()}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+    
+    // 检查响应状态
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('API错误响应:', response.status, errorText);
+      throw new Error(`API请求失败: ${response.status} ${errorText}`);
+    }
+    
+    const data = await response.json();
+    
+    if (data.code === 200) {
+      selectedUser.value = data.data;
+      userDialogVisible.value = true;
+    } else {
+      ElMessage.error(data.message || '获取用户详情失败');
+    }
+  } catch (error) {
+    console.error('获取用户详情失败:', error);
+    ElMessage.error('网络连接异常，请稍后再试');
+  } finally {
+    loading.value = false;
+  }
+};
+
+// 生命周期钩子
+onMounted(() => {
+  // 检查管理员身份
+  const isAdmin = localStorage.getItem('isAdmin') === 'true';
+  if (!isAdmin) {
+    ElMessage.error('只有管理员才能访问此页面');
+    return;
+  }
+  
+  // 加载登录历史记录
+  fetchLoginHistory();
+});
 </script>
 
 <style scoped>
 .login-history-container {
-  padding: 16px;
+  padding: 20px;
+}
+
+.page-title {
+  margin-bottom: 24px;
+  font-size: 24px;
+  font-weight: 500;
+  color: #333;
+}
+
+.search-container {
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+}
+
+.table-container {
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 4px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+}
+
+.pagination-container {
+  margin-top: 20px;
+  text-align: right;
+}
+
+.user-detail {
+  padding: 10px;
+}
+
+/* 修复按钮点击后出现的黑色边框 */
+:deep(.el-button:focus),
+:deep(.el-button:focus-visible) {
+  outline: none !important;
+  box-shadow: none !important;
+  border-color: initial;
+}
+
+/* 改善表格内容样式 */
+:deep(.el-table__header-wrapper th) {
+  font-weight: bold;
+}
+
+:deep(.el-pagination) {
+  margin-top: 20px;
+  justify-content: flex-end;
 }
 </style> 
