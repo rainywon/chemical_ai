@@ -11,7 +11,7 @@
  Target Server Version : 80041 (8.0.41)
  File Encoding         : 65001
 
- Date: 11/04/2025 19:00:01
+ Date: 12/04/2025 12:13:25
 */
 
 SET NAMES utf8mb4;
@@ -69,11 +69,11 @@ DROP TABLE IF EXISTS `chat_messages`;
 CREATE TABLE `chat_messages`  (
   `id` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
   `session_id` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
-  `message_type` enum('user','ai') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `message_type` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
   `content` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL,
   `parent_id` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
   `paired_ai_id` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
-  `references` json NULL,
+  `message_references` json NULL,
   `question` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL,
   `is_loading` tinyint(1) NULL DEFAULT 0,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
@@ -103,6 +103,7 @@ CREATE TABLE `chat_sessions`  (
 -- ----------------------------
 -- Records of chat_sessions
 -- ----------------------------
+INSERT INTO `chat_sessions` VALUES ('76b9a614-aafb-454d-8c28-eb33c765e6f7', '13', '对话 12:12:26', '2025-04-12 12:12:26', '2025-04-12 12:12:26');
 
 -- ----------------------------
 -- Table structure for content_feedbacks
@@ -328,12 +329,13 @@ CREATE TABLE `user_tokens`  (
   UNIQUE INDEX `token`(`token` ASC) USING BTREE,
   INDEX `idx_user_id`(`user_id` ASC) USING BTREE,
   CONSTRAINT `user_tokens_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE ON UPDATE RESTRICT
-) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '用户登录令牌表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '用户登录令牌表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of user_tokens
 -- ----------------------------
-INSERT INTO `user_tokens` VALUES (1, 13, '546f227d-d04a-4e1a-afd7-2de18a6009a5', NULL, NULL, '2025-04-11 18:52:58', '2025-04-18 18:52:59', 1);
+INSERT INTO `user_tokens` VALUES (1, 13, '546f227d-d04a-4e1a-afd7-2de18a6009a5', NULL, NULL, '2025-04-11 18:52:58', '2025-04-18 18:52:59', 0);
+INSERT INTO `user_tokens` VALUES (2, 13, '2c26e5ac-8dce-4bed-a11d-3b9776ae1772', NULL, NULL, '2025-04-11 22:04:20', '2025-04-18 22:04:20', 1);
 
 -- ----------------------------
 -- Table structure for users
@@ -355,7 +357,7 @@ CREATE TABLE `users`  (
 -- ----------------------------
 -- Records of users
 -- ----------------------------
-INSERT INTO `users` VALUES (13, '18350191687', 'c412e04cf954373dfea8db43c5984438', 'light', '2025-04-11 18:52:58', '2025-04-11 18:52:58', 1);
+INSERT INTO `users` VALUES (13, '18350191687', 'c412e04cf954373dfea8db43c5984438', 'light', '2025-04-11 18:52:58', '2025-04-11 22:04:20', 1);
 
 -- ----------------------------
 -- Table structure for verification_codes
@@ -371,12 +373,13 @@ CREATE TABLE `verification_codes`  (
   `is_used` tinyint NULL DEFAULT 0 COMMENT '是否已使用: 0-未使用, 1-已使用',
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_mobile_purpose`(`mobile` ASC, `purpose` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 15 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '验证码表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 16 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '验证码表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of verification_codes
 -- ----------------------------
 INSERT INTO `verification_codes` VALUES (13, '18350191687', '164152', 'register', '2025-04-11 18:46:24', '2025-04-11 19:01:24', 0);
 INSERT INTO `verification_codes` VALUES (14, '18350191687', '875120', 'register', '2025-04-11 18:52:28', '2025-04-11 19:07:28', 1);
+INSERT INTO `verification_codes` VALUES (15, '18350191687', '806379', 'login', '2025-04-11 21:42:14', '2025-04-11 21:57:14', 1);
 
 SET FOREIGN_KEY_CHECKS = 1;

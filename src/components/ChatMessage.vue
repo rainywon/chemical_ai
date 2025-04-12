@@ -69,7 +69,7 @@ const props = defineProps({
   message: String,
   messageType: String,
   isLoading: Boolean,
-  messageId: Number,
+  messageId: [Number, String],
   references: Array,
   question: String,
   isLast: Boolean,
