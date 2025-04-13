@@ -1,6 +1,5 @@
 <template>
   <div class="operation-logs-container">
-    <h1 class="page-title">操作日志</h1>
     
     <!-- 搜索过滤区域 -->
     <div class="search-container">
@@ -10,12 +9,12 @@
         </el-form-item>
         <el-form-item label="操作类型">
           <el-select v-model="searchParams.operationType" placeholder="请选择操作类型" clearable>
-            <el-option value="login" label="登录"></el-option>
-            <el-option value="logout" label="登出"></el-option>
-            <el-option value="query" label="查询"></el-option>
-            <el-option value="create" label="创建"></el-option>
-            <el-option value="update" label="更新"></el-option>
-            <el-option value="delete" label="删除"></el-option>
+            <el-option value="登录" label="登录"></el-option>
+            <el-option value="登出" label="登出"></el-option>
+            <el-option value="查询" label="查询"></el-option>
+            <el-option value="创建" label="创建"></el-option>
+            <el-option value="更新" label="更新"></el-option>
+            <el-option value="删除" label="删除"></el-option>
           </el-select>
         </el-form-item>
         <el-form-item label="日期范围">
@@ -184,8 +183,8 @@ const fetchOperationLogs = async () => {
   try {
     // 构建查询参数
     const params = new URLSearchParams();
-    params.append('page', currentPage.value.toString());
-    params.append('page_size', pageSize.value.toString());
+    params.append('page', currentPage.value);
+    params.append('page_size', pageSize.value);
     
     if (searchParams.adminId && searchParams.adminId.trim()) {
       const adminIdNum = parseInt(searchParams.adminId.trim());
@@ -198,22 +197,26 @@ const fetchOperationLogs = async () => {
       params.append('operation_type', searchParams.operationType.trim());
     }
     
-    // 日期处理
-    if (searchParams.startDate) {
+    if (searchParams.startDate && searchParams.endDate) {
       params.append('start_date', searchParams.startDate);
-    }
-    
-    if (searchParams.endDate) {
       params.append('end_date', searchParams.endDate);
     }
-
-    // 获取并添加当前管理员ID
-    const adminId = localStorage.getItem('admin_id');
-    if (adminId) {
-      const adminIdNum = parseInt(adminId);
+    
+    // 获取当前管理员ID
+    const currentAdminId = localStorage.getItem('admin_id');
+    if (currentAdminId) {
+      const adminIdNum = parseInt(currentAdminId);
       if (!isNaN(adminIdNum)) {
         params.append('current_admin_id', adminIdNum.toString());
       }
+    }
+    
+    // 获取认证 token
+    const token = localStorage.getItem('token');
+    if (!token) {
+      ElMessage.error('您的登录已过期，请重新登录');
+      loading.value = false;
+      return;
     }
     
     // 发送请求
@@ -221,7 +224,7 @@ const fetchOperationLogs = async () => {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+        'Authorization': `Bearer ${token}`
       }
     });
     
@@ -251,12 +254,12 @@ const fetchOperationLogs = async () => {
 // 根据操作类型返回不同的标签类型
 const getOperationTypeTag = (type) => {
   const typeMap = {
-    'login': 'success',
-    'logout': 'info',
-    'query': 'primary',
-    'create': 'success',
-    'update': 'warning',
-    'delete': 'danger'
+    '登录': 'success',
+    '登出': 'info',
+    '查询': 'primary',
+    '创建': 'success',
+    '更新': 'warning',
+    '删除': 'danger'
   };
   
   return typeMap[type] || 'info';
@@ -291,9 +294,62 @@ const handleCurrentChange = (page) => {
 };
 
 // 显示日志详情
-const showLogDetail = (log) => {
-  selectedLog.value = log;
-  detailDialogVisible.value = true;
+const showLogDetail = async (log) => {
+  try {
+    // 获取认证 token
+    const token = localStorage.getItem('token');
+    if (!token) {
+      ElMessage.error('您的登录已过期，请重新登录');
+      return;
+    }
+    
+    // 获取当前管理员ID
+    const adminId = localStorage.getItem('admin_id');
+    let url = `${apiBaseUrl.value}/admin/operation-logs/${log.log_id}`;
+    
+    // 添加管理员ID到查询参数
+    if (adminId) {
+      const adminIdNum = parseInt(adminId);
+      if (!isNaN(adminIdNum)) {
+        url += `?current_admin_id=${adminIdNum}`;
+      }
+    }
+    
+    // 查询日志详情
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    // 检查响应状态
+    if (!response.ok) {
+      if (response.status === 403) {
+        ElMessage.error('权限不足，仅管理员可查看操作日志详情');
+        return;
+      }
+      const errorText = await response.text();
+      throw new Error(`API请求失败: ${response.status} ${errorText}`);
+    }
+    
+    const data = await response.json();
+    
+    if (data.code === 200) {
+      selectedLog.value = data.data;
+      detailDialogVisible.value = true;
+    } else if (data.code === 403) {
+      ElMessage.error(data.message || '权限不足，仅管理员可查看操作日志详情');
+    } else if (data.code === 404) {
+      ElMessage.error('日志不存在');
+    } else {
+      ElMessage.error(data.message || '获取日志详情失败');
+    }
+  } catch (error) {
+    console.error('获取日志详情失败:', error);
+    ElMessage.error('网络连接异常，请稍后再试');
+  }
 };
 
 // 生命周期钩子

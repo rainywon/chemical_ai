@@ -11,7 +11,7 @@
  Target Server Version : 80041 (8.0.41)
  File Encoding         : 65001
 
- Date: 12/04/2025 15:17:07
+ Date: 13/04/2025 15:36:09
 */
 
 SET NAMES utf8mb4;
@@ -41,7 +41,7 @@ CREATE TABLE `admins`  (
 -- ----------------------------
 -- Records of admins
 -- ----------------------------
-INSERT INTO `admins` VALUES (1, 'admin', 'c412e04cf954373dfea8db43c5984438', '吴凯歌', 'admin', '1028418330@qq.com', 1, NULL, '2025-04-12 14:52:07', '2025-04-12 14:59:03');
+INSERT INTO `admins` VALUES (1, '18350191687', 'c412e04cf954373dfea8db43c5984438', '吴凯歌', 'admin', '1028418330@qq.com', 1, '2025-04-13 14:45:29', '2025-04-12 14:52:07', '2025-04-13 14:45:29');
 
 -- ----------------------------
 -- Table structure for ai_models
@@ -93,6 +93,8 @@ INSERT INTO `chat_messages` VALUES ('1744440404702', '3ad1b243-41c0-4a2b-aee7-d9
 INSERT INTO `chat_messages` VALUES ('1744440404703', '3ad1b243-41c0-4a2b-aee7-d9772300d832', 'ai', '<think>\n【问题分析】\n1. 核心安全风险：粉尘爆炸、粉尘中毒、粉尘火灾等。\n2. 相关法规标准：GB/T 16297《工作场所职业病危害因素分类与代码》、AQ 3009《化工企业粉尘防爆安全规范》。\n3. 可能原因：粉尘产生源、粉尘收集不良、粉尘清理不及时等。\n\n【解决思路】\n- 分步骤展开解决方案\n- 比较不同方法的优缺点\n- 结合最新行业案例\n- 特殊情况的应急处理\n</think>\n\n【专业回答】\n<|im_start|>\n1. **立即行动方案（带编号步骤）**\n   (1) 立即对粉尘源进行隔离，防止粉尘扩散。\n   (2) 对工作场所进行通风，降低粉尘浓度。\n   (3) 对受影响区域进行风险评估，确保人员安全撤离。\n\n2. **根本原因排查（检查清单）**\n   √ 检查粉尘产生设备是否正常运行\n   √ 确认粉尘收集系统是否有效\n   √ 检查粉尘清理系统的工作状态\n\n3. **长期预防措施**\n   - 定期对粉尘收集和排放系统进行维护保养。\n   - 安装粉尘检测仪，实时监控粉尘浓度。\n   - 对员工进行粉尘危害意识培训。\n\n4. **应急处理方案**\n   - 在粉尘浓度超标时，立即启动应急预案。\n   - 使用防爆设备和防护装备进行清理工作。\n   - 设置隔离区域，防止无关人员进入。\n\n', '1744440404702', NULL, '[]', '粉尘治理怎么做', 0, '2025-04-12 14:46:45');
 INSERT INTO `chat_messages` VALUES ('1744440494401', '3ad1b243-41c0-4a2b-aee7-d9772300d832', 'user', '你能做什么\n', NULL, '1744440494402', '[]', NULL, 0, '2025-04-12 14:48:14');
 INSERT INTO `chat_messages` VALUES ('1744440494402', '3ad1b243-41c0-4a2b-aee7-d9772300d832', 'ai', '<think>\n我是DeepSeek-R1，一个由深度求索公司开发的智能助手，我擅长通过思考来帮您解答复杂的数学、代码和逻辑推理等问题。如果你有任何问题，随时可以告诉我！\n', '1744440494401', NULL, '[]', '你能做什么\n', 0, '2025-04-12 14:48:14');
+INSERT INTO `chat_messages` VALUES ('1744526716383', '3ad1b243-41c0-4a2b-aee7-d9772300d832', 'user', '你是谁\n', NULL, '1744526716384', '[]', NULL, 0, '2025-04-13 14:45:16');
+INSERT INTO `chat_messages` VALUES ('1744526716384', '3ad1b243-41c0-4a2b-aee7-d9772300d832', 'ai', '<think>\n我是DeepSeek-R1，一个由深度求索公司开发的智能助手，我擅长通过思考来帮您解答复杂问题。\n</think>\n\n我是DeepSeek-R1，一个由深度求索公司开发的智能助手，我擅长通过思考来帮您解答复杂问题。', '1744526716383', NULL, '[]', '你是谁\n', 0, '2025-04-13 14:45:16');
 
 -- ----------------------------
 -- Table structure for chat_sessions
@@ -111,7 +113,7 @@ CREATE TABLE `chat_sessions`  (
 -- ----------------------------
 -- Records of chat_sessions
 -- ----------------------------
-INSERT INTO `chat_sessions` VALUES ('3ad1b243-41c0-4a2b-aee7-d9772300d832', '13', '粉尘治理怎么做', '2025-04-12 14:46:10', '2025-04-12 14:48:14');
+INSERT INTO `chat_sessions` VALUES ('3ad1b243-41c0-4a2b-aee7-d9772300d832', '13', '粉尘治理怎么做', '2025-04-12 14:46:10', '2025-04-13 14:45:16');
 
 -- ----------------------------
 -- Table structure for content_feedbacks
@@ -125,12 +127,16 @@ CREATE TABLE `content_feedbacks`  (
   `message` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'AI回答内容',
   `question` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '用户问题',
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `status` enum('pending','processing','resolved','rejected') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'pending',
+  `admin_reply` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
+  `replied_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '内容反馈表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '内容反馈表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of content_feedbacks
 -- ----------------------------
+INSERT INTO `content_feedbacks` VALUES (1, 3, '内容太少了', 'inaccurate', '<think>\n我是DeepSeek-R1，一个由深度求索公司开发的智能助手，我擅长通过思考来帮您解答复杂的数学、代码和逻辑推理等问题。如果你有任何问题，随时可以告诉我！\n', '你能做什么\n', '2025-04-13 14:44:32', 'pending', NULL, NULL);
 
 -- ----------------------------
 -- Table structure for emergency_plans
@@ -247,11 +253,124 @@ CREATE TABLE `operation_logs`  (
   INDEX `idx_created_at`(`created_at` ASC) USING BTREE,
   CONSTRAINT `operation_logs_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE SET NULL ON UPDATE RESTRICT,
   CONSTRAINT `operation_logs_ibfk_2` FOREIGN KEY (`admin_id`) REFERENCES `admins` (`admin_id`) ON DELETE SET NULL ON UPDATE RESTRICT
-) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '操作日志表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 129 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '操作日志表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of operation_logs
 -- ----------------------------
+INSERT INTO `operation_logs` VALUES (1, NULL, NULL, 'admin_login', '管理员登录系统', NULL, NULL, '2025-04-12 15:40:26');
+INSERT INTO `operation_logs` VALUES (2, NULL, NULL, 'admin_login', '管理员登录系统', NULL, NULL, '2025-04-12 15:41:27');
+INSERT INTO `operation_logs` VALUES (3, NULL, NULL, 'admin_login', '管理员登录系统', NULL, NULL, '2025-04-12 15:47:12');
+INSERT INTO `operation_logs` VALUES (4, NULL, NULL, 'admin_login', '管理员登录系统', NULL, NULL, '2025-04-12 15:58:04');
+INSERT INTO `operation_logs` VALUES (5, NULL, NULL, 'admin_login', '管理员登录系统', NULL, NULL, '2025-04-12 15:58:20');
+INSERT INTO `operation_logs` VALUES (6, NULL, NULL, 'admin_login', '管理员登录系统', NULL, NULL, '2025-04-12 15:58:54');
+INSERT INTO `operation_logs` VALUES (7, NULL, NULL, 'admin_login', '管理员登录系统', NULL, NULL, '2025-04-12 16:16:15');
+INSERT INTO `operation_logs` VALUES (8, NULL, NULL, 'admin_login', '管理员登录系统', NULL, NULL, '2025-04-12 16:17:33');
+INSERT INTO `operation_logs` VALUES (9, NULL, NULL, 'admin_login', '管理员登录系统', NULL, NULL, '2025-04-12 16:18:09');
+INSERT INTO `operation_logs` VALUES (10, NULL, NULL, 'admin_login', '管理员登录系统', NULL, NULL, '2025-04-12 16:21:15');
+INSERT INTO `operation_logs` VALUES (11, NULL, NULL, 'admin_login', '管理员登录系统', NULL, NULL, '2025-04-12 16:21:22');
+INSERT INTO `operation_logs` VALUES (12, NULL, NULL, 'admin_login', '管理员登录系统', NULL, NULL, '2025-04-12 16:22:31');
+INSERT INTO `operation_logs` VALUES (13, NULL, NULL, 'admin_login', '管理员登录系统', NULL, NULL, '2025-04-12 16:23:41');
+INSERT INTO `operation_logs` VALUES (14, NULL, NULL, 'admin_login', '管理员登录系统', NULL, NULL, '2025-04-12 17:19:38');
+INSERT INTO `operation_logs` VALUES (15, NULL, NULL, 'admin_login', '管理员登录系统', NULL, NULL, '2025-04-12 17:51:48');
+INSERT INTO `operation_logs` VALUES (16, NULL, NULL, 'admin_login', '管理员登录系统', NULL, NULL, '2025-04-12 18:35:16');
+INSERT INTO `operation_logs` VALUES (17, NULL, NULL, 'admin_login', '管理员登录系统', NULL, NULL, '2025-04-12 20:07:18');
+INSERT INTO `operation_logs` VALUES (20, NULL, 1, '启用用户', '管理员1操作用户13', NULL, NULL, '2025-04-12 20:44:01');
+INSERT INTO `operation_logs` VALUES (21, NULL, 1, '禁用用户', '管理员1操作用户13', NULL, NULL, '2025-04-12 20:44:46');
+INSERT INTO `operation_logs` VALUES (22, NULL, 1, '启用用户', '管理员1操作用户13', NULL, NULL, '2025-04-12 20:44:48');
+INSERT INTO `operation_logs` VALUES (23, NULL, 1, '禁用用户', '管理员1操作用户13', NULL, NULL, '2025-04-12 20:45:57');
+INSERT INTO `operation_logs` VALUES (24, NULL, 1, '启用用户', '管理员1操作用户13', NULL, NULL, '2025-04-12 20:45:59');
+INSERT INTO `operation_logs` VALUES (25, NULL, 1, '禁用用户', '管理员1操作用户13', NULL, NULL, '2025-04-12 20:46:01');
+INSERT INTO `operation_logs` VALUES (26, NULL, 1, '启用用户', '管理员1操作用户13', NULL, NULL, '2025-04-12 20:46:03');
+INSERT INTO `operation_logs` VALUES (27, NULL, 1, '禁用用户', '管理员1操作用户13', NULL, NULL, '2025-04-12 20:46:08');
+INSERT INTO `operation_logs` VALUES (28, NULL, 1, '启用用户', '管理员1操作用户13', NULL, NULL, '2025-04-12 20:46:10');
+INSERT INTO `operation_logs` VALUES (29, NULL, 1, '禁用用户', '管理员1操作用户13', NULL, NULL, '2025-04-12 20:46:13');
+INSERT INTO `operation_logs` VALUES (30, NULL, 1, '启用用户', '管理员1操作用户13', NULL, NULL, '2025-04-12 20:48:33');
+INSERT INTO `operation_logs` VALUES (31, NULL, 1, '禁用用户', '管理员1操作用户13', NULL, NULL, '2025-04-12 20:48:35');
+INSERT INTO `operation_logs` VALUES (32, NULL, 1, '启用用户', '管理员1操作用户13', NULL, NULL, '2025-04-12 20:48:39');
+INSERT INTO `operation_logs` VALUES (39, NULL, NULL, 'admin_login', '管理员登录系统', NULL, NULL, '2025-04-13 12:09:10');
+INSERT INTO `operation_logs` VALUES (44, NULL, NULL, 'admin_login', '管理员登录系统', NULL, NULL, '2025-04-13 12:55:46');
+INSERT INTO `operation_logs` VALUES (46, NULL, 1, 'query', '管理员1查询操作日志', NULL, NULL, '2025-04-13 13:40:14');
+INSERT INTO `operation_logs` VALUES (47, NULL, 1, 'query', '管理员1查询操作日志', NULL, NULL, '2025-04-13 13:40:48');
+INSERT INTO `operation_logs` VALUES (48, NULL, 1, 'query', '管理员1查询操作日志', NULL, NULL, '2025-04-13 13:41:02');
+INSERT INTO `operation_logs` VALUES (49, NULL, 1, 'query', '管理员1查询操作日志', NULL, NULL, '2025-04-13 13:41:05');
+INSERT INTO `operation_logs` VALUES (50, NULL, 1, 'query', '管理员1查询操作日志', NULL, NULL, '2025-04-13 13:41:08');
+INSERT INTO `operation_logs` VALUES (51, NULL, 1, 'query', '管理员1查询操作日志', NULL, NULL, '2025-04-13 13:41:11');
+INSERT INTO `operation_logs` VALUES (52, NULL, 1, 'query', '管理员1查询操作日志', NULL, NULL, '2025-04-13 13:41:13');
+INSERT INTO `operation_logs` VALUES (53, NULL, 1, 'query', '管理员1查询操作日志', NULL, NULL, '2025-04-13 13:41:14');
+INSERT INTO `operation_logs` VALUES (54, NULL, 1, 'query', '管理员1查询操作日志', NULL, NULL, '2025-04-13 13:41:14');
+INSERT INTO `operation_logs` VALUES (55, NULL, 1, 'query', '管理员1查询操作日志', NULL, NULL, '2025-04-13 13:41:20');
+INSERT INTO `operation_logs` VALUES (56, NULL, 1, 'query', '管理员1查询操作日志', NULL, NULL, '2025-04-13 13:41:24');
+INSERT INTO `operation_logs` VALUES (57, NULL, 1, 'query', '管理员1查询操作日志', NULL, NULL, '2025-04-13 13:41:27');
+INSERT INTO `operation_logs` VALUES (58, NULL, 1, 'query', '管理员1查询操作日志', NULL, NULL, '2025-04-13 13:41:32');
+INSERT INTO `operation_logs` VALUES (59, NULL, 1, 'query', '管理员1查询操作日志', NULL, NULL, '2025-04-13 13:41:33');
+INSERT INTO `operation_logs` VALUES (60, NULL, 1, 'query', '管理员1查询操作日志', NULL, NULL, '2025-04-13 13:41:36');
+INSERT INTO `operation_logs` VALUES (61, NULL, 1, 'query', '管理员1查询操作日志', NULL, NULL, '2025-04-13 13:41:38');
+INSERT INTO `operation_logs` VALUES (62, NULL, 1, 'query', '管理员1查询操作日志', NULL, NULL, '2025-04-13 13:42:35');
+INSERT INTO `operation_logs` VALUES (63, NULL, 1, 'query', '管理员1查询操作日志', NULL, NULL, '2025-04-13 13:42:39');
+INSERT INTO `operation_logs` VALUES (64, NULL, 1, 'query', '管理员1查询操作日志', NULL, NULL, '2025-04-13 13:43:04');
+INSERT INTO `operation_logs` VALUES (65, NULL, 1, 'query', '管理员1查询操作日志', NULL, NULL, '2025-04-13 13:44:12');
+INSERT INTO `operation_logs` VALUES (66, NULL, 1, 'query', '管理员1查询操作日志', NULL, NULL, '2025-04-13 13:44:15');
+INSERT INTO `operation_logs` VALUES (67, NULL, 1, 'query', '管理员1查询操作日志', NULL, NULL, '2025-04-13 13:44:16');
+INSERT INTO `operation_logs` VALUES (68, NULL, 1, '查询', '管理员1查看日志46详情', NULL, NULL, '2025-04-13 13:46:41');
+INSERT INTO `operation_logs` VALUES (69, NULL, 1, 'query', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-13 14:23:20');
+INSERT INTO `operation_logs` VALUES (70, NULL, 1, 'query', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-13 14:24:50');
+INSERT INTO `operation_logs` VALUES (71, NULL, 1, 'query', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-13 14:25:07');
+INSERT INTO `operation_logs` VALUES (72, NULL, 1, 'query', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-13 14:25:08');
+INSERT INTO `operation_logs` VALUES (73, NULL, 1, 'query', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-13 14:25:09');
+INSERT INTO `operation_logs` VALUES (74, NULL, 1, 'query', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-13 14:25:10');
+INSERT INTO `operation_logs` VALUES (75, NULL, 1, 'query', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-13 14:25:10');
+INSERT INTO `operation_logs` VALUES (76, NULL, 1, 'query', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-13 14:25:11');
+INSERT INTO `operation_logs` VALUES (77, NULL, 1, 'query', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-13 14:25:12');
+INSERT INTO `operation_logs` VALUES (78, NULL, 1, 'update', '管理员1更新系统功能反馈1状态为processing', NULL, NULL, '2025-04-13 14:25:19');
+INSERT INTO `operation_logs` VALUES (79, NULL, 1, 'query', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-13 14:25:20');
+INSERT INTO `operation_logs` VALUES (80, NULL, 1, 'query', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-13 14:25:30');
+INSERT INTO `operation_logs` VALUES (81, NULL, 1, 'query', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-13 14:25:31');
+INSERT INTO `operation_logs` VALUES (82, NULL, 1, 'query', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-13 14:25:32');
+INSERT INTO `operation_logs` VALUES (83, NULL, 1, 'query', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-13 14:25:33');
+INSERT INTO `operation_logs` VALUES (84, NULL, 1, 'query', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-13 14:25:33');
+INSERT INTO `operation_logs` VALUES (85, NULL, 1, 'query', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-13 14:25:34');
+INSERT INTO `operation_logs` VALUES (86, NULL, 1, 'query', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-13 14:26:12');
+INSERT INTO `operation_logs` VALUES (87, NULL, 1, 'query', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-13 14:26:15');
+INSERT INTO `operation_logs` VALUES (88, NULL, 1, 'query', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-13 14:26:16');
+INSERT INTO `operation_logs` VALUES (89, NULL, 1, 'query', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-13 14:26:18');
+INSERT INTO `operation_logs` VALUES (90, NULL, 1, 'query', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-13 14:26:20');
+INSERT INTO `operation_logs` VALUES (91, NULL, 1, 'update', '管理员1更新系统功能反馈1状态为processing', NULL, NULL, '2025-04-13 14:26:38');
+INSERT INTO `operation_logs` VALUES (92, NULL, 1, 'query', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-13 14:26:43');
+INSERT INTO `operation_logs` VALUES (93, NULL, 1, 'query', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-13 14:26:47');
+INSERT INTO `operation_logs` VALUES (94, NULL, 1, 'query', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-13 14:26:48');
+INSERT INTO `operation_logs` VALUES (95, NULL, 1, 'query', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-13 14:26:50');
+INSERT INTO `operation_logs` VALUES (96, NULL, 1, 'query', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-13 14:26:51');
+INSERT INTO `operation_logs` VALUES (97, NULL, 1, 'update', '管理员1更新系统功能反馈1状态为resolved', NULL, NULL, '2025-04-13 14:27:18');
+INSERT INTO `operation_logs` VALUES (98, NULL, 1, 'query', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-13 14:41:54');
+INSERT INTO `operation_logs` VALUES (99, NULL, 1, 'query', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-13 14:41:57');
+INSERT INTO `operation_logs` VALUES (100, NULL, 1, 'query', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-13 14:41:57');
+INSERT INTO `operation_logs` VALUES (101, NULL, 1, 'query', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-13 14:41:58');
+INSERT INTO `operation_logs` VALUES (102, NULL, 1, 'query', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-13 14:41:58');
+INSERT INTO `operation_logs` VALUES (103, NULL, 1, 'query', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-13 14:41:59');
+INSERT INTO `operation_logs` VALUES (104, NULL, 1, 'query', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-13 14:41:59');
+INSERT INTO `operation_logs` VALUES (105, NULL, 1, 'query', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-13 14:41:59');
+INSERT INTO `operation_logs` VALUES (106, NULL, 1, 'query', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-13 14:42:00');
+INSERT INTO `operation_logs` VALUES (107, NULL, 1, 'query', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-13 14:42:00');
+INSERT INTO `operation_logs` VALUES (108, NULL, 1, 'query', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-13 14:42:01');
+INSERT INTO `operation_logs` VALUES (109, NULL, NULL, 'admin_login', '管理员登录系统', NULL, NULL, '2025-04-13 14:45:29');
+INSERT INTO `operation_logs` VALUES (110, NULL, 1, 'query', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-13 14:46:24');
+INSERT INTO `operation_logs` VALUES (111, NULL, 1, 'query', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-13 14:52:24');
+INSERT INTO `operation_logs` VALUES (112, NULL, 1, 'query', '管理员1查询操作日志', NULL, NULL, '2025-04-13 14:52:34');
+INSERT INTO `operation_logs` VALUES (113, NULL, 1, 'query', '管理员1查询操作日志', NULL, NULL, '2025-04-13 14:52:36');
+INSERT INTO `operation_logs` VALUES (114, NULL, 1, 'query', '管理员1查询操作日志', NULL, NULL, '2025-04-13 14:52:36');
+INSERT INTO `operation_logs` VALUES (115, NULL, 1, 'query', '管理员1查询操作日志', NULL, NULL, '2025-04-13 14:52:38');
+INSERT INTO `operation_logs` VALUES (116, NULL, 1, 'query', '管理员1查询操作日志', NULL, NULL, '2025-04-13 14:52:39');
+INSERT INTO `operation_logs` VALUES (117, NULL, 1, 'query', '管理员1查询操作日志', NULL, NULL, '2025-04-13 14:52:40');
+INSERT INTO `operation_logs` VALUES (118, NULL, 1, 'query', '管理员1查询操作日志', NULL, NULL, '2025-04-13 14:52:41');
+INSERT INTO `operation_logs` VALUES (119, NULL, 1, 'query', '管理员1查询操作日志', NULL, NULL, '2025-04-13 14:52:41');
+INSERT INTO `operation_logs` VALUES (122, NULL, 1, 'query', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-13 14:53:01');
+INSERT INTO `operation_logs` VALUES (123, NULL, 1, 'query', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-13 15:09:12');
+INSERT INTO `operation_logs` VALUES (124, NULL, 1, 'query', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-13 15:09:14');
+INSERT INTO `operation_logs` VALUES (125, NULL, 1, 'query', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-13 15:16:43');
+INSERT INTO `operation_logs` VALUES (126, NULL, 1, 'query', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-13 15:27:08');
+INSERT INTO `operation_logs` VALUES (127, NULL, 1, 'query', '管理员1查询AI内容反馈统计', NULL, NULL, '2025-04-13 15:31:21');
+INSERT INTO `operation_logs` VALUES (128, NULL, 1, 'query', '管理员1查询AI内容反馈统计', NULL, NULL, '2025-04-13 15:31:37');
 
 -- ----------------------------
 -- Table structure for system_configs
@@ -314,11 +433,12 @@ CREATE TABLE `user_feedback`  (
   INDEX `idx_feedback_type`(`feedback_type` ASC) USING BTREE,
   INDEX `idx_created_at`(`created_at` ASC) USING BTREE,
   CONSTRAINT `user_feedback_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE SET NULL ON UPDATE RESTRICT
-) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '用户反馈表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '用户反馈表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of user_feedback
 -- ----------------------------
+INSERT INTO `user_feedback` VALUES (1, 13, '其他', '前端还要优化一下', '2025-04-13 14:24:47', 'resolved', '你好，你的问题已经解决', '2025-04-13 14:27:18');
 
 -- ----------------------------
 -- Table structure for user_tokens
@@ -342,8 +462,7 @@ CREATE TABLE `user_tokens`  (
 -- ----------------------------
 -- Records of user_tokens
 -- ----------------------------
-INSERT INTO `user_tokens` VALUES (1, 13, '546f227d-d04a-4e1a-afd7-2de18a6009a5', NULL, NULL, '2025-04-11 18:52:58', '2025-04-18 18:52:59', 0);
-INSERT INTO `user_tokens` VALUES (2, 13, '2c26e5ac-8dce-4bed-a11d-3b9776ae1772', NULL, NULL, '2025-04-11 22:04:20', '2025-04-18 22:04:20', 0);
+INSERT INTO `user_tokens` VALUES (1, 13, '5be8c627-dd07-4393-b211-c06d2c2dd4eb', NULL, NULL, '2025-04-13 14:44:14', '2025-04-20 14:44:15', 0);
 
 -- ----------------------------
 -- Table structure for users
@@ -365,7 +484,7 @@ CREATE TABLE `users`  (
 -- ----------------------------
 -- Records of users
 -- ----------------------------
-INSERT INTO `users` VALUES (13, '18350191687', 'c412e04cf954373dfea8db43c5984438', 'light', '2025-04-11 18:52:58', '2025-04-11 22:04:20', 1);
+INSERT INTO `users` VALUES (13, '18350191687', 'c412e04cf954373dfea8db43c5984438', 'light', '2025-04-11 18:52:58', '2025-04-13 14:44:14', 1);
 
 -- ----------------------------
 -- Table structure for verification_codes

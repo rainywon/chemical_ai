@@ -555,6 +555,28 @@ onMounted(() => {
   padding: 15px 20px;
   background-color: #f8f9fa;
 }
+
+/* 响应式布局 */
+@media (max-width: 1200px) {
+  .search-form .el-col {
+    width: 100%;
+  }
+  
+  .search-form .el-col:last-child {
+    display: flex;
+    justify-content: flex-start;
+    margin-top: 10px;
+  }
+  
+  .button-container {
+    justify-content: flex-start;
+    margin-top: 0;
+  }
+  
+  .table-container {
+    overflow-x: auto;
+  }
+}
 </style>
 
 <style>

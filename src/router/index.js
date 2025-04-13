@@ -119,26 +119,14 @@ const routes = [
             {
                 path: 'feedback/list',
                 name: 'FeedbackList',
-                component: () => import('../components/admin/feedback/FeedbackList.vue'),
-                meta: { title: '用户反馈列表', requiresAdmin: true }
-            },
-            {
-                path: 'feedback/statistics',
-                name: 'FeedbackStats',
-                component: () => import('../components/admin/feedback/FeedbackStats.vue'),
-                meta: { title: '反馈分类统计', requiresAdmin: true }
-            },
-            {
-                path: 'feedback/status',
-                name: 'FeedbackStatus',
-                component: () => import('../components/admin/feedback/FeedbackStatus.vue'),
-                meta: { title: '反馈处理状态管理', requiresAdmin: true }
+                component: () => import('../components/admin/feedback/SystemFunctionFeedback.vue'),
+                meta: { title: '系统功能反馈', requiresAdmin: true }
             },
             {
                 path: 'feedback/ratings',
                 name: 'ContentRating',
-                component: () => import('../components/admin/feedback/ContentRating.vue'),
-                meta: { title: '内容评价分析', requiresAdmin: true }
+                component: () => import('../components/admin/feedback/AIContentFeedback.vue'),
+                meta: { title: '生成内容反馈', requiresAdmin: true }
             },
             // 系统设置
             {

@@ -64,10 +64,8 @@
             <el-icon><Comment /></el-icon>
             <span>反馈管理</span>
           </template>
-          <el-menu-item index="/admin/feedback/list">用户反馈列表</el-menu-item>
-          <el-menu-item index="/admin/feedback/statistics">反馈分类统计</el-menu-item>
-          <el-menu-item index="/admin/feedback/status">反馈处理状态管理</el-menu-item>
-          <el-menu-item index="/admin/feedback/ratings">内容评价分析</el-menu-item>
+          <el-menu-item index="/admin/feedback/list">系统功能反馈</el-menu-item>
+          <el-menu-item index="/admin/feedback/ratings">生成内容反馈</el-menu-item>
         </el-sub-menu>
         
         <!-- 系统设置 -->
@@ -181,8 +179,22 @@ const updateActiveMenu = () => {
         case 'emergency': text = '应急处理方案'; break;
         case 'review': text = '内容审核'; break;
         case 'feedback': text = '反馈管理'; break;
+        case 'list': 
+          if (pathParts[1] === 'feedback') {
+            text = '系统功能反馈';
+          } else {
+            text = 'list';
+          }
+          break;
+        case 'ratings': 
+          if (pathParts[1] === 'feedback') {
+            text = '生成内容反馈';
+          } else {
+            text = '内容评价分析';
+          }
+          break;
         case 'statistics': text = '反馈分类统计'; break;
-        case 'ratings': text = '内容评价分析'; break;
+        case 'status': text = '反馈处理状态管理'; break;
         case 'settings': text = '系统设置'; break;
         case 'ai-model': text = 'AI模型配置'; break;
         case 'system-params': text = '系统参数'; break;
