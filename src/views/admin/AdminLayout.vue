@@ -32,7 +32,7 @@
             <el-icon><User /></el-icon>
             <span>用户管理</span>
           </template>
-          <el-menu-item index="/admin/users/management">用户查询与管理</el-menu-item>
+          <el-menu-item index="/admin/users/user-management">用户查询与管理</el-menu-item>
           <el-menu-item index="/admin/users/login-history">用户登录历史</el-menu-item>
         </el-sub-menu>
         
@@ -42,9 +42,7 @@
             <el-icon><Setting /></el-icon>
             <span>管理员管理</span>
           </template>
-          <el-menu-item index="/admin/admins/list">管理员账号列表</el-menu-item>
-          <el-menu-item index="/admin/admins/edit">添加/编辑管理员</el-menu-item>
-          <el-menu-item index="/admin/admins/roles">角色权限设置</el-menu-item>
+          <el-menu-item index="/admin/admins/admin-management">管理员与角色管理</el-menu-item>
           <el-menu-item index="/admin/admins/logs">管理员操作日志</el-menu-item>
         </el-sub-menu>
         
@@ -172,11 +170,10 @@ const updateActiveMenu = () => {
             text = '用户管理';
           }
           break;
-        case 'management': text = '用户查询与管理'; break;
+        case 'user-management': text = '用户查询与管理'; break;
         case 'login-history': text = '用户登录历史'; break;
         case 'admins': text = '管理员管理'; break;
-        case 'edit': text = '添加/编辑管理员'; break;
-        case 'roles': text = '角色权限设置'; break;
+        case 'admin-management': text = '管理员与角色管理'; break;
         case 'logs': text = '操作日志'; break;
         case 'content': text = '内容管理'; break;
         case 'categories': text = '知识库分类'; break;

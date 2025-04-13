@@ -65,7 +65,7 @@ const routes = [
             },
             // 用户管理
             {
-                path: 'users/management',
+                path: 'users/user-management',
                 name: 'UserManagement',
                 component: () => import('../components/admin/users/UserManagement.vue'), // 重用UserList组件或创建新的组件
                 meta: { title: '用户查询与管理', requiresAdmin: true }
@@ -78,22 +78,11 @@ const routes = [
             },
             // 管理员管理
             {
-                path: 'admins/list',
-                name: 'AdminList',
-                component: () => import('../components/admin/admins/AdminList.vue'),
-                meta: { title: '管理员账号列表', requiresAdmin: true }
-            },
-            {
-                path: 'admins/edit',
-                name: 'AdminEdit',
-                component: () => import('../components/admin/admins/AdminEdit.vue'),
-                meta: { title: '添加/编辑管理员', requiresAdmin: true }
-            },
-            {
-                path: 'admins/roles',
-                name: 'RolePermission',
-                component: () => import('../components/admin/admins/RolePermission.vue'),
-                meta: { title: '角色权限设置', requiresAdmin: true }
+                path: 'admins/admin-management',
+                name: 'AdminManagement',
+                component: () => import('../components/admin/admins/AdminManagement.vue'),
+                meta: { title: '管理员与角色管理', requiresAdmin: true },
+                alias: ['admins/list']
             },
             {
                 path: 'admins/logs',
