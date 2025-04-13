@@ -37,7 +37,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { API_BASE_URL } from '../config';
+import { API_BASE_URL } from '../../config';
 
 // Props
 const props = defineProps({

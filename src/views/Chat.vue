@@ -215,8 +215,8 @@ import { ref, onMounted, nextTick, computed, onBeforeUnmount, watch } from "vue"
 import { useRouter } from "vue-router";
 import { ElMessageBox, ElMessage, ElSelect, ElOption } from "element-plus";
 import { API_BASE_URL } from "../config";
-import ChatMessage from "../components/ChatMessage.vue";
-import ChatContentTop from "../components/ChatContentTop.vue";
+import ChatMessage from "../components/common/ChatMessage.vue";
+import ChatContentTop from "../components/common/ChatContentTop.vue";
 import axios from "axios";
 
 /* ------------------ 状态管理 ------------------ */

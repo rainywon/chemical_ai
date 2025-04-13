@@ -61,14 +61,14 @@ import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { API_BASE_URL } from "../config";
 // 导入组件
-import AppHeader from '@/components/AppHeader.vue';
-import SystemStatusCard from '@/components/SystemStatusCard.vue';
-import AIFeatureCard from '@/components/AIFeatureCard.vue';
-import FileLibraryCard from '@/components/FileLibraryCard.vue';
-import EmergencyResponseCard from '@/components/EmergencyResponseCard.vue';
-import ModalFeedback from '@/components/ModalFeedback.vue';
-import ModalConfirm from '@/components/ModalConfirm.vue';
-import NotificationToast from '@/components/NotificationToast.vue';
+import AppHeader from '@/components/common/AppHeader.vue';
+import SystemStatusCard from '@/components/common/SystemStatusCard.vue';
+import AIFeatureCard from '@/components/common/AIFeatureCard.vue';
+import FileLibraryCard from '@/components/common/FileLibraryCard.vue';
+import EmergencyResponseCard from '@/components/common/EmergencyResponseCard.vue';
+import ModalFeedback from '@/components/common/ModalFeedback.vue';
+import ModalConfirm from '@/components/common/ModalConfirm.vue';
+import NotificationToast from '@/components/common/NotificationToast.vue';
 
 // 路由
 const router = useRouter();

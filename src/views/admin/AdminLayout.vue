@@ -52,10 +52,9 @@
             <el-icon><Document /></el-icon>
             <span>内容管理</span>
           </template>
-          <el-menu-item index="/admin/content/categories">知识库分类管理</el-menu-item>
-          <el-menu-item index="/admin/content/documents">知识文档管理</el-menu-item>
-          <el-menu-item index="/admin/content/emergency">应急处理方案管理</el-menu-item>
-          <el-menu-item index="/admin/content/review">内容审核机制</el-menu-item>
+          <el-menu-item index="/admin/content/knowledge-files">知识库文件管理</el-menu-item>
+          <el-menu-item index="/admin/content/safety-materials">安全资料库</el-menu-item>
+          <el-menu-item index="/admin/content/emergency-materials">应急处理资料库</el-menu-item>
         </el-sub-menu>
         
         <!-- 反馈管理 -->
@@ -171,10 +170,10 @@ const updateActiveMenu = () => {
         case 'admins': text = '管理员管理'; break;
         case 'admin-management': text = '管理员与角色管理'; break;
         case 'logs': text = '操作日志'; break;
-        case 'content': text = '内容管理'; break;
-        case 'categories': text = '知识库分类'; break;
-        case 'documents': text = '知识文档'; break;
-        case 'emergency': text = '应急处理方案'; break;
+        case 'content': text = '内容资源管理'; break;
+        case 'knowledge-files': text = '知识库管理'; break;
+        case 'safety-materials': text = '安全文档库'; break;
+        case 'emergency-materials': text = '应急预案库'; break;
         case 'review': text = '内容审核'; break;
         case 'feedback': text = '反馈管理'; break;
         case 'list': 

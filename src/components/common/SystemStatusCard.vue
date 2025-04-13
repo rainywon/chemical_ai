@@ -27,7 +27,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { API_BASE_URL } from '../config'
+import { API_BASE_URL } from '../../config'
 
 const systemStatus = ref({
   knowledge_base: '加载中...',

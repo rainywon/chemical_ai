@@ -92,28 +92,22 @@ const routes = [
             },
             // 内容管理
             {
-                path: 'content/categories',
+                path: 'content/knowledge-files',
                 name: 'CategoryManager',
                 component: () => import('../components/admin/content/CategoryManager.vue'),
-                meta: { title: '知识库分类管理', requiresAdmin: true }
+                meta: { title: '知识库文件管理', requiresAdmin: true }
             },
             {
-                path: 'content/documents',
+                path: 'content/safety-materials',
                 name: 'DocumentManager',
                 component: () => import('../components/admin/content/DocumentManager.vue'),
-                meta: { title: '知识文档管理', requiresAdmin: true }
+                meta: { title: '安全资料库', requiresAdmin: true }
             },
             {
-                path: 'content/emergency',
+                path: 'content/emergency-materials',
                 name: 'EmergencyPlanManager',
                 component: () => import('../components/admin/content/EmergencyPlanManager.vue'),
-                meta: { title: '应急处理方案管理', requiresAdmin: true }
-            },
-            {
-                path: 'content/review',
-                name: 'ContentReview',
-                component: () => import('../components/admin/content/ContentReview.vue'),
-                meta: { title: '内容审核机制', requiresAdmin: true }
+                meta: { title: '应急处理资料库', requiresAdmin: true }
             },
             // 反馈管理
             {

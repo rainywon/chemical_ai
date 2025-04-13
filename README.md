@@ -6,13 +6,14 @@
 
 ## 功能特点
 
-- **智能问答**：支持两种生成模式（大模型生成和知识库生成）
-- **历史对话**：保存并管理用户的历史对话记录
-- **资料库**：提供化工安全相关的文档资料查阅
-- **用户系统**：包含注册、登录功能，支持短信验证码
+- **智能问答**：支持大模型生成，提供化工安全领域专业问题的解答
+- **历史对话**：保存并管理用户的历史对话记录，支持会话查看与管理
+- **资料库**：提供化工安全相关的文档资料查阅，包括MSDS和安全操作规程
+- **用户系统**：包含注册、登录功能，支持短信验证码登录
 - **实时响应**：采用流式响应技术，实现打字机效果的回答生成
-- **优雅的UI**：现代化设计的用户界面，提供良好的用户体验
-- **用户反馈**：支持用户提交反馈和建议
+- **优雅的UI**：现代化设计的用户界面，提供良好的用户体验与深色模式支持
+- **用户反馈**：支持用户提交系统功能和AI内容反馈
+- **多端适配**：响应式设计，适配桌面和移动设备
 - **后台管理系统**：全面的管理功能，包括用户管理、内容管理、系统监控等
 
 ## 技术栈
@@ -22,10 +23,8 @@
 - **UI组件库**：Element Plus
 - **路由管理**：Vue Router
 - **HTTP客户端**：Axios
-- **样式处理**：Less
-- **Markdown渲染**：markdown-it, prismjs
-- **代码高亮**：highlight.js
-- **富文本编辑**：Quill
+- **代码高亮**：Prismjs
+- **日期格式化**：Intl.DateTimeFormat
 
 ### 后端
 - **Web框架**：FastAPI
@@ -33,6 +32,7 @@
 - **ORM**：PyMySQL
 - **认证**：JWT
 - **API文档**：Swagger UI, ReDoc
+- **日志管理**：Python logging
 
 ## 安装与运行
 
@@ -48,7 +48,7 @@
 1. 克隆项目到本地:
 
 ```bash
-git clone https://github.com/rainywon/chemical_ai
+git clone https://github.com/yourusername/chemical_ai
 cd chemical_ai
 ```
 
@@ -94,19 +94,10 @@ pip install -r requirements.txt
 
 3. 配置数据库:
 ```bash
-mysql -u root -p < database_design.sql
+mysql -u root -p < chemical_server.sql
 ```
 
-4. 配置环境变量:
-创建 `.env` 文件并设置以下变量:
-```
-DB_HOST=localhost
-DB_USER=root
-DB_PASSWORD=your_password
-DB_NAME=chemical_ai_db
-```
-
-5. 启动后端服务器:
+4. 启动后端服务器:
 ```bash
 python server.py
 ```
@@ -117,7 +108,6 @@ python server.py
 chemical_ai/
 ├── public/             # 静态资源
 ├── src/                # 前端源代码
-│   ├── api/            # API 接口
 │   ├── assets/         # 资源文件（图片等）
 │   ├── components/     # 公共组件
 │   │   ├── common/     # 通用组件
@@ -125,10 +115,14 @@ chemical_ai/
 │   │       ├── admins/     # 管理员管理组件
 │   │       ├── content/    # 内容管理组件
 │   │       ├── feedback/   # 反馈管理组件
+│   │           ├── UserFeedback.vue     # 系统功能反馈
+│   │           └── AIContentFeedback.vue # AI内容反馈
 │   │       ├── monitor/    # 系统监控组件
 │   │       ├── settings/   # 系统设置组件
+│   │           └── SystemParams.vue     # 系统参数配置
 │   │       └── users/      # 用户管理组件
 │   ├── router/         # 路由配置
+│   │   └── index.js    # 路由定义文件
 │   ├── views/          # 页面视图
 │   │   ├── Chat.vue    # 聊天界面
 │   │   ├── Login.vue   # 登录页面
@@ -143,7 +137,7 @@ chemical_ai/
 │   └── style.css       # 全局样式
 ├── server.py           # 后端主应用
 ├── database.py         # 数据库连接配置
-├── database_design.sql # 数据库设计
+├── chemical_server.sql # 数据库设计
 ├── requirements.txt    # Python依赖
 ├── index.html          # HTML 模板
 ├── vite.config.js      # Vite 配置
@@ -158,15 +152,29 @@ chemical_ai/
 - ReDoc: `http://localhost:8000/redoc`
 
 主要API端点包括：
+
+### 用户相关
 - 登录: `POST /api/login/`
 - 注册: `POST /api/register/`
 - 发送验证码: `POST /api/send_sms/`
 - 验证验证码: `POST /api/verify_code/`
 - 获取用户信息: `GET /api/user/info/`
 - 登出: `POST /api/logout/`
-- 反馈: `POST /api/submit-feedback/`
+
+### 对话相关
 - 聊天会话: `POST/GET /api/conversations/`
 - 聊天消息: `POST/GET /api/conversations/{conversation_id}/messages/`
+
+### 反馈相关
+- 用户反馈: `POST /api/submit-feedback/`
+- 内容反馈: `POST /api/content-feedback/`
+
+### 管理后台
+- 用户管理: `GET/PUT /admin/users/`
+- 系统配置: `GET/PUT /admin/settings/system-configs`
+- 系统版本: `GET/POST/PUT /admin/settings/system-versions`
+- 反馈管理: `GET/PUT /admin/feedback/`
+- 操作日志: `GET /admin/operation-logs/`
 
 ## 使用指南
 
@@ -176,7 +184,6 @@ chemical_ai/
 2. **登录/注册**：新用户需先注册账号，支持手机号验证码注册
 3. **聊天**：
    - 在聊天界面可以向AI助手提问化工安全相关问题
-   - 可以选择"大模型生成"或"知识库生成"两种模式
    - 支持历史对话查看和管理
 4. **资料库**：可浏览和下载化工安全相关的文档资料
 5. **反馈**：可以提交使用反馈和建议
@@ -188,9 +195,10 @@ chemical_ai/
 1. **系统监控**
    - 对话数据统计：查看平台对话量和质量数据
    - 用户活跃度监控：分析用户活跃情况和使用趋势
+   - 操作日志查询：记录和查询系统所有操作日志
 
 2. **用户管理**
-   - 用户查询与管理：管理所有注册用户信息
+   - 用户查询与管理：管理所有注册用户信息，支持启用/禁用操作
    - 用户登录历史：查看用户登录日志
 
 3. **管理员管理**
@@ -203,13 +211,52 @@ chemical_ai/
    - 应急处理方案管理：管理安全应急预案
 
 5. **反馈管理**
-   - 系统功能反馈：查看用户提交的反馈，并记录反馈处理状态，进行反馈处理，查看user_feedback表
-   - 生成内容反馈：分析用户对模型生成内容的反馈，并记录反馈处理状态，进行反馈处理，查看content_feedback表
-
+   - 系统功能反馈：查看用户提交的功能反馈，支持处理状态更新和回复
+   - AI内容反馈：查看用户对AI回答的评价和反馈，支持按评分和类型筛选
 
 6. **系统设置**
-   - 系统参数设置：调整系统运行参数
-   - 用户注册策略：设置用户注册规则
+   - 系统参数配置：管理和调整系统运行参数，如知识库更新日期、数据源数量等
+   - 系统版本管理：添加和管理系统版本信息，支持设置当前版本
+   - 接口稳定性监控：监测后端API响应时间和状态
+
+## 数据库设计
+
+系统使用MySQL数据库，主要表结构包括：
+
+1. **用户相关**
+   - `users`: 用户基本信息
+   - `user_tokens`: 用户登录令牌
+   - `verification_codes`: 验证码记录
+
+2. **管理员相关**
+   - `admins`: 管理员信息
+   - `operation_logs`: 操作日志
+
+3. **对话相关**
+   - `chat_sessions`: 对话会话
+   - `chat_messages`: 对话消息
+
+4. **反馈相关**
+   - `user_feedback`: 用户功能反馈
+   - `content_feedbacks`: AI内容反馈
+   - `feedback_types`: 反馈类型
+
+5. **内容与配置相关**
+   - `knowledge_categories`: 知识分类
+   - `knowledge_documents`: 知识文档
+   - `emergency_plans`: 应急方案
+   - `system_configs`: 系统配置
+   - `system_versions`: 系统版本
+   - `ai_models`: AI模型配置
+
+## 系统参数配置
+
+系统支持以下配置参数的管理：
+
+1. **知识库最后更新日期** (knowledge_base_update_date)：记录知识库的最后更新时间，支持日期选择器
+2. **知识库数据源数量** (data_sources_count)：记录系统知识库的数据源总数
+3. **系统响应时间限制** (response_time_limit)：设置系统响应的最大时间限制
+4. **系统运行状态** (system_status)：标识系统当前的运行状态，可设为正常、维护中或错误
 
 ## 贡献指南
 
@@ -220,6 +267,10 @@ chemical_ai/
 3. 提交更改 (`git commit -m 'Add some amazing feature'`)
 4. 推送到分支 (`git push origin feature/amazing-feature`)
 5. 创建Pull Request
+
+## 维护者
+
+- 维护团队 - [email@example.com](mailto:email@example.com)
 
 ## 许可证
 

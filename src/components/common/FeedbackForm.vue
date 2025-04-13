@@ -93,7 +93,7 @@
 <script setup>
 import { ref, onMounted, computed } from "vue";
 import { ElMessageBox, ElMessage } from "element-plus";
-import { API_BASE_URL } from "../config";
+import { API_BASE_URL } from "../../config";
 import axios from "axios";
 import MarkdownIt from 'markdown-it';
 
