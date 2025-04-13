@@ -128,24 +128,11 @@ const routes = [
                 component: () => import('../components/admin/feedback/AIContentFeedback.vue'),
                 meta: { title: '生成内容反馈', requiresAdmin: true }
             },
-            // 系统设置
-            {
-                path: 'settings/ai-model',
-                name: 'AIModelConfig',
-                component: () => import('../components/admin/settings/AIModelConfig.vue'),
-                meta: { title: 'AI模型配置', requiresAdmin: true }
-            },
             {
                 path: 'settings/system-params',
                 name: 'SystemParams',
                 component: () => import('../components/admin/settings/SystemParams.vue'),
                 meta: { title: '系统参数设置', requiresAdmin: true }
-            },
-            {
-                path: 'settings/registration',
-                name: 'RegistrationStrategy',
-                component: () => import('../components/admin/settings/RegistrationStrategy.vue'),
-                meta: { title: '用户注册策略', requiresAdmin: true }
             }
         ]
     },

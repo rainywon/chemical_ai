@@ -26,7 +26,7 @@
     <div class="feedback-overview">
       <el-row :gutter="20">
         <el-col :xs="24" :sm="12" :md="8">
-          <el-card shadow="hover" class="overview-card total-card">
+          <div class="overview-card total-card">
             <div class="card-icon">
               <el-icon><ChatLineRound /></el-icon>
             </div>
@@ -34,10 +34,10 @@
               <div class="card-title">总反馈数</div>
               <div class="card-value">{{ overviewData.total || 0 }}</div>
             </div>
-          </el-card>
+          </div>
         </el-col>
         <el-col :xs="24" :sm="12" :md="8">
-          <el-card shadow="hover" class="overview-card score-card">
+          <div class="overview-card score-card">
             <div class="card-icon">
               <el-icon><Star /></el-icon>
             </div>
@@ -48,10 +48,10 @@
                 <el-rate :model-value="overviewData.avg_score || 0" disabled :colors="ratingColors" allow-half />
               </div>
             </div>
-          </el-card>
+          </div>
         </el-col>
         <el-col :xs="24" :sm="12" :md="8">
-          <el-card shadow="hover" class="overview-card pending-card">
+          <div class="overview-card pending-card">
             <div class="card-icon">
               <el-icon><Clock /></el-icon>
             </div>
@@ -59,7 +59,7 @@
               <div class="card-title">待处理</div>
               <div class="card-value">{{ statusCounts.pending || 0 }}</div>
             </div>
-          </el-card>
+          </div>
         </el-col>
       </el-row>
     </div>
@@ -67,45 +67,51 @@
     <!-- 搜索和筛选区域 -->
     <div class="search-container">
       <el-form :inline="true" :model="searchForm" class="search-form">
-        <el-form-item label="评分">
-          <el-select v-model="searchForm.rating" placeholder="请选择评分" clearable>
-            <el-option v-for="rating in [1, 2, 3, 4, 5]" :key="rating" :label="`${rating}星`" :value="rating">
-              <div class="rating-option">
-                <el-rate :model-value="rating" disabled :colors="ratingColors" />
-              </div>
-            </el-option>
-          </el-select>
-        </el-form-item>
-        <el-form-item label="反馈选项">
-          <el-select v-model="searchForm.feedbackOption" placeholder="请选择反馈选项" clearable>
-            <el-option v-for="option in feedbackOptions" :key="option.value" :label="option.label" :value="option.value" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="提交日期">
-          <el-date-picker
-            v-model="searchForm.dateRange"
-            type="daterange"
-            range-separator="至"
-            start-placeholder="开始日期"
-            end-placeholder="结束日期"
-            value-format="YYYY-MM-DD"
-          ></el-date-picker>
-        </el-form-item>
-        <el-form-item>
-          <el-input
-            v-model="searchForm.keyword"
-            placeholder="搜索反馈内容"
-            clearable
-          >
-            <template #prefix>
-              <el-icon><Search /></el-icon>
-            </template>
-          </el-input>
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="searchFeedbacks">搜索</el-button>
-          <el-button @click="resetSearch">重置</el-button>
-        </el-form-item>
+        <div class="search-form-left">
+          <el-form-item label="评分">
+            <el-select v-model="searchForm.rating" placeholder="请选择评分" clearable style="width: 120px;">
+              <el-option v-for="rating in [1, 2, 3, 4, 5]" :key="rating" :label="`${rating}星`" :value="rating">
+                <div class="rating-option">
+                  <el-rate :model-value="rating" disabled :colors="ratingColors" />
+                </div>
+              </el-option>
+            </el-select>
+          </el-form-item>
+          <el-form-item label="反馈选项">
+            <el-select v-model="searchForm.feedbackOption" placeholder="请选择反馈选项" clearable style="width: 150px;">
+              <el-option v-for="option in feedbackOptions" :key="option.value" :label="option.label" :value="option.value" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="提交日期">
+            <el-date-picker
+              v-model="searchForm.dateRange"
+              type="daterange"
+              range-separator="至"
+              start-placeholder="开始日期"
+              end-placeholder="结束日期"
+              value-format="YYYY-MM-DD"
+              style="width: 260px;"
+            ></el-date-picker>
+          </el-form-item>
+          <el-form-item>
+            <el-input
+              v-model="searchForm.keyword"
+              placeholder="搜索反馈内容"
+              clearable
+              style="width: 180px;"
+            >
+              <template #prefix>
+                <el-icon><Search /></el-icon>
+              </template>
+            </el-input>
+          </el-form-item>
+        </div>
+        <div class="search-form-right">
+          <el-form-item>
+            <el-button type="primary" @click="searchFeedbacks">搜索</el-button>
+            <el-button @click="resetSearch">重置</el-button>
+          </el-form-item>
+        </div>
       </el-form>
     </div>
 
@@ -119,7 +125,7 @@
         :header-cell-style="{background:'#f5f7fa', color:'#606266', fontWeight: 'bold'}"
       >
         <el-table-column prop="feedback_id" label="ID" width="70" align="center"></el-table-column>
-        <el-table-column label="评分" width="120" align="center">
+        <el-table-column label="评分" width="160" align="center">
           <template #default="scope">
             <el-rate v-model="scope.row.rating" disabled :colors="ratingColors" />
           </template>
@@ -686,43 +692,47 @@ export default {
 .overview-card {
   display: flex;
   align-items: center;
-  padding: 24px;
-  margin-bottom: 24px;
-  border-radius: 8px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+  padding: 20px;
+  margin-bottom: 20px;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px 0 rgba(0, 0, 0, 0.08);
   background-color: #fff;
   transition: all 0.3s;
-  height: 140px; /* 统一卡片高度 */
+  height: 90px; /* 进一步减小卡片高度 */
+  overflow: hidden;
+  cursor: default;
+  box-sizing: border-box;
 }
 
 .overview-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.1);
+  transform: translateY(-3px);
+  box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.12);
 }
 
 .overview-card .card-icon {
   display: flex;
   justify-content: center;
   align-items: center;
-  width: 56px;
-  height: 56px;
-  border-radius: 8px;
-  font-size: 24px;
-  margin-right: 16px;
+  width: 50px;
+  height: 50px;
+  border-radius: 10px;
+  font-size: 22px;
+  margin-right: 15px;
+  flex-shrink: 0; /* 避免图标被挤压 */
 }
 
 .total-card .card-icon {
-  background-color: rgba(64, 158, 255, 0.1);
+  background-color: rgba(64, 158, 255, 0.15);
   color: #409EFF;
 }
 
 .score-card .card-icon {
-  background-color: rgba(230, 162, 60, 0.1);
+  background-color: rgba(230, 162, 60, 0.15);
   color: #E6A23C;
 }
 
 .pending-card .card-icon {
-  background-color: rgba(245, 108, 108, 0.1);
+  background-color: rgba(245, 108, 108, 0.15);
   color: #F56C6C;
 }
 
@@ -734,35 +744,138 @@ export default {
 }
 
 .card-title {
-  font-size: 16px;
-  color: #606266;
-  margin-bottom: 8px;
+  font-size: 13px;
+  color: #909399;
+  margin-bottom: 4px;
   font-weight: 500;
 }
 
 .card-value {
-  font-size: 28px;
+  font-size: 22px;
   font-weight: bold;
   color: #303133;
-  line-height: 1.2;
+  line-height: 1.1;
 }
 
 .card-rating {
-  margin-top: 8px;
+  margin-top: 4px;
 }
 
 .search-container {
-  margin-bottom: 24px;
-  padding: 24px;
+  margin-bottom: 20px;
+  padding: 16px 20px;
   background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+  border-radius: 10px;
+  box-shadow: 0 2px 10px 0 rgba(0, 0, 0, 0.08);
 }
 
 .search-form {
   display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.search-form-left {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.search-form-right {
+  margin-left: 16px;
+  white-space: nowrap;
+}
+
+.search-form .el-form-item {
+  margin-bottom: 0;
+  margin-right: 0 !important;
+}
+
+.search-form .el-form-item__label {
+  font-size: 13px; /* 小标签字体 */
+  color: #606266;
+  padding-right: 6px; /* 减小标签和字段之间的间距 */
+}
+
+/* 美化表单控件 */
+.search-form .el-input__inner,
+.search-form .el-select .el-input__inner,
+.search-form .el-date-editor .el-input__inner {
+  border-radius: 6px !important;
+  height: 36px !important;
+  line-height: 36px !important;
+}
+
+.search-form .el-button {
+  height: 36px !important;
+  padding: 0 15px !important;
+  border-radius: 6px !important;
+  font-weight: 500 !important;
+}
+
+/* 响应式调整 */
+@media (max-width: 1200px) {
+  .search-form-left {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  .search-form-left .el-form-item {
+    margin-bottom: 6px;
+  }
+}
+
+@media (max-width: 768px) {
+  .ai-content-feedback-container {
+    padding: 16px;
+  }
+  
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  
+  .search-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .search-form-left {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .search-form-right {
+    margin-left: 0;
+    margin-top: 12px;
+    display: flex;
+    justify-content: flex-end;
+  }
+  
+  .search-form .el-form-item {
+    width: 100%;
+  }
+  
+  .search-form .el-select,
+  .search-form .el-date-editor,
+  .search-form .el-input {
+    width: 100% !important;
+  }
+  
+  .overview-card {
+    padding: 16px;
+    height: auto;
+    min-height: 100px;
+  }
+  
+  .feedback-list-container, 
+  .search-container {
+    padding: 16px;
+  }
 }
 
 .feedback-list-container {
@@ -882,38 +995,5 @@ export default {
 :deep(.el-button--success:not(.is-plain)) {
   background-color: #67C23A;
   border-color: #67C23A;
-}
-
-/* 响应式调整 */
-@media (max-width: 768px) {
-  .ai-content-feedback-container {
-    padding: 16px;
-  }
-  
-  .page-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 16px;
-  }
-  
-  .search-form {
-    flex-direction: column;
-  }
-  
-  .el-form-item {
-    margin-right: 0 !important;
-    width: 100%;
-  }
-  
-  .overview-card {
-    padding: 16px;
-    height: auto; /* 在移动端允许卡片高度自适应 */
-    min-height: 100px;
-  }
-  
-  .feedback-list-container, 
-  .search-container {
-    padding: 16px;
-  }
 }
 </style>

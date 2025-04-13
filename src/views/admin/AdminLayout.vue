@@ -74,9 +74,7 @@
             <el-icon><Tools /></el-icon>
             <span>系统设置</span>
           </template>
-          <el-menu-item index="/admin/settings/ai-model">AI模型配置</el-menu-item>
           <el-menu-item index="/admin/settings/system-params">系统参数设置</el-menu-item>
-          <el-menu-item index="/admin/settings/registration">用户注册策略</el-menu-item>
         </el-sub-menu>
         
         <!-- 返回前台 -->
@@ -196,9 +194,7 @@ const updateActiveMenu = () => {
         case 'statistics': text = '反馈分类统计'; break;
         case 'status': text = '反馈处理状态管理'; break;
         case 'settings': text = '系统设置'; break;
-        case 'ai-model': text = 'AI模型配置'; break;
         case 'system-params': text = '系统参数'; break;
-        case 'registration': text = '注册策略'; break;
         default: text = part.charAt(0).toUpperCase() + part.slice(1);
       }
       crumbs.push(text);
