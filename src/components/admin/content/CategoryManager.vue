@@ -493,7 +493,6 @@ const loadFileList = async () => {
     if (response.data.success) {
       fileList.value = response.data.data.files;
       totalFiles.value = response.data.data.total;
-      console.log(`分页数据: 当前页=${currentPage.value}, 每页=${pageSize.value}, 总数=${totalFiles.value}`);
     } else {
       ElMessage.error('加载文件列表失败');
     }
