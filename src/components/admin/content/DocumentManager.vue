@@ -320,7 +320,7 @@
               <span class="file-size">{{ formatFileSize(scope.row.fileSize) }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="修改时间" width="180" prop="lastModified" align="center">
+          <el-table-column label="上传时间" width="180" prop="lastModified" align="center">
             <template #default="scope">
               <span class="date-time">{{ formatDate(scope.row.lastModified) }}</span>
             </template>

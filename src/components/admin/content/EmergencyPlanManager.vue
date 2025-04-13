@@ -21,50 +21,44 @@
     <el-dialog
       v-model="uploadDialogVisible"
       title="上传应急预案文件"
-      width="50%"
+      width="60%"
+      :close-on-click-modal="false"
       class="upload-file-dialog"
-      destroy-on-close
+      top="5vh"
+      :fullscreen="false"
+      append-to-body
     >
       <div class="upload-dialog-content">
         <div class="upload-explanation">
           <el-alert
             title="应急预案文件上传说明"
             type="info"
-            show-icon
             :closable="false"
           >
             <div class="upload-instructions">
               <ul class="instruction-list">
-                <li>
-                  <el-icon class="instruction-icon"><InfoFilled /></el-icon>
-                  支持上传的文件格式：PDF, DOC, DOCX
-                </li>
-                <li>
-                  <el-icon class="instruction-icon"><InfoFilled /></el-icon>
-                  单个文件大小不超过50MB
-                </li>
-                <li>
-                  <el-icon class="instruction-icon"><InfoFilled /></el-icon>
-                  文件名应当清晰表明预案类型和内容
-                </li>
+                <li><el-icon class="instruction-icon"><InfoFilled /></el-icon> 支持上传的文件格式：PDF, DOC, DOCX</li>
+                <li><el-icon class="instruction-icon"><InfoFilled /></el-icon> 单个文件大小不超过50MB</li>
+                <li><el-icon class="instruction-icon"><InfoFilled /></el-icon> 文件名应当清晰表明预案类型和内容</li>
               </ul>
             </div>
           </el-alert>
         </div>
-
+        
         <div class="upload-area">
           <el-upload
             class="file-uploader"
-            drag
             action="#"
-            multiple
             :auto-upload="false"
             :on-change="handleFileChange"
-            :on-remove="removeSelectedFile"
-            ref="uploadRef"
+            :limit="5"
+            multiple
+            drag
           >
-            <el-icon class="el-icon--upload"><Upload /></el-icon>
-            <div class="el-upload__text">拖拽文件到此处或 <em>点击上传</em></div>
+            <el-icon class="el-icon--upload"><upload-filled /></el-icon>
+            <div class="el-upload__text">
+              将文件拖到此处，或 <em>点击上传</em>
+            </div>
             <template #tip>
               <div class="el-upload__tip">
                 请确保上传的文件格式正确，并且文件大小在限制范围内。
@@ -72,81 +66,90 @@
             </template>
           </el-upload>
         </div>
-
-        <div class="selected-files-container" v-if="selectedFiles.length > 0">
-          <div class="selected-files">
-            <h4>已选择 {{ selectedFiles.length }} 个文件：</h4>
-            <ul>
-              <li v-for="(file, index) in selectedFiles" :key="index">
-                {{ file.name }}
-              </li>
-            </ul>
+        
+        <div class="selected-files-container">
+          <div v-if="selectedFiles.length" class="selected-files">
+            <h4>已选择 {{ selectedFiles.length }} 个文件:</h4>
+            <el-scrollbar class="files-scrollbar">
+              <el-table :data="selectedFiles" style="width: 100%" size="small">
+                <el-table-column prop="name" label="文件名" min-width="120" show-overflow-tooltip></el-table-column>
+                <el-table-column label="大小" width="80">
+                  <template #default="scope">
+                    {{ formatFileSize(scope.row.size) }}
+                  </template>
+                </el-table-column>
+                <el-table-column label="操作" width="60">
+                  <template #default="scope">
+                    <el-button 
+                      type="danger" 
+                      link 
+                      @click="removeSelectedFile(scope.$index)"
+                    >
+                      删除
+                    </el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </el-scrollbar>
+          </div>
+          <div v-else class="no-files-selected">
+            <el-empty description="暂无选择文件" :image-size="80"></el-empty>
           </div>
         </div>
       </div>
-      
       <template #footer>
         <span class="dialog-footer">
           <el-button @click="uploadDialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="uploadSelectedFiles">确认上传</el-button>
+          <el-button 
+            type="success" 
+            :icon="UploadFilled" 
+            @click="uploadSelectedFiles" 
+            :disabled="!selectedFiles.length"
+          >
+            上传到应急资料库
+          </el-button>
         </span>
       </template>
     </el-dialog>
 
     <!-- 筛选卡片 -->
     <el-card class="filter-card">
-      <template #header>
-        <div class="filter-header">
-          <div class="filter-title">
-            <el-icon><Filter /></el-icon>
-            <span>筛选条件</span>
-          </div>
-          <el-button
-            type="primary"
-            link
-            class="reset-button"
-            @click="resetFilters"
-          >
-            <el-icon><RefreshLeft /></el-icon>
-            重置条件
-          </el-button>
+      <div class="filter-header">
+        <div class="filter-title">
+          <el-icon><Filter /></el-icon>
+          <span>筛选条件</span>
         </div>
-      </template>
-      
+        <el-button type="info" plain size="small" @click="resetFilters" class="reset-button">
+          <el-icon><RefreshLeft /></el-icon> 重置筛选
+        </el-button>
+      </div>
+      <el-divider class="filter-divider" />
       <div class="filter-container">
         <div class="filter-item">
-          <span class="filter-label">预案名称</span>
+          <div class="filter-label">文件名称</div>
           <el-input
             v-model="searchQuery"
             placeholder="搜索文件名称"
-            clearable
             class="search-input"
-            @input="handleSearchInput"
-            @clear="handleSearch"
-          >
-            <template #prefix>
-              <el-icon><Search /></el-icon>
-            </template>
-          </el-input>
-        </div>
-        
-        <div class="filter-item">
-          <span class="filter-label">文件类型</span>
-          <el-select
-            v-model="fileTypeFilter"
-            placeholder="选择文件类型"
+            :prefix-icon="Search"
             clearable
-            class="filter-select"
-            @change="filterFiles"
-          >
-            <el-option label="PDF文档" value="pdf" />
-            <el-option label="Word文档" value="doc" />
-            <el-option label="Word文档" value="docx" />
+            @clear="handleSearch"
+            @input="handleSearchInput"
+          />
+        </div>
+
+        <div class="filter-item">
+          <div class="filter-label">文件类型</div>
+          <el-select v-model="fileTypeFilter" placeholder="文件类型" clearable @change="filterFiles" class="filter-select">
+            <el-option label="全部类型" value="" />
+            <el-option label="PDF(.pdf)" value="pdf" />
+            <el-option label="Word(.doc)" value="doc" />
+            <el-option label="Word(.docx)" value="docx" />
           </el-select>
         </div>
-        
+
         <div class="filter-item">
-          <span class="filter-label">上传日期</span>
+          <div class="filter-label">日期范围</div>
           <el-date-picker
             v-model="dateRange"
             type="daterange"
@@ -155,96 +158,86 @@
             end-placeholder="结束日期"
             format="YYYY-MM-DD"
             value-format="YYYY-MM-DD"
-            class="date-picker"
             @change="filterFiles"
+            class="date-picker"
           />
         </div>
-        
+
         <div class="filter-item">
-          <span class="filter-label">排序方式</span>
-          <el-select
-            v-model="sortOption"
-            placeholder="选择排序方式"
-            class="filter-select"
-            @change="sortFiles"
-          >
-            <el-option label="文件名 (升序)" value="name-asc" />
-            <el-option label="文件名 (降序)" value="name-desc" />
-            <el-option label="上传时间 (最新)" value="date-desc" />
-            <el-option label="上传时间 (最早)" value="date-asc" />
-            <el-option label="文件大小 (升序)" value="size-asc" />
-            <el-option label="文件大小 (降序)" value="size-desc" />
+          <div class="filter-label">排序方式</div>
+          <el-select v-model="sortOption" placeholder="排序方式" @change="sortFiles" class="filter-select">
+            <el-option label="按名称升序" value="name-asc" />
+            <el-option label="按名称降序" value="name-desc" />
+            <el-option label="按大小升序" value="size-asc" />
+            <el-option label="按大小降序" value="size-desc" />
+            <el-option label="按日期升序" value="date-asc" />
+            <el-option label="按日期降序" value="date-desc" />
           </el-select>
         </div>
-        
-        <el-button
-          type="primary"
+
+        <el-button 
+          type="primary" 
+          :icon="RefreshRight" 
+          @click="refreshFileList" 
           class="refresh-button"
-          @click="refreshFileList"
         >
-          <el-icon><RefreshRight /></el-icon>
-          刷新
+          刷新列表
         </el-button>
       </div>
     </el-card>
 
-    <!-- 文件表格卡片 -->
-    <el-card class="table-card">
-      <template #header>
-        <div class="table-header">
-          <h3>应急预案列表</h3>
-          <span class="table-stats">共 {{ totalFiles }} 个文件</span>
-        </div>
-      </template>
-      
+    <!-- 文件列表表格 -->
+    <el-card class="table-card" :body-style="{ padding: '0px' }">
+      <div class="table-header">
+        <h3>应急预案文件列表</h3>
+        <div class="table-stats">共 {{ totalFiles }} 个文件</div>
+      </div>
       <el-table
         v-loading="loading"
         :data="paginatedFiles"
         style="width: 100%"
-        border
         @selection-change="handleSelectionChange"
         row-key="id"
-        stripe
-        header-row-class-name="file-table-header"
+        class="file-table"
+        :border="true"
+        :stripe="true"
         highlight-current-row
         row-class-name="file-table-row"
+        header-row-class-name="file-table-header"
       >
         <el-table-column type="selection" width="55" align="center" />
-        
-        <el-table-column prop="fileName" label="文件名称" min-width="220">
+        <el-table-column label="文件名" min-width="240" prop="fileName" show-overflow-tooltip>
           <template #default="scope">
             <div class="file-name-cell">
-              <el-icon class="file-icon" :style="{ color: getFileIconColor(scope.row.fileType) }">
+              <el-icon :color="getFileIconColor(scope.row.fileType)" class="file-icon">
                 <Document />
               </el-icon>
               <span class="file-name">{{ scope.row.fileName }}</span>
             </div>
           </template>
         </el-table-column>
-        
-        <el-table-column prop="fileType" label="类型" width="100" sortable align="center">
+        <el-table-column label="类型" width="120" align="center">
           <template #default="scope">
-            <el-tag
+            <el-tag 
+              :type="getTagType(scope.row.fileType)"
+              effect="light"
+              size="small"
               class="file-type-tag"
-              :type="scope.row.fileType === '.pdf' ? 'danger' : 'primary'"
             >
               {{ scope.row.fileType.toUpperCase() }}
             </el-tag>
           </template>
         </el-table-column>
-        
-        <el-table-column prop="fileSize" label="大小" width="120" sortable align="center">
+        <el-table-column label="大小" width="120" prop="fileSize" align="center">
           <template #default="scope">
             <span class="file-size">{{ formatFileSize(scope.row.fileSize) }}</span>
           </template>
         </el-table-column>
-        
-        <el-table-column prop="lastModified" label="上传时间" width="180" sortable align="center">
+        <el-table-column label="修改时间" width="180" prop="lastModified" align="center">
           <template #default="scope">
             <span class="date-time">{{ formatDate(scope.row.lastModified) }}</span>
           </template>
         </el-table-column>
-        
         <el-table-column label="操作" fixed="right" width="240" align="center">
           <template #default="scope">
             <div class="action-buttons">
@@ -279,8 +272,8 @@
           v-model:current-page="currentPage"
           v-model:page-size="pageSize"
           :page-sizes="[10, 20, 50, 100]"
-          :total="totalFiles"
           layout="total, sizes, prev, pager, next, jumper"
+          :total="totalFiles"
           @size-change="handleSizeChange"
           @current-change="handleCurrentChange"
           background
@@ -293,38 +286,48 @@
     <el-dialog
       v-model="previewDialogVisible"
       title="文件预览"
-      width="60%"
-      append-to-body
+      width="80%"
+      top="5vh"
+      class="preview-dialog"
     >
       <div v-loading="previewLoading" class="preview-container">
-        <template v-if="!previewLoading && selectedFile">
-          <div class="preview-header">
-            <h3>{{ selectedFile.fileName }}</h3>
-            <div class="preview-info">
-              <span>类型: {{ selectedFile.fileType.toUpperCase() }}</span>
-              <span>大小: {{ formatFileSize(selectedFile.fileSize) }}</span>
-              <span>上传时间: {{ formatDate(selectedFile.lastModified) }}</span>
+        <div v-if="selectedFile" class="file-info">
+          <h3>{{ selectedFile.fileName }}</h3>
+          <div class="file-meta">
+            <div class="meta-item">
+              <span class="meta-label">文件类型:</span>
+              <el-tag :type="getTagType(selectedFile.fileType)">{{ selectedFile.fileType.toUpperCase() }}</el-tag>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">文件大小:</span>
+              <span>{{ formatFileSize(selectedFile.fileSize) }}</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">创建时间:</span>
+              <span>{{ formatDate(selectedFile.lastModified) }}</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">修改时间:</span>
+              <span>{{ formatDate(selectedFile.lastModified) }}</span>
             </div>
           </div>
-          
-          <div class="preview-content">
-            <div class="document-preview-placeholder">
-              <div class="document-preview-content" v-if="selectedFile.fileType.toLowerCase() === '.pdf'">
-                <iframe :src="previewUrl" width="100%" height="500" frameborder="0"></iframe>
-              </div>
-              <div v-else class="preview-unavailable">
-                <el-empty description="该文件类型暂不支持在线预览，请下载后查看" />
-              </div>
-            </div>
+          <div class="preview-message">
+            <el-alert
+              type="info"
+              :closable="false"
+              show-icon
+            >
+              {{ selectedFile.fileType.toLowerCase() === '.pdf' ? 'PDF文件内容预览' : 'Word文档内容无法直接预览，请下载后查看' }}
+            </el-alert>
           </div>
-        </template>
+          <div class="preview-actions">
+            <el-button type="primary" :icon="Download" @click="downloadFile(selectedFile)">下载文件</el-button>
+          </div>
+          <div v-if="selectedFile.fileType.toLowerCase() === '.pdf' && previewUrl" class="pdf-preview">
+            <iframe :src="previewUrl" width="100%" height="500" frameborder="0"></iframe>
+          </div>
+        </div>
       </div>
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="previewDialogVisible = false">关闭</el-button>
-          <el-button type="primary" @click="downloadFile(selectedFile)">下载文件</el-button>
-        </span>
-      </template>
     </el-dialog>
 
     <!-- 批量删除确认对话框 -->
@@ -748,16 +751,29 @@ const handleCurrentChange = (page) => {
 
 // 获取文件图标颜色
 const getFileIconColor = (fileType) => {
-  switch(fileType.toLowerCase()) {
-    case '.pdf':
-      return '#e74c3c'; // 红色
-    case '.doc':
-    case '.docx':
-      return '#2980b9'; // 蓝色
-    default:
-      return '#606266'; // 默认灰色
+  if (!fileType) return '#909399'
+  
+  const typeMap = {
+    '.pdf': '#FF5252',   // 红色
+    '.doc': '#2196F3',   // 蓝色
+    '.docx': '#2196F3',  // 蓝色
   }
-};
+  
+  return typeMap[fileType.toLowerCase()] || '#909399'
+}
+
+// 获取标签类型
+const getTagType = (fileType) => {
+  if (!fileType) return ''
+  
+  const typeMap = {
+    '.pdf': 'danger',
+    '.doc': 'primary',
+    '.docx': 'primary',
+  }
+  
+  return typeMap[fileType.toLowerCase()] || 'info'
+}
 
 // 重置所有筛选条件
 const resetFilters = () => {
@@ -842,6 +858,8 @@ const resetFilters = () => {
 
 .filter-card {
   margin-bottom: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
 }
 
 .filter-header {
@@ -884,33 +902,35 @@ const resetFilters = () => {
 .filter-item {
   display: flex;
   flex-direction: column;
+  min-width: 200px;
 }
 
 .filter-label {
   font-weight: 600;
   margin-bottom: 5px;
+  color: var(--el-text-color-secondary);
 }
 
 .search-input {
   width: 250px;
 }
 
-.filter-select {
-  width: 200px;
-}
-
+.filter-select,
 .date-picker {
   width: 200px;
 }
 
 .refresh-button {
   margin-left: auto;
+  height: 40px;
+  align-self: flex-end;
 }
 
+/* 表格卡片样式 */
 .table-card {
   margin-bottom: 20px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
   border-radius: 8px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
   overflow: hidden;
 }
 
@@ -926,8 +946,8 @@ const resetFilters = () => {
 .table-header h3 {
   margin: 0;
   font-size: 18px;
-  color: #303133;
   font-weight: 600;
+  color: #303133;
 }
 
 .table-stats {
@@ -948,6 +968,7 @@ const resetFilters = () => {
 
 .file-table-row:hover {
   background-color: #f0f9ff !important;
+  cursor: pointer;
 }
 
 .file-name-cell {
@@ -963,6 +984,7 @@ const resetFilters = () => {
 .file-name {
   font-weight: 500;
   color: #303133;
+  flex-grow: 1;
 }
 
 .file-type-tag {
@@ -1003,43 +1025,45 @@ const resetFilters = () => {
   min-height: 300px;
 }
 
-.preview-header {
+.file-info {
   margin-bottom: 20px;
 }
 
-.preview-header h3 {
+.file-info h3 {
   margin: 0 0 10px 0;
+  font-size: 18px;
+  font-weight: 600;
 }
 
-.preview-info {
+.file-meta {
   display: flex;
-  gap: 20px;
-  font-size: 14px;
-  color: #666;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-bottom: 15px;
 }
 
-.document-preview-placeholder {
-  border: 1px solid #ebeef5;
-  border-radius: 4px;
-  padding: 20px;
-  background-color: #f8f9fa;
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
 }
 
-.document-preview-content {
-  width: 100%;
-  height: 500px;
+.meta-label {
+  font-weight: 600;
+  color: #606266;
+}
+
+.preview-message {
+  margin: 20px 0;
+}
+
+.preview-actions {
+  margin-top: 20px;
   display: flex;
   justify-content: center;
-  align-items: center;
 }
 
-.preview-unavailable {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 300px;
-}
-
+/* 批量删除对话框样式 */
 .batch-delete-content {
   padding: 10px 0;
 }
@@ -1154,8 +1178,160 @@ const resetFilters = () => {
   box-shadow: 0 0 10px rgba(64, 158, 255, 0.1);
 }
 
-/* 响应式设计 */
+:deep(.file-uploader .el-icon--upload) {
+  font-size: 48px;
+  color: #409eff;
+  margin-bottom: 10px;
+}
+
+:deep(.file-uploader .el-upload__text) {
+  color: #606266;
+  font-size: 16px;
+}
+
+:deep(.file-uploader .el-upload__text em) {
+  color: #409eff;
+  font-style: normal;
+  font-weight: bold;
+}
+
+.selected-files-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #ebeef5;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-top: 20px;
+  min-height: 200px;
+  max-height: 300px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.selected-files {
+  padding: 15px;
+  background-color: #f8f9fa;
+  height: 100%;
+  overflow-y: auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.selected-files h4 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.no-files-selected {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  background-color: #f8f9fa;
+}
+
+/* 修复对话框滚动条和按钮黑边问题 */
+:deep(.el-dialog__body) {
+  padding: 0 !important;
+  overflow: hidden !important;
+  height: auto !important;
+  max-height: none !important;
+}
+
+:deep(.upload-file-dialog .el-dialog) {
+  margin-top: 5vh !important;
+  margin-bottom: 5vh !important;
+  height: auto !important;
+  max-height: 90vh !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+:deep(.upload-file-dialog .el-dialog__body) {
+  flex: 1 !important;
+  overflow-y: auto !important;
+  max-height: calc(90vh - 120px) !important;
+}
+
+:deep(.el-dialog__wrapper) {
+  position: fixed !important;
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  overflow: auto !important;
+  margin: 0 !important;
+  z-index: 3000 !important;
+}
+
+:deep(.el-dialog) {
+  position: relative !important;
+  margin: 15vh auto 50px !important;
+  z-index: 3001 !important;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1) !important;
+}
+
+:deep(.el-upload-dragger:focus),
+:deep(.el-upload-dragger:active) {
+  outline: none !important;
+  border-color: #409eff !important;
+}
+
+:deep(.el-button:focus),
+:deep(.el-button:active) {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+:deep(.file-uploader .el-upload-list) {
+  max-height: 0;
+  overflow: hidden;
+}
+
+:deep(.selected-files .el-scrollbar__wrap) {
+  overflow-x: hidden;
+}
+
+/* 添加files-scrollbar样式 */
+.files-scrollbar {
+  flex: 1;
+  overflow: hidden;
+}
+
+:deep(.el-upload__tip) {
+  width: 100%;
+  box-sizing: border-box;
+  word-break: break-word;
+}
+
+:deep(.date-picker) {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+:deep(.el-table) {
+  width: 100% !important;
+  table-layout: fixed;
+}
+
+:deep(.el-table__body) {
+  width: 100% !important;
+}
+
+:deep(.el-table .cell) {
+  word-break: break-word;
+}
+
+/* 添加响应式布局支持 */
 @media screen and (max-width: 768px) {
+  :deep(.upload-file-dialog .el-dialog) {
+    width: 95% !important;
+    margin: 10px auto !important;
+  }
+  
   .search-input,
   .filter-select,
   .date-picker {
@@ -1176,6 +1352,7 @@ const resetFilters = () => {
   .refresh-button {
     margin-left: 0;
     margin-top: 10px;
+    width: 100%;
   }
 }
 </style>

@@ -865,6 +865,8 @@ const resetFilters = () => {
 
 .filter-card {
   margin-bottom: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
 }
 
 .filter-header {
@@ -901,16 +903,19 @@ const resetFilters = () => {
   flex-wrap: wrap;
   gap: 15px;
   align-items: center;
+  padding: 16px 20px;
 }
 
 .filter-item {
   display: flex;
   flex-direction: column;
+  min-width: 200px;
 }
 
 .filter-label {
   font-weight: 600;
   margin-bottom: 5px;
+  color: var(--el-text-color-secondary);
 }
 
 .search-input {
@@ -927,6 +932,8 @@ const resetFilters = () => {
 
 .refresh-button {
   margin-left: auto;
+  height: 40px;
+  align-self: flex-end;
 }
 
 .table-card {
