@@ -503,10 +503,7 @@ const handleShiftEnter = (e) => e.shiftKey && null;
 
 // 发送消息
 const handleSendMessage = async () => {
-  if (!checkLogin()) {
-    showLoginPrompt.value = true;
-    return;
-  }
+
   if (!textarea2.value.trim()) return;
   isSending.value = true;
 
@@ -838,10 +835,10 @@ const processAIResponse = async (question, aiMsgOrId) => {
 /* ------------------ 聊天历史管理 ------------------ */
 // 加载用户的所有聊天会话
 const loadUserChatSessions = async () => {
-  if (!checkLogin()) return;
+
   
   try {
-    const userId = getUserId();
+    const userId = 13;
     const response = await fetch(`${API_BASE_URL}/chat/sessions/${userId}`);
     
     if (!response.ok) {
@@ -1352,16 +1349,14 @@ onMounted(async () => {
     // 再设置滚动监听
     setupScrollListener();
     
-    // 最后加载用户的所有聊天历史
-    if (checkLogin()) {
-      await loadUserChatSessions();
+// 最后加载用户的所有聊天历史
+    loadUserChatSessions();
       
-      // 如果有历史会话且没有指定当前会话，自动选择最近的一个
-      if (totalChatHistory.value.length > 0 && !currentChatId.value) {
-        // 历史会话已按更新时间降序排序，所以第一个就是最近的
-        const mostRecentSession = totalChatHistory.value[0];
-        await selectChatSession(mostRecentSession.id);
-      }
+    // 如果有历史会话且没有指定当前会话，自动选择最近的一个
+    if (totalChatHistory.value.length > 0 && !currentChatId.value) {
+      // 历史会话已按更新时间降序排序，所以第一个就是最近的
+      const mostRecentSession = totalChatHistory.value[0];
+      await selectChatSession(mostRecentSession.id);
     }
     
     nextTick(() => {

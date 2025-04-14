@@ -439,19 +439,14 @@ const loadFileList = async () => {
   loading.value = true;
   
   try {
-    // 获取管理员ID
-    const adminId = localStorage.getItem('admin_id');
+    // 获取token
+    const token = localStorage.getItem('token');
     
     // 构建查询参数
     const params = {
       page: currentPage.value,
       page_size: pageSize.value
     };
-    
-    // 添加管理员ID参数
-    if (adminId) {
-      params.admin_id = adminId;
-    }
     
     // 添加搜索条件
     if (searchQuery.value) {
@@ -475,7 +470,12 @@ const loadFileList = async () => {
     }
     
     // 发送请求到后端API
-    const response = await axios.get(`${baseApiUrl}/admin/content/emergency-plans`, { params });
+    const response = await axios.get(`${baseApiUrl}/admin/content/emergency-plans`, { 
+      params,
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
     
     if (response.data.success) {
       fileList.value = response.data.data.files;
@@ -533,8 +533,8 @@ const uploadSelectedFiles = async () => {
   }
   
   try {
-    // 获取管理员ID
-    const adminId = localStorage.getItem('admin_id');
+    // 获取token
+    const token = localStorage.getItem('token');
     
     // 创建FormData对象
     const formData = new FormData();
@@ -542,18 +542,12 @@ const uploadSelectedFiles = async () => {
       formData.append('files', file.raw);
     });
     
-    // 构建查询参数
-    const params = {};
-    if (adminId) {
-      params.admin_id = adminId;
-    }
-    
     // 发送上传请求
     const response = await axios.post(`${baseApiUrl}/admin/content/emergency-plans/upload`, formData, {
       headers: {
-        'Content-Type': 'multipart/form-data'
-      },
-      params: params
+        'Content-Type': 'multipart/form-data',
+        'Authorization': `Bearer ${token}`
+      }
     });
     
     if (response.data.success) {
@@ -605,18 +599,16 @@ const previewFile = async (file) => {
   previewLoading.value = true;
   
   try {
-    // 获取管理员ID
-    const adminId = localStorage.getItem('admin_id');
+    // 获取token
+    const token = localStorage.getItem('token');
     
     // 只有PDF文件才能直接预览
     if (file.fileType.toLowerCase() === '.pdf') {
       // 构建预览URL
       let url = `${baseApiUrl}/admin/content/emergency-plans/view/${file.fileName}`;
       
-      // 添加管理员ID参数
-      if (adminId) {
-        url += `?admin_id=${adminId}`;
-      }
+      // 添加token参数用于预览认证
+      url += `?token=${encodeURIComponent(token)}`;
       
       previewUrl.value = url;
     } else {
@@ -636,28 +628,38 @@ const downloadFile = (file) => {
   if (!file) return;
   
   try {
-    // 获取管理员ID
-    const adminId = localStorage.getItem('admin_id');
+    // 获取token
+    const token = localStorage.getItem('token');
     
-    // 构建下载URL
-    let downloadUrl = `${baseApiUrl}/admin/content/emergency-plans/download/${file.fileName}`;
+    // 使用XMLHttpRequest进行下载，以便设置Authorization请求头
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', `${baseApiUrl}/admin/content/emergency-plans/download/${file.fileName}`, true);
+    xhr.responseType = 'blob';
+    xhr.setRequestHeader('Authorization', `Bearer ${token}`);
     
-    // 添加管理员ID参数
-    if (adminId) {
-      downloadUrl += `?admin_id=${adminId}`;
-    }
+    xhr.onload = function() {
+      if (this.status === 200) {
+        const blob = new Blob([this.response]);
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = file.fileName;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        ElMessage.success(`开始下载文件: ${file.fileName}`);
+      } else {
+        ElMessage.error('下载文件失败');
+      }
+    };
     
-    // 创建一个隐藏的a标签来触发下载
-    const a = document.createElement('a');
-    a.style.display = 'none';
-    a.href = downloadUrl;
-    a.download = file.fileName;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    xhr.onerror = function() {
+      ElMessage.error('下载文件失败');
+    };
     
-    // 在界面上显示下载开始消息
-    ElMessage.success(`开始下载文件: ${file.fileName}`);
+    xhr.send();
   } catch (error) {
     console.error('下载文件出错:', error);
     ElMessage.error(`下载文件失败: ${error.message}`);
@@ -667,19 +669,15 @@ const downloadFile = (file) => {
 // 删除单个文件
 const deleteFile = async (file) => {
   try {
-    // 获取管理员ID
-    const adminId = localStorage.getItem('admin_id');
-    
-    // 构建请求URL
-    let deleteUrl = `${baseApiUrl}/admin/content/emergency-plans/${file.fileName}`;
-    
-    // 添加管理员ID参数
-    if (adminId) {
-      deleteUrl += `?admin_id=${adminId}`;
-    }
+    // 获取token
+    const token = localStorage.getItem('token');
     
     // 发送删除请求
-    const response = await axios.delete(deleteUrl);
+    const response = await axios.delete(`${baseApiUrl}/admin/content/emergency-plans/${file.fileName}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
     
     if (response.data.success) {
       ElMessage.success(response.data.message);
@@ -707,20 +705,23 @@ const handleBatchDelete = () => {
 // 确认批量删除
 const confirmBatchDelete = async () => {
   try {
-    // 获取管理员ID
-    const adminId = localStorage.getItem('admin_id');
+    // 获取token
+    const token = localStorage.getItem('token');
     
     // 获取所有选中文件的ID
     const fileIds = multipleSelection.value.map(file => file.id);
     
     // 构建请求数据
     const requestData = {
-      file_ids: fileIds,
-      admin_id: adminId
+      file_ids: fileIds
     };
     
     // 发送批量删除请求
-    const response = await axios.post(`${baseApiUrl}/admin/content/emergency-plans/batch-delete`, requestData);
+    const response = await axios.post(`${baseApiUrl}/admin/content/emergency-plans/batch-delete`, requestData, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
     
     if (response.data.success) {
       ElMessage.success(response.data.message);

@@ -306,19 +306,21 @@ const loading = ref(false);
 const adminInfo = ref({});
 const profileFormRef = ref(null);
 const passwordFormRef = ref(null);
-const adminId = ref(null);
 
 // 获取管理员信息
 const fetchAdminInfo = async () => {
   try {
-    if (!adminId.value) {
-      ElMessage.warning('未找到管理员ID，请重新登录');
+    const adminToken = localStorage.getItem('token');
+    if (!adminToken) {
+      ElMessage.warning('未识别出管理员，请重新登录');
       router.push('/admin/login');
       return;
     }
     
     const response = await axios.get(`${API_BASE_URL}/admin/profile`, {
-      params: { admin_id: parseInt(adminId.value) }
+      headers: {
+        'Authorization': `Bearer ${adminToken}`
+      }
     });
     
     if (response.data.code === 200) {
@@ -349,12 +351,7 @@ const toggleCollapse = () => {
   localStorage.setItem('adminSidebarCollapsed', isCollapsed.value.toString());
 };
 
-// 切换暗黑模式
-const toggleDarkMode = () => {
-  isDarkMode.value = !isDarkMode.value;
-  localStorage.setItem('adminDarkMode', isDarkMode.value.toString());
-  document.documentElement.classList.toggle('dark', isDarkMode.value);
-};
+
 
 // 切换全屏状态
 const toggleFullScreen = () => {
@@ -383,20 +380,14 @@ onMounted(() => {
   
   // 从本地存储中恢复设置
   const savedCollapsed = localStorage.getItem('adminSidebarCollapsed');
-  const savedDarkMode = localStorage.getItem('adminDarkMode');
   
   if (savedCollapsed) {
     isCollapsed.value = savedCollapsed === 'true';
   }
   
-  if (savedDarkMode) {
-    isDarkMode.value = savedDarkMode === 'true';
-    document.documentElement.classList.toggle('dark', isDarkMode.value);
-  }
-  
-  // 获取管理员ID (假设登录成功后存储在localStorage中)
-  adminId.value = localStorage.getItem('adminId') || '1'; // 默认使用ID 1，方便测试
-  if (adminId.value) {
+  // 获取管理员Token (登录成功后存储在localStorage中)
+  const adminToken = localStorage.getItem('token');
+  if (adminToken) {
     // 立即获取管理员信息
     fetchAdminInfo();
   } else {
@@ -492,7 +483,8 @@ watch(() => route.path, (newPath) => {
 
 // 显示个人资料对话框
 const showProfileDialog = () => {
-  if (!adminId.value) {
+  const adminToken = localStorage.getItem('token');
+  if (!adminToken) {
     ElMessage.warning('请先登录');
     router.push('/admin/login');
     return;
@@ -511,7 +503,7 @@ const showProfileDialog = () => {
 const openProfileDialog = () => {
   // 确保表单数据是最新的
   profileForm.value = {
-    admin_id: parseInt(adminId.value),
+    admin_id: adminInfo.value.admin_id,
     full_name: adminInfo.value.full_name || '',
     email: adminInfo.value.email || '',
     phone_number: adminInfo.value.phone_number || ''
@@ -521,14 +513,15 @@ const openProfileDialog = () => {
 
 // 显示修改密码对话框
 const showPasswordDialog = () => {
-  if (!adminId.value) {
+  const adminToken = localStorage.getItem('token');
+  if (!adminToken) {
     ElMessage.warning('请先登录');
     router.push('/admin/login');
     return;
   }
   
   passwordForm.value = {
-    admin_id: parseInt(adminId.value),
+    admin_id: adminInfo.value.admin_id,
     old_password: '',
     new_password: '',
     confirm_password: ''
@@ -544,9 +537,9 @@ const updateProfile = async () => {
     if (valid) {
       try {
         loading.value = true;
-        
-        if (!adminId.value) {
-          ElMessage.error('管理员ID不存在，请重新登录');
+        const adminToken = localStorage.getItem('token');
+        if (!adminToken) {
+          ElMessage.error('管理员已退出，请重新登录');
           router.push('/admin/login');
           return;
         }
@@ -559,7 +552,7 @@ const updateProfile = async () => {
           {
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
             }
           }
         );
@@ -617,15 +610,21 @@ const updatePassword = async () => {
     if (valid) {
       try {
         loading.value = true;
-        
-        if (!adminId.value) {
-          ElMessage.error('管理员ID不存在，请重新登录');
+        const adminToken = localStorage.getItem('token');
+        if (!adminToken) {
+          ElMessage.error('管理员已退出，请重新登录');
+          router.push('/login');
           return;
         }
         
         const response = await axios.put(
           `${API_BASE_URL}/admin/password`, 
-          passwordForm.value
+          passwordForm.value,
+          {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+          }
         );
         
         if (response.data.code === 200) {
@@ -654,7 +653,8 @@ const updatePassword = async () => {
 
 // 登录状态检查和登出功能
 const checkLoginStatus = () => {
-  if (!adminId.value) {
+  const adminToken = localStorage.getItem('token');
+  if (!adminToken) {
     ElMessage.warning('您尚未登录或登录已过期，请重新登录');
     router.push('/admin/login');
     return false;
@@ -1010,17 +1010,5 @@ const handleLogout = () => {
 
 :deep(.el-input.is-disabled .el-input__wrapper) {
   background-color: #f5f7fa;
-}
-
-.dark-mode :deep(.el-card__header) {
-  background-color: #2a2a2a;
-}
-
-.dark-mode .form-tip {
-  color: #a3a6ad;
-}
-
-.dark-mode :deep(.el-input.is-disabled .el-input__wrapper) {
-  background-color: #333;
 }
 </style> 

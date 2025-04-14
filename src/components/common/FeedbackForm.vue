@@ -37,7 +37,7 @@
                   <input 
                     type="radio" 
                     id="option-0" 
-                    value="inaccurate" 
+                    value="内容不准确" 
                     v-model="selectedFeedbackOption"
                     name="feedbackOption"
                   >
@@ -47,7 +47,7 @@
                   <input 
                     type="radio" 
                     id="option-1" 
-                    value="incomplete" 
+                    value="回答不完整" 
                     v-model="selectedFeedbackOption"
                     name="feedbackOption"
                   >
@@ -57,7 +57,7 @@
                   <input 
                     type="radio" 
                     id="option-2" 
-                    value="irrelevant" 
+                    value="与问题不相关" 
                     v-model="selectedFeedbackOption"
                     name="feedbackOption"
                   >
@@ -67,7 +67,7 @@
                   <input 
                     type="radio" 
                     id="option-3" 
-                    value="other" 
+                    value="其他问题" 
                     v-model="selectedFeedbackOption"
                     name="feedbackOption"
                   >
@@ -81,7 +81,7 @@
               <div class="textarea-container">
                 <textarea 
                   v-model="feedback" 
-                  :placeholder="selectedFeedbackOption === 'other' ? '请详细描述您的反馈...' : '请输入您的补充反馈...'" 
+                  :placeholder="selectedFeedbackOption === '其他问题' ? '请详细描述您的反馈...' : '请输入您的补充反馈...'" 
                 ></textarea>
               </div>
             </div>
@@ -134,10 +134,10 @@ const rating = ref(0);
 const isSubmitSuccess = ref(false);
 
 const feedbackOptions = [
-  { value: "inaccurate", label: "内容不准确" },
-  { value: "incomplete", label: "回答不完整" },
-  { value: "irrelevant", label: "与问题不相关" },
-  { value: "other", label: "其他问题" }
+  { value: "内容不准确", label: "内容不准确" },
+  { value: "回答不完整", label: "回答不完整" },
+  { value: "与问题不相关", label: "与问题不相关" },
+  { value: "其他问题", label: "其他问题" }
 ];
 
 const selectedFeedbackOption = ref("");
@@ -152,23 +152,43 @@ const closeFeedback = () => {
 const submitFeedback = async () => {
   if (rating.value) {
     try {
-      const user_id = localStorage.getItem('user_id');
+      const token = localStorage.getItem('token');
+      
+      // 创建要发送的数据对象
+      const requestData = {
+        rating: rating.value,
+        feedback: feedback.value || " ", // 确保feedback始终有值
+        feedback_option: selectedFeedbackOption.value || "其他问题", // 确保feedback_option始终有值
+        message: props.message || " ", // 确保message始终有值
+        question: props.question || " ", // 确保question始终有值
+      };
+      
+      // 打印要发送的数据
+      console.log('Sending feedback data:', requestData);
+      
       const response = await fetch(`${API_BASE_URL}/submit-feedback/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
         },
-        body: JSON.stringify({
-          user_id: user_id ? parseInt(user_id) : null,
-          rating: rating.value,
-          feedback: feedback.value,
-          feedback_option: selectedFeedbackOption.value,
-          message: props.message,
-          question: props.question,
-        }),
+        body: JSON.stringify(requestData),
       });
 
-      const result = await response.json();
+      console.log('Response status:', response.status);
+      const responseText = await response.text();
+      console.log('Response text:', responseText);
+      
+      // 尝试解析JSON
+      let result;
+      try {
+        result = JSON.parse(responseText);
+      } catch (e) {
+        console.error('Failed to parse response as JSON:', e);
+        ElMessage.error('服务器返回了无效的响应');
+        return;
+      }
+
       if (response.ok) {
         isSubmitSuccess.value = true;
         
@@ -192,7 +212,7 @@ const submitFeedback = async () => {
       }
     } catch (error) {
       ElMessage.error("提交失败，请稍后再试");
-      console.log(error);
+      console.error('Error submitting feedback:', error);
     }
   } else {
     ElMessage.error("请至少给出评分！");

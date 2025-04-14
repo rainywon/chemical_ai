@@ -117,16 +117,16 @@ const submitFeedback = async () => {
   
   // 设置提交状态
   feedbackSubmitting.value = true;
-  const userID = localStorage.getItem('user_id');
+  const token = localStorage.getItem('token');
   
   try {
-    const response = await fetch(`${API_BASE_URL}/submit-content_feedback/`, {
+    const response = await fetch(`${API_BASE_URL}/submit-content-feedback/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify({
-        user_id: userID ? parseInt(userID) : null,
         feedback_type: feedbackType.value,
         feedback_content: feedbackText.value,
       }),

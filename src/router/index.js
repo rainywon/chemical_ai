@@ -147,19 +147,6 @@ const router = createRouter({
     routes,
 });
 
-// 路由守卫，检查管理员权限
-router.beforeEach((to, from, next) => {
-    if (to.matched.some(record => record.meta.requiresAdmin)) {
-        // 检查是否为管理员
-        const isAdmin = localStorage.getItem('isAdmin') === 'true';
-        if (!isAdmin) {
-            next('/login'); // 如果不是管理员，则跳转到登录页
-        } else {
-            next(); // 是管理员，允许访问
-        }
-    } else {
-        next(); // 不需要管理员权限的页面，直接放行
-    }
-});
+
 
 export default router;

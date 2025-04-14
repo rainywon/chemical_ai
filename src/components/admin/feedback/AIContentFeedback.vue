@@ -418,22 +418,19 @@ export default {
       return option_obj ? option_obj.label : option
     }
     
-    // 加载反馈列表数据
+    // 加载反馈列表
     const loadFeedbackList = async () => {
       loading.value = true
       try {
-        const params = {}
-        
-        // 只添加有值的参数
-        params.page = currentPage.value
-        params.page_size = pageSize.value
-        
-        if (activeStatus.value) {
-          params.status = activeStatus.value
+        // 构建查询参数
+        const params = {
+          page: currentPage.value,
+          page_size: pageSize.value
         }
         
-        if (searchForm.keyword) {
-          params.keyword = searchForm.keyword
+        // 添加筛选条件
+        if (activeStatus.value) {
+          params.status = activeStatus.value
         }
         
         if (searchForm.rating) {
@@ -449,18 +446,22 @@ export default {
           params.end_date = searchForm.dateRange[1]
         }
         
-        // 添加当前管理员ID
-        const adminId = localStorage.getItem('admin_id')
-        if (adminId) {
-          params.current_admin_id = adminId
+        if (searchForm.keyword) {
+          params.keyword = searchForm.keyword
         }
         
-        const response = await axios.get(`${API_BASE_URL}/admin/feedback/content`, { params })
+        const response = await axios.get(`${API_BASE_URL}/admin/feedback/content`, { 
+          params,
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        })
         
         if (response.data.code === 200) {
           feedbackList.value = response.data.data.list
           total.value = response.data.data.total
         } else {
+          console.error('获取反馈列表失败:', response.data.message)
           ElMessage.error(response.data.message || '获取反馈列表失败')
         }
       } catch (error) {
@@ -474,6 +475,7 @@ export default {
     // 加载反馈统计数据
     const loadFeedbackStats = async () => {
       try {
+        // 构建查询参数
         const params = {}
         
         if (searchForm.rating) {
@@ -493,13 +495,12 @@ export default {
           params.keyword = searchForm.keyword
         }
         
-        // 添加当前管理员ID
-        const adminId = localStorage.getItem('admin_id')
-        if (adminId) {
-          params.current_admin_id = adminId
-        }
-        
-        const response = await axios.get(`${API_BASE_URL}/admin/feedback/content/stats`, { params })
+        const response = await axios.get(`${API_BASE_URL}/admin/feedback/content/stats`, { 
+          params,
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        })
         
         if (response.data.code === 200) {
           statusCounts.value = response.data.data.status_counts
@@ -558,12 +559,12 @@ export default {
     // 查看反馈详情
     const handleViewDetail = async (feedback) => {
       try {
-        // 获取当前管理员ID
-        const adminId = localStorage.getItem('admin_id')
-        const params = adminId ? { current_admin_id: adminId } : {}
-        
         // 获取详细信息
-        const response = await axios.get(`${API_BASE_URL}/admin/feedback/content/${feedback.feedback_id}`, { params })
+        const response = await axios.get(`${API_BASE_URL}/admin/feedback/content/${feedback.feedback_id}`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        })
         
         if (response.data.code === 200) {
           currentFeedback.value = response.data.data
@@ -594,17 +595,17 @@ export default {
       
       submitting.value = true
       try {
-        // 获取当前管理员ID
-        const adminId = localStorage.getItem('admin_id')
-        const params = adminId ? { current_admin_id: adminId } : {}
-        
         const response = await axios.put(
           `${API_BASE_URL}/admin/feedback/content/${currentFeedback.value.feedback_id}`, 
           {
             status: processForm.status,
             admin_reply: processForm.adminReply
           },
-          { params }
+          {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+          }
         )
         
         if (response.data.code === 200) {

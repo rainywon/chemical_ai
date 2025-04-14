@@ -34,7 +34,6 @@ const fetchLatestFiles = async () => {
     const response = await fetch(`${API_BASE_URL}/safety_files/?page=1&page_size=5`, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        'X-User-ID': localStorage.getItem('user_id')
       }
     });
     

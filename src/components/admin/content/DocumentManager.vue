@@ -482,7 +482,6 @@ async function fetchFileList() {
   try {
     const response = await axios.get(`${baseApiUrl}/admin/content/safety-documents`, {
       params: {
-        admin_id: adminId.value,
         search_query: searchQuery.value,
         file_type: fileTypeFilter.value,
         start_date: dateRange.value?.[0] || '',
@@ -490,6 +489,9 @@ async function fetchFileList() {
         sort_by: sortOption.value,
         page: currentPage.value,
         page_size: pageSize.value
+      },
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
       }
     })
     
@@ -587,8 +589,8 @@ async function previewFile(file) {
   try {
     // 获取文件信息
     const response = await axios.get(`${baseApiUrl}/admin/content/safety-documents/preview/${encodeURIComponent(file.fileName)}`, {
-      params: {
-        admin_id: adminId.value
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
       }
     })
     
@@ -610,27 +612,44 @@ async function previewFile(file) {
 function downloadFile(file) {
   if (!file) return
   
-  const adminIdParam = adminId.value ? `?admin_id=${adminId.value}` : ''
-  const url = `${baseApiUrl}/admin/content/safety-documents/download/${encodeURIComponent(file.fileName)}${adminIdParam}`
+  // 创建带有授权头的URL
+  const downloadUrl = `${baseApiUrl}/admin/content/safety-documents/download/${encodeURIComponent(file.fileName)}`
   
-  // 创建一个隐藏的 a 标签用于下载
-  const link = document.createElement('a')
-  link.href = url
-  link.target = '_blank'
-  link.download = file.fileName
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-  
-  ElMessage.success(`正在下载: ${file.fileName}`)
+  // 使用Fetch API进行下载，以便添加授权头
+  fetch(downloadUrl, {
+    headers: {
+      'Authorization': `Bearer ${localStorage.getItem('token')}`
+    }
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error('下载失败')
+    }
+    return response.blob()
+  })
+  .then(blob => {
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = file.fileName
+    document.body.appendChild(link)
+    link.click()
+    window.URL.revokeObjectURL(url)
+    document.body.removeChild(link)
+    ElMessage.success(`正在下载: ${file.fileName}`)
+  })
+  .catch(error => {
+    console.error('下载文件失败:', error)
+    ElMessage.error('下载文件失败，请重试')
+  })
 }
 
 // 文件删除
 async function deleteFile(file) {
   try {
     const response = await axios.delete(`${baseApiUrl}/admin/content/safety-documents/${encodeURIComponent(file.fileName)}`, {
-      params: {
-        admin_id: adminId.value
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
       }
     })
     
@@ -658,8 +677,11 @@ async function confirmBatchDelete() {
     const fileNames = multipleSelection.value.map(file => file.id || file.fileName)
     
     const response = await axios.post(`${baseApiUrl}/admin/content/safety-documents/batch-delete`, {
-      admin_id: adminId.value,
       file_ids: fileNames
+    }, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
     })
     
     ElMessage.success(response.data.message || `成功删除 ${fileNames.length} 个文件`)
@@ -717,7 +739,6 @@ async function uploadSelectedFiles() {
   }
   
   const formData = new FormData()
-  formData.append('admin_id', adminId.value)
   
   // 添加所有选中的文件
   selectedFiles.value.forEach(file => {
@@ -734,7 +755,8 @@ async function uploadSelectedFiles() {
   try {
     const response = await axios.post(`${baseApiUrl}/admin/content/safety-documents/upload`, formData, {
       headers: {
-        'Content-Type': 'multipart/form-data'
+        'Content-Type': 'multipart/form-data',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
       }
     })
     

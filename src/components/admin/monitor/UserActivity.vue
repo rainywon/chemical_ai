@@ -132,15 +132,6 @@ const handlePageChange = (page) => {
 
 // 检查用户是否是管理员
 const checkAdminStatus = () => {
-  const isAdmin = localStorage.getItem('isAdmin') === 'true';
-  
-  if (!isAdmin) {
-    ElMessage.error('只有管理员才能访问此页面');
-    router.push('/login');
-    return false;
-  }
-  
-  isAuthenticated.value = true;
   return true;
 };
 

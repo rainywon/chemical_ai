@@ -415,24 +415,22 @@ const login = async () => {
     });
     
     const data = await response.json();
-
+    console.log(data);
     if (data.code === 200) {
       // 存储登录状态和Token
-      localStorage.setItem("mobile", formData.phone);
-      if (data.token && loginMode.value !== 2) {
-        localStorage.setItem("token", data.token);
+      if (data.data.token && loginMode.value !== 2) {
+        localStorage.setItem("mobile", formData.phone);
+        localStorage.setItem("token", data.data.token);
       }
       
       // 管理员状态处理
       if (loginMode.value === 2) {
-        localStorage.setItem("isAdmin", "true");
         // 可能还需要保存其他管理员特定信息
-        if(data.token){
-          localStorage.setItem("token", data.token);
+        if(data.data.token){
+          localStorage.setItem("token", data.data.token);
         }
       } else {
         // 非管理员登录时清除管理员状态
-        localStorage.removeItem("isAdmin");
       }
       
       resultMessage.value = "登录成功，正在跳转...";
