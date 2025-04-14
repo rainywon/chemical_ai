@@ -1,9 +1,15 @@
 <template>
   <div class="admin-dashboard">
-    <h1 class="dashboard-title">管理员控制台</h1>
     
     <!-- 1. 核心数据概览区域 -->
     <el-row :gutter="20" class="data-overview">
+      <el-col :span="24" style="margin-bottom: 15px;">
+        <div class="section-header">
+          <h2 class="section-title">核心数据概览</h2>
+          <el-button type="primary" size="small" icon="el-icon-refresh" @click="refreshStats">刷新数据</el-button>
+        </div>
+      </el-col>
+      
       <!-- 用户统计 -->
       <el-col :xs="24" :sm="12" :md="6">
         <el-card class="overview-card user-card" shadow="hover">
@@ -36,16 +42,16 @@
           </div>
           <div class="card-body">
             <div class="data-item">
-              <span class="data-label">总文档数量</span>
-              <span class="data-value">{{ stats.totalDocuments }}</span>
+              <span class="data-label">知识库文件</span>
+              <span class="data-value">{{ stats.knowledgeCount }}</span>
             </div>
             <div class="data-item">
-              <span class="data-label">应急预案</span>
-              <span class="data-value">{{ stats.emergencyPlans }}</span>
+              <span class="data-label">安全资料库</span>
+              <span class="data-value">{{ stats.safetyCount }}</span>
             </div>
             <div class="data-item">
-              <span class="data-label">分类数量</span>
-              <span class="data-value">{{ stats.categories }}</span>
+              <span class="data-label">应急资料库</span>
+              <span class="data-value">{{ stats.emergencyCount }}</span>
             </div>
           </div>
         </el-card>
@@ -218,7 +224,6 @@
                       <div class="activity-title">用户登录</div>
                       <div class="activity-meta">
                         <span>用户: {{ scope.row.user_id }}</span>
-                        <span>IP: {{ scope.row.ip_address }}</span>
                         <span class="activity-time">{{ scope.row.login_time }}</span>
                       </div>
                     </div>
@@ -427,12 +432,12 @@ const stats = reactive({
   // 用户统计
   totalUsers: 0,
   newUsers: 0,
-  newUsersTrend: 5.2,
+  newUsersTrend: 0,
   
   // 内容统计
-  totalDocuments: 0,
-  emergencyPlans: 0,
-  categories: 0,
+  knowledgeCount: 0,
+  safetyCount: 0,
+  emergencyCount: 0,
   
   // 系统活跃度
   totalSessions: 0,
@@ -513,31 +518,6 @@ const getFeedbackIconClass = (type) => {
 // 加载统计数据
 const loadStats = async () => {
   try {
-    // 在实际项目中，这里应该从API获取数据
-    // 这里使用模拟数据
-    
-    // 用户统计
-    stats.totalUsers = 1284;
-    stats.newUsers = 27;
-    
-    // 内容统计
-    stats.totalDocuments = 356;
-    stats.emergencyPlans = 48;
-    stats.categories = 12;
-    
-    // 系统活跃度
-    stats.totalSessions = 8975;
-    stats.activeUsers = 498;
-    stats.avgMessagesPerSession = 4.6;
-    
-    // 反馈统计
-    stats.totalFeedbacks = 627;
-    stats.systemFeedbacks = 213;
-    stats.contentFeedbacks = 414;
-    stats.avgRating = 4.2;
-    
-    // 如果API可用，请使用以下代码替换上述模拟数据
-    /*
     const response = await axios.get(`${API_BASE_URL}/admin/dashboard/stats`);
     if (response.data.code === 200) {
       const data = response.data.data;
@@ -547,10 +527,12 @@ const loadStats = async () => {
       stats.newUsers = data.user_stats.new_users;
       stats.newUsersTrend = data.user_stats.new_users_trend;
       
-      // 内容统计
-      stats.totalDocuments = data.content_stats.total_documents;
-      stats.emergencyPlans = data.content_stats.emergency_plans;
-      stats.categories = data.content_stats.categories;
+      // 内容统计 - 确保数据存在且正确映射
+      if (data.content_stats) {
+        stats.knowledgeCount = data.content_stats.knowledge_count || 0;
+        stats.safetyCount = data.content_stats.safety_count || 0;
+        stats.emergencyCount = data.content_stats.emergency_count || 0;
+      }
       
       // 系统活跃度
       stats.totalSessions = data.activity_stats.total_sessions;
@@ -562,8 +544,9 @@ const loadStats = async () => {
       stats.systemFeedbacks = data.feedback_stats.system_feedbacks;
       stats.contentFeedbacks = data.feedback_stats.content_feedbacks;
       stats.avgRating = data.feedback_stats.avg_rating;
+
+      console.log('内容统计数据:', data.content_stats);
     }
-    */
   } catch (error) {
     console.error('加载统计数据失败:', error);
   }
@@ -572,123 +555,316 @@ const loadStats = async () => {
 // 加载最近对话
 const loadRecentConversations = async () => {
   try {
-    // 在实际项目中，这里应该从API获取数据
-    // 这里使用模拟数据
-    recentConversations.value = [
-      { id: 'cs-001', title: '关于安全预案的咨询', user_id: 'user123', message_count: 8, created_at: '2023-05-10 15:30:45' },
-      { id: 'cs-002', title: '生产安全事故预防', user_id: 'user456', message_count: 12, created_at: '2023-05-09 11:20:38' },
-      { id: 'cs-003', title: '化学品储存问题', user_id: 'user789', message_count: 6, created_at: '2023-05-08 09:15:22' },
-      { id: 'cs-004', title: '设备检修安全规范', user_id: 'user234', message_count: 9, created_at: '2023-05-07 14:45:10' },
-      { id: 'cs-005', title: '员工安全培训资料', user_id: 'user567', message_count: 5, created_at: '2023-05-06 16:30:55' }
-    ];
+    const response = await axios.get(`${API_BASE_URL}/admin/dashboard/recent-data`);
+    if (response.data.code === 200) {
+      recentConversations.value = response.data.data.recent_conversations || [];
+    }
   } catch (error) {
     console.error('加载最近对话失败:', error);
+    recentConversations.value = []; // 确保在错误情况下使用空数组
   }
 };
 
 // 加载最近登录
 const loadRecentLogins = async () => {
   try {
-    // 在实际项目中，这里应该从API获取数据
-    // 这里使用模拟数据
-    recentLogins.value = [
-      { user_id: 'user123', ip_address: '192.168.1.101', login_time: '2023-05-10 16:45:12' },
-      { user_id: 'user456', ip_address: '192.168.1.102', login_time: '2023-05-10 15:30:45' },
-      { user_id: 'user789', ip_address: '192.168.1.103', login_time: '2023-05-10 14:20:38' },
-      { user_id: 'user234', ip_address: '192.168.1.104', login_time: '2023-05-10 13:15:22' },
-      { user_id: 'user567', ip_address: '192.168.1.105', login_time: '2023-05-10 10:45:10' }
-    ];
+    const response = await axios.get(`${API_BASE_URL}/admin/dashboard/recent-data`);
+    if (response.data.code === 200) {
+      recentLogins.value = response.data.data.recent_logins || [];
+    }
   } catch (error) {
     console.error('加载最近登录失败:', error);
+    recentLogins.value = []; // 确保在错误情况下使用空数组
   }
 };
 
 // 加载最新反馈
 const loadRecentFeedbacks = async () => {
   try {
-    // 在实际项目中，这里应该从API获取数据
-    // 这里使用模拟数据
-    recentFeedbacks.value = [
-      { id: 'fb-001', type: 'positive', typeLabel: '正面', rating: 5, content: '回答非常准确，解决了我的问题', created_at: '2023-05-10 16:30:45' },
-      { id: 'fb-002', type: 'negative', typeLabel: '负面', rating: 2, content: '回答不够详细，希望提供更多信息', created_at: '2023-05-09 14:20:38' },
-      { id: 'fb-003', type: 'suggestion', typeLabel: '建议', rating: null, content: '希望能增加更多化工安全预案案例', created_at: '2023-05-08 11:15:22' },
-      { id: 'fb-004', type: 'positive', typeLabel: '正面', rating: 4, content: '系统操作简单便捷，界面友好', created_at: '2023-05-07 09:45:10' },
-      { id: 'fb-005', type: 'suggestion', typeLabel: '建议', rating: null, content: '建议增加批量导入文档的功能', created_at: '2023-05-06 15:30:55' }
-    ];
+    const response = await axios.get(`${API_BASE_URL}/admin/dashboard/recent-data`);
+    if (response.data.code === 200) {
+      recentFeedbacks.value = response.data.data.recent_feedbacks || [];
+    }
   } catch (error) {
     console.error('加载最新反馈失败:', error);
+    recentFeedbacks.value = []; // 确保在错误情况下使用空数组
   }
 };
 
-// 加载系统参数
-const loadSystemParams = async () => {
+// 加载系统参数和操作日志和系统版本
+const loadSystemInfo = async () => {
   try {
-    // 在实际项目中，这里应该从API获取数据
-    // 这里使用模拟数据
-    systemParams.value = [
-      { name: '知识库最后更新日期', value: '2023-05-05' },
-      { name: '知识库数据源数量', value: '16' },
-      { name: '系统响应时间限制', value: '5000ms' },
-      { name: '系统运行状态', value: '正常' }
-    ];
+    const response = await axios.get(`${API_BASE_URL}/admin/dashboard/system-info`);
+    if (response.data.code === 200) {
+      systemParams.value = response.data.data.system_params || [];
+      operationLogs.value = response.data.data.operation_logs || [];
+      systemVersion.value = response.data.data.system_version || {
+        version_number: '未知版本',
+        release_date: '未知日期',
+        update_notes: '暂无更新信息'
+      };
+      
+      if (response.data.data.pending_items) {
+        pendingItems.feedbacks = response.data.data.pending_items.feedbacks || 0;
+        pendingItems.documents = response.data.data.pending_items.documents || 0;
+        pendingItems.warnings = response.data.data.pending_items.warnings || 0;
+      }
+    }
   } catch (error) {
-    console.error('加载系统参数失败:', error);
-  }
-};
-
-// 加载操作日志
-const loadOperationLogs = async () => {
-  try {
-    // 在实际项目中，这里应该从API获取数据
-    // 这里使用模拟数据
-    operationLogs.value = [
-      { admin_name: '管理员1', action: '更新了系统参数', operation_time: '10分钟前' },
-      { admin_name: '管理员2', action: '上传了新文档', operation_time: '30分钟前' },
-      { admin_name: '管理员1', action: '处理了用户反馈', operation_time: '1小时前' },
-      { admin_name: '管理员3', action: '添加了新用户', operation_time: '2小时前' }
-    ];
-  } catch (error) {
-    console.error('加载操作日志失败:', error);
-  }
-};
-
-// 加载系统版本
-const loadSystemVersion = async () => {
-  try {
-    // 在实际项目中，这里应该从API获取数据
-    // 这里使用模拟数据
+    console.error('加载系统信息失败:', error);
+    // 设置默认值
+    systemParams.value = [];
+    operationLogs.value = [];
     systemVersion.value = {
-      version_number: 'v1.2.5',
-      release_date: '2023-05-01',
-      update_notes: '1. 优化了AI回答算法\n2. 修复了文档上传bug\n3. 新增了批量导入功能\n4. 改进了用户界面体验'
+      version_number: '未知版本',
+      release_date: '未知日期',
+      update_notes: '暂无更新信息'
     };
-  } catch (error) {
-    console.error('加载系统版本失败:', error);
+    pendingItems.feedbacks = 0;
+    pendingItems.documents = 0;
+    pendingItems.warnings = 0;
   }
 };
 
-// 加载待处理事项
-const loadPendingItems = async () => {
+// 加载用户活跃度图表
+const loadUserActivityChart = async () => {
+  if (!userActivityChart.value) return;
+  
   try {
-    // 在实际项目中，这里应该从API获取数据
-    // 这里使用模拟数据
-    pendingItems.feedbacks = 8;
-    pendingItems.documents = 3;
-    pendingItems.warnings = 1;
+    const response = await axios.get(`${API_BASE_URL}/admin/dashboard/user-activity`, {
+      params: { days: parseInt(userChartTimeRange.value) }
+    });
+    
+    if (response.data.code === 200) {
+      const { dates, counts } = response.data.data;
+      
+      if (!dates || !counts || dates.length === 0 || counts.length === 0) {
+        console.error('返回的图表数据为空');
+        return;
+      }
+      
+      const chart = echarts.init(userActivityChart.value);
+      
+      const option = {
+        tooltip: {
+          trigger: 'axis'
+        },
+        grid: {
+          left: '3%',
+          right: '4%',
+          bottom: '3%',
+          containLabel: true
+        },
+        xAxis: {
+          type: 'category',
+          boundaryGap: false,
+          data: dates
+        },
+        yAxis: {
+          type: 'value'
+        },
+        series: [{
+          name: '活跃用户',
+          type: 'line',
+          smooth: true,
+          symbol: 'circle',
+          symbolSize: 6,
+          lineStyle: {
+            width: 3,
+            color: '#409EFF'
+          },
+          itemStyle: {
+            color: '#409EFF'
+          },
+          areaStyle: {
+            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{
+              offset: 0,
+              color: 'rgba(64, 158, 255, 0.3)'
+            }, {
+              offset: 1,
+              color: 'rgba(64, 158, 255, 0.1)'
+            }])
+          },
+          data: counts
+        }]
+      };
+      
+      chart.setOption(option);
+      
+      // 自适应窗口大小
+      window.addEventListener('resize', () => {
+        chart.resize();
+      });
+    }
   } catch (error) {
-    console.error('加载待处理事项失败:', error);
+    console.error('加载用户活跃度图表数据失败:', error);
+  }
+};
+
+// 加载对话数量图表
+const loadConversationChart = async () => {
+  if (!conversationChart.value) return;
+  
+  try {
+    const response = await axios.get(`${API_BASE_URL}/admin/dashboard/conversation-trend`, {
+      params: { days: parseInt(conversationChartTimeRange.value) }
+    });
+    
+    if (response.data.code === 200) {
+      const { dates, counts } = response.data.data;
+      
+      if (!dates || !counts || dates.length === 0 || counts.length === 0) {
+        console.error('返回的图表数据为空');
+        return;
+      }
+      
+      const chart = echarts.init(conversationChart.value);
+      
+      const option = {
+        tooltip: {
+          trigger: 'axis'
+        },
+        grid: {
+          left: '3%',
+          right: '4%',
+          bottom: '3%',
+          containLabel: true
+        },
+        xAxis: {
+          type: 'category',
+          boundaryGap: false,
+          data: dates
+        },
+        yAxis: {
+          type: 'value'
+        },
+        series: [{
+          name: '对话数量',
+          type: 'line',
+          smooth: true,
+          symbol: 'circle',
+          symbolSize: 6,
+          lineStyle: {
+            width: 3,
+            color: '#67C23A'
+          },
+          itemStyle: {
+            color: '#67C23A'
+          },
+          areaStyle: {
+            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{
+              offset: 0,
+              color: 'rgba(103, 194, 58, 0.3)'
+            }, {
+              offset: 1,
+              color: 'rgba(103, 194, 58, 0.1)'
+            }])
+          },
+          data: counts
+        }]
+      };
+      
+      chart.setOption(option);
+      
+      // 自适应窗口大小
+      window.addEventListener('resize', () => {
+        chart.resize();
+      });
+    }
+  } catch (error) {
+    console.error('加载对话数量图表数据失败:', error);
+  }
+};
+
+// 加载反馈评分图表
+const loadFeedbackChart = async () => {
+  if (!feedbackChart.value) return;
+  
+  try {
+    const response = await axios.get(`${API_BASE_URL}/admin/dashboard/feedback-rating`, {
+      params: { days: parseInt(feedbackChartTimeRange.value) }
+    });
+    
+    if (response.data.code === 200) {
+      const { dates, ratings } = response.data.data;
+      
+      if (!dates || !ratings || dates.length === 0 || ratings.length === 0) {
+        console.error('返回的图表数据为空');
+        return;
+      }
+      
+      const chart = echarts.init(feedbackChart.value);
+      
+      const option = {
+        tooltip: {
+          trigger: 'axis'
+        },
+        grid: {
+          left: '3%',
+          right: '4%',
+          bottom: '3%',
+          containLabel: true
+        },
+        xAxis: {
+          type: 'category',
+          boundaryGap: false,
+          data: dates
+        },
+        yAxis: {
+          type: 'value',
+          min: 1,
+          max: 5
+        },
+        series: [{
+          name: '平均评分',
+          type: 'line',
+          smooth: true,
+          symbol: 'circle',
+          symbolSize: 6,
+          lineStyle: {
+            width: 3,
+            color: '#E6A23C'
+          },
+          itemStyle: {
+            color: '#E6A23C'
+          },
+          areaStyle: {
+            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{
+              offset: 0,
+              color: 'rgba(230, 162, 60, 0.3)'
+            }, {
+              offset: 1,
+              color: 'rgba(230, 162, 60, 0.1)'
+            }])
+          },
+          data: ratings
+        }]
+      };
+      
+      chart.setOption(option);
+      
+      // 自适应窗口大小
+      window.addEventListener('resize', () => {
+        chart.resize();
+      });
+    }
+  } catch (error) {
+    console.error('加载反馈评分图表数据失败:', error);
   }
 };
 
 // 刷新待处理事项
-const refreshTodo = () => {
-  loadPendingItems();
-};
-
-// 处理系统告警
-const handleWarnings = () => {
-  // 实际项目中应该打开告警详情或跳转到相应页面
-  ElMessage.info('查看系统告警详情');
+const refreshTodo = async () => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/admin/dashboard/system-info`);
+    if (response.data.code === 200 && response.data.data.pending_items) {
+      pendingItems.feedbacks = response.data.data.pending_items.feedbacks || 0;
+      pendingItems.documents = response.data.data.pending_items.documents || 0;
+      pendingItems.warnings = response.data.data.pending_items.warnings || 0;
+    }
+  } catch (error) {
+    console.error('刷新待处理事项失败:', error);
+  }
 };
 
 // 初始化图表
@@ -698,233 +874,80 @@ const initCharts = () => {
   loadFeedbackChart();
 };
 
-// 加载用户活跃度图表
-const loadUserActivityChart = () => {
-  if (!userActivityChart.value) return;
-  
-  const chart = echarts.init(userActivityChart.value);
-  
-  // 模拟数据
-  const days = userChartTimeRange.value === '7' ? 7 : 30;
-  const dates = [];
-  const activeData = [];
-  
-  for (let i = days - 1; i >= 0; i--) {
-    const date = new Date();
-    date.setDate(date.getDate() - i);
-    dates.push(`${date.getMonth() + 1}/${date.getDate()}`);
-    activeData.push(Math.floor(Math.random() * 100 + 50));
-  }
-  
-  const option = {
-    tooltip: {
-      trigger: 'axis'
-    },
-    grid: {
-      left: '3%',
-      right: '4%',
-      bottom: '3%',
-      containLabel: true
-    },
-    xAxis: {
-      type: 'category',
-      boundaryGap: false,
-      data: dates
-    },
-    yAxis: {
-      type: 'value'
-    },
-    series: [{
-      name: '活跃用户',
-      type: 'line',
-      smooth: true,
-      symbol: 'circle',
-      symbolSize: 6,
-      lineStyle: {
-        width: 3,
-        color: '#409EFF'
-      },
-      itemStyle: {
-        color: '#409EFF'
-      },
-      areaStyle: {
-        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{
-          offset: 0,
-          color: 'rgba(64, 158, 255, 0.3)'
-        }, {
-          offset: 1,
-          color: 'rgba(64, 158, 255, 0.1)'
-        }])
-      },
-      data: activeData
-    }]
-  };
-  
-  chart.setOption(option);
-  
-  // 自适应窗口大小
-  window.addEventListener('resize', () => {
-    chart.resize();
-  });
+// 处理系统告警
+const handleWarnings = () => {
+  // 实际项目中应该打开告警详情或跳转到相应页面
+  ElMessage.info('查看系统告警详情');
 };
 
-// 加载对话数量图表
-const loadConversationChart = () => {
-  if (!conversationChart.value) return;
-  
-  const chart = echarts.init(conversationChart.value);
-  
-  // 模拟数据
-  const days = conversationChartTimeRange.value === '7' ? 7 : 30;
-  const dates = [];
-  const conversationData = [];
-  
-  for (let i = days - 1; i >= 0; i--) {
-    const date = new Date();
-    date.setDate(date.getDate() - i);
-    dates.push(`${date.getMonth() + 1}/${date.getDate()}`);
-    conversationData.push(Math.floor(Math.random() * 200 + 100));
+// 直接获取内容统计数据
+const loadContentStats = async () => {
+  try {
+    // 这里可以调用三个不同的API来获取各类内容数量
+    // 知识库文件
+    const knowledgeResponse = await axios.get(`${API_BASE_URL}/admin/content/knowledge-files`, {
+      params: { page: 1, page_size: 1 }
+    });
+    if (knowledgeResponse.data.success) {
+      stats.knowledgeCount = knowledgeResponse.data.data.total || 0;
+    }
+    
+    // 安全资料库文件
+    const safetyResponse = await axios.get(`${API_BASE_URL}/admin/content/safety-documents`, {
+      params: { page: 1, page_size: 1 }
+    });
+    if (safetyResponse.data.success) {
+      stats.safetyCount = safetyResponse.data.data.total || 0;
+    }
+    
+    // 应急预案文件
+    const emergencyResponse = await axios.get(`${API_BASE_URL}/admin/content/emergency-plans`, {
+      params: { page: 1, page_size: 1 }
+    });
+    if (emergencyResponse.data.success) {
+      stats.emergencyCount = emergencyResponse.data.data.total || 0;
+    }
+    
+    console.log('内容数据已通过单独API加载:', {
+      knowledge: stats.knowledgeCount,
+      safety: stats.safetyCount,
+      emergency: stats.emergencyCount
+    });
+  } catch (error) {
+    console.error('加载内容统计数据失败:', error);
   }
-  
-  const option = {
-    tooltip: {
-      trigger: 'axis'
-    },
-    grid: {
-      left: '3%',
-      right: '4%',
-      bottom: '3%',
-      containLabel: true
-    },
-    xAxis: {
-      type: 'category',
-      boundaryGap: false,
-      data: dates
-    },
-    yAxis: {
-      type: 'value'
-    },
-    series: [{
-      name: '对话数量',
-      type: 'line',
-      smooth: true,
-      symbol: 'circle',
-      symbolSize: 6,
-      lineStyle: {
-        width: 3,
-        color: '#67C23A'
-      },
-      itemStyle: {
-        color: '#67C23A'
-      },
-      areaStyle: {
-        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{
-          offset: 0,
-          color: 'rgba(103, 194, 58, 0.3)'
-        }, {
-          offset: 1,
-          color: 'rgba(103, 194, 58, 0.1)'
-        }])
-      },
-      data: conversationData
-    }]
-  };
-  
-  chart.setOption(option);
-  
-  // 自适应窗口大小
-  window.addEventListener('resize', () => {
-    chart.resize();
-  });
 };
 
-// 加载反馈评分图表
-const loadFeedbackChart = () => {
-  if (!feedbackChart.value) return;
-  
-  const chart = echarts.init(feedbackChart.value);
-  
-  // 模拟数据
-  const days = feedbackChartTimeRange.value === '7' ? 7 : 30;
-  const dates = [];
-  const ratingData = [];
-  
-  for (let i = days - 1; i >= 0; i--) {
-    const date = new Date();
-    date.setDate(date.getDate() - i);
-    dates.push(`${date.getMonth() + 1}/${date.getDate()}`);
-    ratingData.push((Math.random() * 1 + 4).toFixed(1));
+// 修改刷新方法，也加载内容统计
+const refreshStats = () => {
+  ElMessage.info('正在刷新数据...');
+  loadStats();
+  // 如果主统计接口返回的内容数据为零，尝试直接获取
+  if (stats.knowledgeCount === 0 && stats.emergencyCount === 0) {
+    loadContentStats();
   }
-  
-  const option = {
-    tooltip: {
-      trigger: 'axis'
-    },
-    grid: {
-      left: '3%',
-      right: '4%',
-      bottom: '3%',
-      containLabel: true
-    },
-    xAxis: {
-      type: 'category',
-      boundaryGap: false,
-      data: dates
-    },
-    yAxis: {
-      type: 'value',
-      min: 1,
-      max: 5
-    },
-    series: [{
-      name: '平均评分',
-      type: 'line',
-      smooth: true,
-      symbol: 'circle',
-      symbolSize: 6,
-      lineStyle: {
-        width: 3,
-        color: '#E6A23C'
-      },
-      itemStyle: {
-        color: '#E6A23C'
-      },
-      areaStyle: {
-        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{
-          offset: 0,
-          color: 'rgba(230, 162, 60, 0.3)'
-        }, {
-          offset: 1,
-          color: 'rgba(230, 162, 60, 0.1)'
-        }])
-      },
-      data: ratingData
-    }]
-  };
-  
-  chart.setOption(option);
-  
-  // 自适应窗口大小
-  window.addEventListener('resize', () => {
-    chart.resize();
-  });
 };
 
 onMounted(() => {
+  // 首先加载主统计数据
   loadStats();
+  
+  // 延迟检查内容统计数据，如果为零则通过单独API加载
+  setTimeout(() => {
+    if (stats.knowledgeCount === 0 && stats.emergencyCount === 0) {
+      loadContentStats();
+    }
+  }, 1000);
+  
   loadRecentConversations();
   loadRecentLogins();
   loadRecentFeedbacks();
+  loadSystemInfo();
   
   // 图表初始化需要等DOM渲染完成后执行
   nextTick(() => {
     initCharts();
   });
-  
-  loadSystemParams();
-  loadOperationLogs();
-  loadSystemVersion();
-  loadPendingItems();
 });
 </script>
 
@@ -945,6 +968,20 @@ onMounted(() => {
 /* 核心数据概览区域样式 */
 .data-overview {
   margin-bottom: 24px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 10px;
+}
+
+.section-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 500;
+  color: #303133;
 }
 
 .overview-card {
@@ -1112,13 +1149,6 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-}
-
-.section-title {
-  font-size: 16px;
-  font-weight: 500;
-  margin: 0;
-  color: #303133;
 }
 
 .view-more {
