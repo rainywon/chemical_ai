@@ -1,29 +1,15 @@
 <template>
   <div class="files-container">
-    <!-- 页面头部搜索区 -->
-    <div class="files-header">
-      <!-- 添加返回按钮 -->
+    <!-- 左侧边栏 -->
+    <div class="sidebar">
+      <!-- 返回首页按钮 -->
       <div class="back-button" @click="goToWelcome">
         <span class="back-icon">←</span>
         <span class="back-text">返回首页</span>
       </div>
       
-      <h1 class="page-title">安全资料库</h1>
-      <p class="page-subtitle">浏览和下载化工安全相关文件与标准</p>
-      
-      <!-- 搜索区域 -->
-      <div class="search-area">
-        <div class="search-box">
-          <input type="text" v-model="searchQuery" placeholder="搜索文件..." class="search-input" />
-          <button class="search-btn">搜索</button>
-        </div>
-      </div>
-    </div>
-    
-    <!-- 主内容区：分类在左，文件在右 -->
-    <div class="main-content">
-      <!-- 左侧分类列表 -->
-      <div class="category-sidebar">
+      <!-- 分类列表 -->
+      <div class="category-section">
         <h2 class="sidebar-title">文档分类</h2>
         <ul class="category-list">
           <li class="category-item" 
@@ -40,14 +26,23 @@
           </li>
         </ul>
       </div>
+    </div>
+    
+    <!-- 主内容区 -->
+    <div class="main-content">
+      <!-- 顶部标题和搜索 -->
+      <div class="content-header">
+        <h1 class="page-title">安全资料库</h1>
+        <div class="search-area">
+          <div class="search-box">
+            <input type="text" v-model="searchQuery" placeholder="搜索文件..." class="search-input" />
+            <button class="search-btn">搜索</button>
+          </div>
+        </div>
+      </div>
       
-      <!-- 右侧文件列表 -->
+      <!-- 文件列表 -->
       <div class="files-content">
-        <h2 class="content-title">
-          {{ selectedCategoryName }}
-        </h2>
-        
-        <!-- 文件列表，每行一个文件 -->
         <div class="files-table">
           <div class="file-row" v-for="file in paginatedFiles" :key="file.id">
             <div class="file-name" @click="viewFile(file)">{{ file.name }}</div>
@@ -240,127 +235,97 @@ const downloadFile = (file) => {
 
 <style scoped>
 .files-container {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 20px;
+  width: 100%;
   height: 100vh;
   display: flex;
-  flex-direction: column;
   box-sizing: border-box;
+  background: #f0f4f8;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 }
 
-/* 头部样式 */
-.files-header {
-  margin-bottom: 20px;
-  text-align: center;
+/* 左侧边栏样式 */
+.sidebar {
+  width: 280px;
+  flex-shrink: 0;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #e2e8f0;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.03);
   position: relative;
-  border: 1px solid #e0e3e7;
-  border-radius: 10px;
-  padding: 20px;
-  background-color: #ffffff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
 }
 
-/* 返回按钮样式 */
 .back-button {
-  position: absolute;
-  left: 0;
-  top: 0;
   display: flex;
   align-items: center;
-  padding: 8px 12px;
-  border-radius: 6px;
-  background-color: #f5f6fa;
-  color: #4a6ee0;
+  padding: 8px 24px;
+  height: 40px;
+  border-bottom: 1px solid #e2e8f0;
+  background-color: #ffffff;
+  color: #1a56db;
   cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 14px;
-  font-weight: 500;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 13px;
+  font-weight: 600;
+  position: relative;
+  overflow: hidden;
+  letter-spacing: 0.3px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
 }
 
 .back-button:hover {
-  background-color: #eef2ff;
-  transform: translateX(-3px);
+  background-color: #f8fafc;
+  color: #1e40af;
+  transform: translateX(2px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .back-icon {
-  font-size: 18px;
-  margin-right: 6px;
+  font-size: 16px;
+  margin-right: 8px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(26, 86, 219, 0.1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.back-button:hover .back-icon {
+  background: rgba(26, 86, 219, 0.2);
+  transform: translateX(-2px) scale(1.05);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .back-text {
-  line-height: 1;
+  line-height: 1.4;
+  position: relative;
+  top: 1px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
 }
 
-.page-title {
-  font-size: 24px;
-  color: #2b3674;
-  margin-bottom: 5px;
-}
-
-.page-subtitle {
-  font-size: 14px;
-  color: #606478;
-  margin-bottom: 15px;
-}
-
-.search-area {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 15px;
-}
-
-.search-box {
-  display: flex;
-  width: 100%;
-  max-width: 500px;
-}
-
-.search-input {
+.category-section {
   flex: 1;
-  padding: 10px 15px;
-  border: 1px solid #e0e3e7;
-  border-radius: 8px 0 0 8px;
-  font-size: 14px;
-}
-
-.search-btn {
-  background: #4a6ee0;
-  color: white;
-  border: none;
-  padding: 0 20px;
-  border-radius: 0 8px 8px 0;
-  cursor: pointer;
-  font-weight: 500;
-}
-
-/* 主内容区样式 */
-.main-content {
-  display: flex;
-  gap: 20px;
-  flex: 1;
-  overflow: hidden;
-  border-radius: 10px;
-}
-
-/* 左侧分类栏样式 */
-.category-sidebar {
-  width: 250px;
-  flex-shrink: 0;
-  background: white;
-  border-radius: 10px;
-  padding: 20px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
   overflow-y: auto;
-  border: 1px solid #e0e3e7;
+  padding: 24px;
+  background: #ffffff;
 }
 
 .sidebar-title {
-  font-size: 18px;
-  color: #2b3674;
-  padding-bottom: 12px;
-  margin-bottom: 12px;
-  border-bottom: 1px solid #e0e3e7;
+  font-size: 16px;
+  color: #1e293b;
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid #e2e8f0;
+  font-weight: 600;
+  letter-spacing: 0.3px;
 }
 
 .category-list {
@@ -370,113 +335,212 @@ const downloadFile = (file) => {
 }
 
 .category-item {
-  padding: 10px;
-  border-radius: 6px;
+  padding: 12px 16px;
+  border-radius: 8px;
   font-size: 14px;
-  color: #4a5173;
-  margin-bottom: 4px;
+  color: #475569;
+  margin-bottom: 6px;
   cursor: pointer;
   transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.category-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 0;
+  background: #1a56db;
+  border-radius: 0 2px 2px 0;
+  transition: height 0.2s ease;
 }
 
 .category-item:hover {
-  background: #f5f6fa;
+  background: #f1f5f9;
+  color: #1a56db;
+  transform: translateX(4px);
 }
 
 .category-item.active {
-  background: #eef2ff;
-  color: #4a6ee0;
+  background: #eff6ff;
+  color: #1a56db;
   font-weight: 500;
 }
 
-/* 右侧文件列表样式 */
-.files-content {
+.category-item.active::before {
+  height: 24px;
+}
+
+/* 主内容区样式 */
+.main-content {
   flex: 1;
-  background: white;
-  border-radius: 10px;
-  padding: 20px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border: 1px solid #e0e3e7;
+  background: #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  height: 100%;
 }
 
-.content-title {
-  font-size: 18px;
-  color: #2b3674;
-  margin-bottom: 15px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid #e0e3e7;
+/* 顶部标题和搜索 */
+.content-header {
+  padding: 8px 24px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #e2e8f0;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.page-title {
+  font-size: 16px;
+  color: #1e293b;
+  margin: 0;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.search-area {
+  width: 360px;
+}
+
+.search-box {
+  display: flex;
+  width: 100%;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.search-input {
+  flex: 1;
+  padding: 10px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px 0 0 8px;
+  font-size: 14px;
+  color: #1e293b;
+  transition: all 0.2s ease;
+  background: #f8fafc;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #1a56db;
+  box-shadow: 0 0 0 3px rgba(26, 86, 219, 0.1);
+  background: #ffffff;
+}
+
+.search-btn {
+  background: #1a56db;
+  color: white;
+  border: none;
+  padding: 0 20px;
+  border-radius: 0 8px 8px 0;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.search-btn:hover {
+  background: #1e40af;
+}
+
+/* 文件列表样式 */
+.files-content {
+  flex: 1;
+  padding: 12px 24px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  height: calc(100vh - 40px - 40px - 40px - 40px); /* 总高度减去顶部标题、底部分页、边距和分页控件 */
 }
 
 .files-table {
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  overflow-y: auto;
+  gap: 4px;
   flex: 1;
+  padding-right: 8px;
+  height: 100%;
+  overflow: hidden;
 }
 
 .file-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 15px;
-  border-radius: 8px;
-  background: #f9fafc;
+  padding: 8px 12px;
+  height: calc((100% - 36px) / 10); /* 10条内容平均分配剩余空间 */
+  border-radius: 6px;
+  background: #f8fafc;
   transition: all 0.2s ease;
-  border: 1px solid #eaecf0;
-  margin-bottom: 5px;
-}
-
-.file-row:hover {
-  background: #f5f6fa;
+  border: 1px solid #e2e8f0;
 }
 
 .file-name {
   font-size: 14px;
-  color: #4a6ee0;
+  color: #1a56db;
   cursor: pointer;
   flex: 1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-weight: 500;
+  padding-right: 12px;
 }
 
 .file-name:hover {
   text-decoration: underline;
+  color: #1e40af;
 }
 
 .file-actions {
-  margin-left: 15px;
+  margin-left: 12px;
+  display: flex;
+  gap: 6px;
 }
 
 .download-btn {
-  padding: 6px 12px;
+  padding: 4px 8px;
   border-radius: 4px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
   border: none;
-  background: #4a6ee0;
+  background: #1a56db;
   color: white;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .download-btn:hover {
-  background: #3a56b4;
+  background: #1e40af;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .no-results {
   text-align: center;
-  padding: 30px 0;
-  color: #818498;
+  padding: 48px 0;
+  color: #64748b;
+  background: #f8fafc;
+  border-radius: 10px;
+  margin: 20px 0;
 }
 
 .no-results-icon {
-  font-size: 36px;
-  margin-bottom: 10px;
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.8;
 }
 
 /* 分页控件 */
@@ -484,83 +548,173 @@ const downloadFile = (file) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-top: 20px;
-  padding-top: 15px;
-  border-top: 1px solid #e0e3e7;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #e2e8f0;
 }
 
 .page-btn {
-  padding: 8px 15px;
-  background: #f5f6fa;
-  border: 1px solid #e0e3e7;
-  border-radius: 6px;
-  font-size: 13px;
+  padding: 10px 20px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
   cursor: pointer;
   transition: all 0.2s ease;
-  color: #4a5173;
+  color: #475569;
+  font-weight: 500;
 }
 
 .page-btn:hover:not(:disabled) {
-  background: #e4e6ed;
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #1e293b;
+  transform: translateY(-1px);
 }
 
 .page-btn:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
 .page-numbers {
   display: flex;
-  gap: 5px;
-  margin: 0 10px;
+  gap: 8px;
+  margin: 0 16px;
 }
 
 .page-number {
-  width: 30px;
-  height: 30px;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 4px;
+  border-radius: 8px;
   cursor: pointer;
-  font-size: 13px;
-  color: #4a5173;
+  font-size: 14px;
+  color: #475569;
   transition: all 0.2s ease;
+  font-weight: 500;
 }
 
 .page-number:hover {
-  background: #f5f6fa;
+  background: #f1f5f9;
+  color: #1e293b;
+  transform: translateY(-1px);
 }
 
 .page-number.active {
-  background: #4a6ee0;
+  background: #1a56db;
   color: white;
+  box-shadow: 0 2px 4px rgba(26, 86, 219, 0.2);
 }
 
 /* 响应式布局 */
+@media (max-width: 1024px) {
+  .sidebar {
+    width: 240px;
+  }
+  
+  .content-header {
+    padding: 16px 24px;
+  }
+  
+  .search-area {
+    width: 300px;
+  }
+  
+  .files-content {
+    padding: 16px 24px;
+  }
+}
+
 @media (max-width: 768px) {
   .files-container {
     height: 100%;
-    padding: 15px;
-    max-width: 100%;
-  }
-  
-  .main-content {
     flex-direction: column;
-    gap: 15px;
   }
   
-  .category-sidebar {
+  .sidebar {
     width: 100%;
-    margin-bottom: 15px;
+    border-right: none;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  
+  .category-section {
+    padding: 16px;
+  }
+  
+  .content-header {
+    flex-direction: column;
+    gap: 16px;
+    padding: 6px 12px;
+    height: auto;
+  }
+  
+  .search-area {
+    width: 100%;
+  }
+  
+  .files-content {
+    height: calc(100vh - 40px - 40px - 32px - 40px); /* 移动端调整高度计算 */
+    padding: 8px 16px;
   }
   
   .file-row {
-    padding: 8px 12px;
+    height: calc((100% - 32px) / 10);
+    padding: 6px 10px;
+  }
+  
+  .file-name {
+    font-size: 13px;
+    padding-right: 8px;
   }
   
   .download-btn {
-    padding: 4px 10px;
+    padding: 3px 6px;
+    font-size: 12px;
+  }
+  
+  .back-button {
+    padding: 6px 12px;
+    height: auto;
+  }
+  
+  .page-title {
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-btn {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+  
+  .page-number {
+    width: 32px;
+    height: 32px;
+    font-size: 13px;
+  }
+}
+
+@media (max-height: 600px) {
+  .files-content {
+    height: calc(100vh - 32px - 32px - 24px - 32px); /* 小屏幕设备调整高度计算 */
+  }
+  
+  .file-row {
+    height: calc((100% - 28px) / 10);
+    padding: 4px 8px;
+  }
+  
+  .file-name {
+    font-size: 12px;
+  }
+  
+  .download-btn {
+    padding: 2px 6px;
+    font-size: 12px;
   }
 }
 </style> 

@@ -3,7 +3,7 @@ import Login from '../views/Login.vue'; // 导入你的当前页面组件
 import Chat from '../views/Chat.vue';
 import Register from '../views/Register.vue'
 import Welcome from '../views/Welcome.vue'; // 导入新的欢迎页组件
-import Files from '@/views/Files.vue'
+import SaftyFiles from '@/views/SaftyFiles.vue'
 
 // 导入管理系统布局组件
 import AdminLayout from '../views/admin/AdminLayout.vue';
@@ -33,7 +33,7 @@ const routes = [
     {
         path: '/files',
         name: 'Files',
-        component: Files,
+        component: SaftyFiles,
         meta: {
             title: '安全资料库 - 化工安全AI助手'
         }
