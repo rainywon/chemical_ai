@@ -1,6 +1,5 @@
 <template>
   <div class="conversation-stats">
-    <h1 class="page-title">对话数据统计</h1>
     
     <!-- 数据概览卡片 -->
     <div class="stats-cards">
@@ -96,7 +95,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue';
+import { ref, onMounted, computed, watch, onBeforeUnmount } from 'vue';
 import * as echarts from 'echarts';
 import { API_BASE_URL } from '../../../config';
 import { ElMessage } from 'element-plus';
@@ -250,58 +249,72 @@ const fetchRecentConversations = async () => {
 
 // 渲染对话趋势图
 const renderConversationTrendChart = (data) => {
-  if (!trendChartInstance) {
-    trendChartInstance = echarts.init(conversationTrendChart.value);
+  // 确保DOM元素已存在
+  if (!conversationTrendChart.value) {
+    console.warn('图表DOM元素不存在');
+    return;
   }
   
-  const option = {
-    tooltip: {
-      trigger: 'axis',
-      axisPointer: {
-        type: 'shadow'
-      }
-    },
-    legend: {
-      data: ['对话数', '消息数']
-    },
-    grid: {
-      left: '3%',
-      right: '4%',
-      bottom: '3%',
-      containLabel: true
-    },
-    xAxis: {
-      type: 'category',
-      data: data.dates
-    },
-    yAxis: [
-      {
-        type: 'value',
-        name: '对话数',
-        position: 'left'
-      },
-      {
-        type: 'value',
-        name: '消息数',
-        position: 'right'
-      }
-    ],
-    series: [
-      {
-        name: '对话数',
-        type: 'bar',
-        data: data.session_data
-      },
-      {
-        name: '消息数',
-        type: 'line',
-        yAxisIndex: 1,
-        data: data.message_data
-      }
-    ]
-  };
+  // 销毁旧实例（如果存在）
+  if (trendChartInstance) {
+    trendChartInstance.dispose();
+  }
   
-  trendChartInstance.setOption(option);
+  // 创建新实例
+  try {
+    trendChartInstance = echarts.init(conversationTrendChart.value);
+    
+    const option = {
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: {
+          type: 'shadow'
+        }
+      },
+      legend: {
+        data: ['对话数', '消息数']
+      },
+      grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '3%',
+        containLabel: true
+      },
+      xAxis: {
+        type: 'category',
+        data: data.dates || []
+      },
+      yAxis: [
+        {
+          type: 'value',
+          name: '对话数',
+          position: 'left'
+        },
+        {
+          type: 'value',
+          name: '消息数',
+          position: 'right'
+        }
+      ],
+      series: [
+        {
+          name: '对话数',
+          type: 'bar',
+          data: data.session_data || []
+        },
+        {
+          name: '消息数',
+          type: 'line',
+          yAxisIndex: 1,
+          data: data.message_data || []
+        }
+      ]
+    };
+    
+    trendChartInstance.setOption(option);
+  } catch (e) {
+    console.error('初始化图表失败:', e);
+  }
 };
 
 // 监听时间单位变化
@@ -316,18 +329,34 @@ onMounted(() => {
     return; // 如果不是管理员，不加载数据
   }
   
-  // 加载统计数据
-  fetchStatisticsData();
-  
-  // 加载趋势数据
-  fetchTrendData();
-  
-  // 加载最近对话列表
-  fetchRecentConversations();
+  // 延迟加载以确保DOM已完全渲染
+  setTimeout(() => {
+    // 加载统计数据
+    fetchStatisticsData();
+    
+    // 加载趋势数据
+    fetchTrendData();
+    
+    // 加载最近对话列表
+    fetchRecentConversations();
+  }, 100);
   
   // 窗口大小变化时重新调整图表大小
-  window.addEventListener('resize', () => {
-    trendChartInstance?.resize();
+  const handleResize = () => {
+    if (trendChartInstance && !trendChartInstance.isDisposed()) {
+      trendChartInstance.resize();
+    }
+  };
+  
+  window.addEventListener('resize', handleResize);
+  
+  // 在组件卸载时销毁图表实例和移除事件监听
+  onBeforeUnmount(() => {
+    window.removeEventListener('resize', handleResize);
+    if (trendChartInstance && !trendChartInstance.isDisposed()) {
+      trendChartInstance.dispose();
+      trendChartInstance = null;
+    }
   });
 });
 </script>

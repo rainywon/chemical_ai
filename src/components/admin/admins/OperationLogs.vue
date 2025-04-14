@@ -15,6 +15,8 @@
             <el-option value="创建" label="创建"></el-option>
             <el-option value="更新" label="更新"></el-option>
             <el-option value="删除" label="删除"></el-option>
+            <el-option value="上传文件" label="上传文件"></el-option>
+            <el-option value="下载文件" label="下载文件"></el-option>
           </el-select>
         </el-form-item>
         <el-form-item label="日期范围">
@@ -49,33 +51,40 @@
         style="width: 100%"
         v-loading="loading"
         :header-cell-style="{background:'#f5f7fa', color:'#606266', fontWeight: 'bold'}"
-        :cell-style="{ padding: '12px 8px' }"
+        :cell-style="{ padding: '12px 8px', fontSize: '14px', whiteSpace: 'nowrap' }"
       >
         <el-table-column prop="log_id" label="日志ID" min-width="80" align="center"></el-table-column>
         <el-table-column prop="admin_id" label="管理员ID" min-width="100" align="center"></el-table-column>
         <el-table-column prop="operation_type" label="操作类型" min-width="120" align="center">
           <template #default="scope">
-            <el-tag :type="getOperationTypeTag(scope.row.operation_type)">
-              {{ scope.row.operation_type }}
-            </el-tag>
+            <div class="tag-container">
+              <el-tag :type="getOperationTypeTag(scope.row.operation_type)" class="log-tag">
+                {{ scope.row.operation_type || '未知' }}
+              </el-tag>
+            </div>
           </template>
         </el-table-column>
         <el-table-column prop="operation_desc" label="操作描述" min-width="300" align="left">
           <template #default="scope">
-            <el-tooltip
-              effect="dark"
-              :content="scope.row.operation_desc"
-              placement="top"
-              :hide-after="3000"
-              v-if="scope.row.operation_desc && scope.row.operation_desc.length > 50"
-            >
-              <div class="operation-desc">{{ scope.row.operation_desc.slice(0, 50) }}...</div>
-            </el-tooltip>
-            <div v-else class="operation-desc">{{ scope.row.operation_desc }}</div>
+            <span class="ellipsis-cell" :title="scope.row.operation_desc">
+              {{ scope.row.operation_desc || '无描述' }}
+            </span>
           </template>
         </el-table-column>
-        <el-table-column prop="ip_address" label="IP地址" min-width="130" align="center"></el-table-column>
-        <el-table-column prop="created_at" label="操作时间" min-width="160" align="center"></el-table-column>
+        <el-table-column prop="ip_address" label="IP地址" min-width="130" align="center">
+          <template #default="scope">
+            <span class="ellipsis-cell" :title="scope.row.ip_address">
+              {{ scope.row.ip_address || '未知' }}
+            </span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="created_at" label="操作时间" min-width="180" align="center">
+          <template #default="scope">
+            <span class="ellipsis-cell" :title="scope.row.created_at">
+              {{ formatDateTime(scope.row.created_at) }}
+            </span>
+          </template>
+        </el-table-column>
         <el-table-column label="详情" width="80" align="center">
           <template #default="scope">
             <el-button
@@ -123,7 +132,7 @@
           <el-descriptions-item label="操作描述">{{ selectedLog.operation_desc }}</el-descriptions-item>
           <el-descriptions-item label="IP地址">{{ selectedLog.ip_address }}</el-descriptions-item>
           <el-descriptions-item label="用户代理">{{ selectedLog.user_agent || '未记录' }}</el-descriptions-item>
-          <el-descriptions-item label="操作时间">{{ selectedLog.created_at }}</el-descriptions-item>
+          <el-descriptions-item label="操作时间">{{ formatDateTime(selectedLog.created_at) }}</el-descriptions-item>
         </el-descriptions>
       </div>
       <template #footer>
@@ -136,7 +145,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed, watch } from 'vue';
+import { ref, reactive, onMounted, computed, watch, nextTick } from 'vue';
 import { ElMessage } from 'element-plus';
 import { API_BASE_URL } from '../../../config';
 
@@ -150,12 +159,20 @@ const detailDialogVisible = ref(false);
 const selectedLog = ref(null);
 const dateRange = ref([]);
 
+// 日期格式化函数
+const formatDateTime = (dateTimeStr) => {
+  if (!dateTimeStr) return '未记录';
+  
+  const date = new Date(dateTimeStr);
+  if (isNaN(date.getTime())) return dateTimeStr;
+  
+  return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+};
+
 // API基础URL，确保没有尾斜杠
 const apiBaseUrl = computed(() => {
-  if (API_BASE_URL.endsWith('/')) {
-    return API_BASE_URL.slice(0, -1);
-  }
-  return API_BASE_URL;
+  if (!API_BASE_URL) return '';
+  return API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL;
 });
 
 // 搜索参数
@@ -168,7 +185,7 @@ const searchParams = reactive({
 
 // 监听日期范围变化，更新搜索参数
 watch(dateRange, (newValue) => {
-  if (newValue && newValue.length === 2) {
+  if (newValue && Array.isArray(newValue) && newValue.length === 2) {
     searchParams.startDate = newValue[0];
     searchParams.endDate = newValue[1];
   } else {
@@ -179,12 +196,17 @@ watch(dateRange, (newValue) => {
 
 // 获取操作日志记录
 const fetchOperationLogs = async () => {
+  if (!apiBaseUrl.value) {
+    ElMessage.error('API基础URL未配置');
+    return;
+  }
+  
   loading.value = true;
   try {
     // 构建查询参数
     const params = new URLSearchParams();
-    params.append('page', currentPage.value);
-    params.append('page_size', pageSize.value);
+    params.append('page', currentPage.value.toString());
+    params.append('page_size', pageSize.value.toString());
     
     if (searchParams.adminId && searchParams.adminId.trim()) {
       const adminIdNum = parseInt(searchParams.adminId.trim());
@@ -253,6 +275,8 @@ const fetchOperationLogs = async () => {
 
 // 根据操作类型返回不同的标签类型
 const getOperationTypeTag = (type) => {
+  if (!type) return 'info';
+  
   const typeMap = {
     '登录': 'success',
     '登出': 'info',
@@ -391,6 +415,41 @@ onMounted(() => {
   padding: 20px;
   border-radius: 4px;
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+}
+
+/* 添加表格单元格文本省略样式 */
+.ellipsis-cell {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 鼠标悬停时显示完整内容的提示 */
+.ellipsis-cell:hover {
+  cursor: pointer;
+}
+
+/* 标签容器样式 */
+.tag-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+}
+
+/* 操作类型标签样式 */
+.log-tag {
+  min-width: 60px;
+  text-align: center;
+  padding: 2px 10px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  border-radius: 12px;
+  white-space: nowrap;
+  font-size: 13px;
 }
 
 .pagination-container {

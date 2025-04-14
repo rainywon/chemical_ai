@@ -1,6 +1,5 @@
 <template>
   <div class="login-history-container">
-    <h1 class="page-title">用户登录历史</h1>
     
     <!-- 搜索过滤区域 -->
     <div class="search-container">
@@ -51,9 +50,16 @@
         <el-table-column prop="login_time" label="登录时间" min-width="160" align="center"></el-table-column>
         <el-table-column prop="status" label="登录状态" min-width="100" align="center">
           <template #default="scope">
-            <el-tag :type="scope.row.status === '有效' ? 'success' : 'info'">
-              {{ scope.row.status }}
-            </el-tag>
+            <div class="status-tag-container">
+              <el-tag 
+                :type="scope.row.status === '有效' ? 'success' : 'info'"
+                class="status-tag"
+                effect="dark"
+                size="small"
+              >
+                {{ scope.row.status }}
+              </el-tag>
+            </div>
           </template>
         </el-table-column>
         <el-table-column prop="expire_at" label="过期时间" min-width="160" align="center"></el-table-column>
@@ -350,6 +356,55 @@ onMounted(() => {
   border-radius: 4px;
   margin-bottom: 20px;
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+}
+
+/* 添加搜索表单样式 */
+.search-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.search-form :deep(.el-form-item) {
+  margin-bottom: 10px;
+  margin-right: 10px;
+}
+
+.search-form :deep(.el-date-editor.el-input__wrapper),
+.search-form :deep(.el-date-editor--daterange) {
+  width: 320px;
+}
+
+.search-form :deep(.el-input__wrapper) {
+  width: 200px;
+}
+
+/* 登录状态标签样式 */
+.status-tag-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+}
+
+:deep(.status-tag) {
+  min-width: 90px;
+  text-align: center;
+  padding: 2px 12px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+
+:deep(.el-tag--success.status-tag) {
+  background-color: rgba(103, 194, 58, 0.9);
+}
+
+:deep(.el-tag--info.status-tag) {
+  background-color: rgba(144, 147, 153, 0.9);
 }
 
 .table-container {

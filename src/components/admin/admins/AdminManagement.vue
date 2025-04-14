@@ -39,28 +39,48 @@
         border 
         style="width: 100%" 
         v-loading="loading"
-        :cell-style="{ padding: '12px 8px' }"
+        :cell-style="{ padding: '12px 8px', fontSize: '14px', whiteSpace: 'nowrap' }"
         :header-cell-style="{ background:'#f5f7fa', color:'#606266', fontWeight: 'bold' }">
         <el-table-column prop="admin_id" label="ID" min-width="80" align="center"></el-table-column>
-        <el-table-column prop="phone_number" label="手机号" min-width="120" align="center"></el-table-column>
+        <el-table-column prop="phone_number" label="手机号" min-width="120" align="center">
+          <template #default="scope">
+            <span class="ellipsis-cell" :title="scope.row.phone_number">{{ scope.row.phone_number }}</span>
+          </template>
+        </el-table-column>
         <el-table-column prop="full_name" label="姓名" min-width="120" align="center"></el-table-column>
-        <el-table-column prop="email" label="邮箱" min-width="160" align="center"></el-table-column>
+        <el-table-column prop="email" label="邮箱" min-width="180" align="center">
+          <template #default="scope">
+            <span class="ellipsis-cell" :title="scope.row.email">{{ scope.row.email }}</span>
+          </template>
+        </el-table-column>
         <el-table-column prop="role" label="角色" min-width="100" align="center">
           <template #default="scope">
-            <el-tag :type="scope.row.role === 'admin' ? 'danger' : 'success'">
-              {{ scope.row.role === 'admin' ? '管理员' : '操作员' }}
-            </el-tag>
+            <div class="tag-container">
+              <el-tag :type="scope.row.role === 'admin' ? 'danger' : 'success'" class="admin-tag">
+                {{ scope.row.role === 'admin' ? '管理员' : '操作员' }}
+              </el-tag>
+            </div>
           </template>
         </el-table-column>
         <el-table-column prop="status" label="状态" min-width="100" align="center">
           <template #default="scope">
-            <el-tag :type="scope.row.status === 1 ? 'success' : 'danger'">
-              {{ scope.row.status === 1 ? '正常' : '禁用' }}
-            </el-tag>
+            <div class="tag-container">
+              <el-tag :type="scope.row.status === 1 ? 'success' : 'danger'" class="admin-tag">
+                {{ scope.row.status === 1 ? '正常' : '禁用' }}
+              </el-tag>
+            </div>
           </template>
         </el-table-column>
-        <el-table-column prop="last_login_time" label="最后登录时间" min-width="160" align="center"></el-table-column>
-        <el-table-column prop="created_at" label="创建时间" min-width="160" align="center"></el-table-column>
+        <el-table-column prop="last_login_time" label="最后登录时间" min-width="180" align="center">
+          <template #default="scope">
+            <span class="ellipsis-cell" :title="scope.row.last_login_time">{{ formatDateTime(scope.row.last_login_time) }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="created_at" label="创建时间" min-width="180" align="center">
+          <template #default="scope">
+            <span class="ellipsis-cell" :title="scope.row.created_at">{{ formatDateTime(scope.row.created_at) }}</span>
+          </template>
+        </el-table-column>
         <el-table-column label="操作" min-width="220" align="center">
           <template #default="scope">
             <el-button 
@@ -151,7 +171,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, computed } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { API_BASE_URL } from '../../../config';
 
@@ -165,6 +185,16 @@ const currentPage = ref(1);
 const dialogVisible = ref(false);
 const isEdit = ref(false);
 const adminFormRef = ref(null);
+
+// 日期格式化函数
+const formatDateTime = (dateTimeStr) => {
+  if (!dateTimeStr) return '未记录';
+  
+  const date = new Date(dateTimeStr);
+  if (isNaN(date.getTime())) return dateTimeStr;
+  
+  return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+};
 
 // 搜索表单
 const searchForm = reactive({
@@ -480,6 +510,20 @@ onMounted(() => {
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
 }
 
+/* 添加表格单元格文本省略样式 */
+.ellipsis-cell {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 鼠标悬停时显示完整内容的提示 */
+.ellipsis-cell:hover {
+  cursor: pointer;
+}
+
 .pagination-container {
   margin-top: 20px;
   text-align: right;
@@ -701,5 +745,33 @@ onMounted(() => {
 
 .custom-message-box .el-button--primary:hover:after {
   left: 100%;
+}
+
+/* 标签相关样式 */
+.tag-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+}
+
+.admin-tag {
+  min-width: 70px;
+  text-align: center;
+  padding: 2px 12px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  border-radius: 12px;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+:deep(.el-tag--danger.admin-tag) {
+  background-color: rgba(245, 108, 108, 0.9);
+}
+
+:deep(.el-tag--success.admin-tag) {
+  background-color: rgba(103, 194, 58, 0.9);
 }
 </style> 

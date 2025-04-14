@@ -1,6 +1,5 @@
 <template>
   <div class="user-activity">
-    <h1 class="page-title">用户活跃度监控</h1>
     
     <!-- 数据概览卡片 -->
     <div class="stats-cards">

@@ -117,21 +117,23 @@ const submitFeedback = async () => {
   
   // 设置提交状态
   feedbackSubmitting.value = true;
+  const userID = localStorage.getItem('user_id');
   
   try {
-    const response = await fetch(`${API_BASE_URL}/submit-content-feedback`, {
+    const response = await fetch(`${API_BASE_URL}/submit-content_feedback/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
+        user_id: userID ? parseInt(userID) : null,
         feedback_type: feedbackType.value,
         feedback_content: feedbackText.value,
       }),
     });
 
     if (!response.ok) {
-      throw new Error('提交失败');
+      throw new Error(`提交失败: ${response.status}`);
     }
 
     const data = await response.json();
@@ -145,7 +147,7 @@ const submitFeedback = async () => {
     }
   } catch (error) {
     console.error('提交反馈失败:', error);
-    // 这里可以添加错误提示
+    alert(`提交失败: ${error.message}`);
   } finally {
     feedbackSubmitting.value = false;
   }
