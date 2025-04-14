@@ -11,11 +11,8 @@
       <span class="tag file-tag">危化品MSDS</span>
     </div>
     <div class="file-list">
-      <div class="file-item">
-        <span>化工企业安全生产标准规范</span>
-      </div>
-      <div class="file-item">
-        <span>危险化学品应急处置指南</span>
+      <div class="file-item" v-for="file in latestFiles.slice(0, 4)" :key="file.id">
+        <span class="file-name" :title="file.name">{{ file.name }}</span>
       </div>
     </div>
     <div class="button-container">
@@ -27,7 +24,37 @@
 </template>
 
 <script setup>
-// No props or state needed for this component
+import { ref, onMounted } from 'vue';
+import { API_BASE_URL } from '../../config';
+
+const latestFiles = ref([]);
+
+// 获取最新的文件列表
+const fetchLatestFiles = async () => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/safety_files/?page=1&page_size=5`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'X-User-ID': localStorage.getItem('user_id')
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error('获取文件列表失败');
+    }
+    
+    const data = await response.json();
+    if (data.code === 200) {
+      latestFiles.value = data.data;
+    }
+  } catch (error) {
+    console.error('获取文件列表失败:', error);
+  }
+};
+
+onMounted(() => {
+  fetchLatestFiles();
+});
 </script>
 
 <style scoped>
@@ -113,6 +140,31 @@
   padding: 6px 10px;
   border-radius: 4px;
   background: rgba(255, 255, 255, 0.7);
+  cursor: default;
+}
+
+.file-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  position: relative;
+}
+
+.file-name:hover::after {
+  content: attr(title);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 4px 8px;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  z-index: 1000;
+  margin-bottom: 4px;
 }
 
 /* 按钮容器 */

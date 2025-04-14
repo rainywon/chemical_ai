@@ -12,17 +12,8 @@
       <div class="category-section">
         <h2 class="sidebar-title">文档分类</h2>
         <ul class="category-list">
-          <li class="category-item" 
-              :class="{ 'active': selectedCategory === '' }"
-              @click="selectedCategory = ''; currentPage = 1">
+          <li class="category-item active">
             所有分类
-          </li>
-          <li class="category-item" 
-              v-for="category in fileCategories" 
-              :key="category.id"
-              :class="{ 'active': selectedCategory === category.type }"
-              @click="selectedCategory = category.type; currentPage = 1">
-            {{ category.name }}
           </li>
         </ul>
       </div>
@@ -90,9 +81,9 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-
+import{API_BASE_URL} from '@/config';
 const router = useRouter();
 
 // 返回欢迎页面
@@ -107,100 +98,94 @@ const selectedCategory = ref('');
 // 分页状态
 const currentPage = ref(1);
 const filesPerPage = 10; // 每页显示的文件数量
+const totalPages = ref(1);
+const totalFiles = ref(0);
 
-// 示例数据 - 实际应用中可能从API获取
-const fileCategories = ref([
-  {
-    id: 1,
-    name: '安全手册',
-    type: 'manual',
-    files: [
-      { id: 101, name: '化工厂安全操作手册', type: 'pdf' },
-      { id: 102, name: '危险化学品处理指南', type: 'pdf' },
-      { id: 103, name: '实验室安全规程', type: 'doc' },
-      { id: 104, name: '应急管理程序', type: 'pdf' },
-      { id: 105, name: '安全事故案例分析', type: 'pdf' },
-    ]
-  },
-  {
-    id: 2,
-    name: '行业标准',
-    type: 'standard',
-    files: [
-      { id: 201, name: '化工企业安全生产标准', type: 'pdf' },
-      { id: 202, name: '危化品储存标准', type: 'pdf' },
-      { id: 203, name: '职业健康安全管理体系要求', type: 'pdf' },
-      { id: 204, name: '安全评价规范', type: 'doc' },
-    ]
-  },
-  {
-    id: 3,
-    name: '法规文件',
-    type: 'regulation',
-    files: [
-      { id: 301, name: '化工安全生产法规汇编', type: 'pdf' },
-      { id: 302, name: '环保合规要求', type: 'doc' },
-      { id: 303, name: '安全生产许可证管理条例', type: 'pdf' },
-      { id: 304, name: '特种设备安全监察条例', type: 'pdf' },
-      { id: 305, name: '危险化学品管理条例', type: 'pdf' },
-    ]
-  },
-  {
-    id: 4,
-    name: '操作指南',
-    type: 'guideline',
-    files: [
-      { id: 401, name: '应急响应流程', type: 'pdf' },
-      { id: 402, name: '安全事故处理步骤', type: 'pdf' },
-      { id: 403, name: '紧急疏散指南', type: 'pdf' },
-      { id: 404, name: '防护装备使用说明', type: 'pdf' },
-      { id: 405, name: '安全检查清单', type: 'doc' },
-      { id: 406, name: '事故报告程序', type: 'pdf' },
-    ]
+// 文件列表数据
+const fileList = ref([]);
+
+// 获取文件列表
+const fetchFiles = async () => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/safety_files/?page=${currentPage.value}&page_size=${filesPerPage}&search=${searchQuery.value}`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'X-User-ID': localStorage.getItem('user_id')
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error('获取文件列表失败');
+    }
+    
+    const data = await response.json();
+    if (data.code === 200) {
+      fileList.value = data.data;
+      totalPages.value = data.total_pages;
+      totalFiles.value = data.total;
+    } else {
+      throw new Error(data.message);
+    }
+  } catch (error) {
+    console.error('获取文件列表失败:', error);
+    // 这里可以添加错误提示
   }
-]);
+};
 
-// 获取所选分类的名称
-const selectedCategoryName = computed(() => {
-  if (!selectedCategory.value) return '所有文件';
-  const category = fileCategories.value.find(c => c.type === selectedCategory.value);
-  return category ? category.name : '所有文件';
+// 下载文件
+const downloadFile = async (file) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/safety_files/download/${file.id}`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'X-User-ID': localStorage.getItem('user_id')
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error('下载文件失败');
+    }
+    
+    // 获取文件名
+    const contentDisposition = response.headers.get('content-disposition');
+    const filename = contentDisposition
+      ? contentDisposition.split('filename=')[1].replace(/"/g, '')
+      : file.name;
+    
+    // 创建下载链接
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  } catch (error) {
+    console.error('下载文件失败:', error);
+    // 这里可以添加错误提示
+  }
+};
+
+// 监听搜索和分页变化
+watch([searchQuery, currentPage], () => {
+  fetchFiles();
+});
+
+// 初始化时获取文件列表
+onMounted(() => {
+  fetchFiles();
 });
 
 // 获取筛选后的文件列表
 const filteredFiles = computed(() => {
-  // 所有文件的扁平列表
-  let allFiles = [];
-  
-  if (selectedCategory.value) {
-    // 筛选特定分类的文件
-    const category = fileCategories.value.find(c => c.type === selectedCategory.value);
-    allFiles = category ? [...category.files] : [];
-  } else {
-    // 获取所有分类的文件
-    fileCategories.value.forEach(category => {
-      allFiles = [...allFiles, ...category.files];
-    });
-  }
-  
-  // 根据搜索条件进一步筛选
-  if (searchQuery.value.trim()) {
-    const query = searchQuery.value.toLowerCase();
-    return allFiles.filter(file => file.name.toLowerCase().includes(query));
-  }
-  
-  return allFiles;
-});
-
-// 总页数
-const totalPages = computed(() => {
-  return Math.ceil(filteredFiles.value.length / filesPerPage);
+  return fileList.value;
 });
 
 // 当前页显示的文件
 const paginatedFiles = computed(() => {
-  const startIndex = (currentPage.value - 1) * filesPerPage;
-  return filteredFiles.value.slice(startIndex, startIndex + filesPerPage);
+  return filteredFiles.value;
 });
 
 // 显示的页码范围 (始终显示5个页码)
@@ -225,11 +210,6 @@ const displayedPages = computed(() => {
 const viewFile = (file) => {
   console.log('查看文件:', file);
   // 实现文件预览逻辑，可能打开新窗口或使用预览组件
-};
-
-const downloadFile = (file) => {
-  console.log('下载文件:', file);
-  // 实现文件下载逻辑
 };
 </script>
 
@@ -470,6 +450,7 @@ const downloadFile = (file) => {
   padding-right: 8px;
   height: 100%;
   overflow: hidden;
+  min-height: 400px; /* 设置最小高度，确保即使数据少也能保持固定行高 */
 }
 
 .file-row {
@@ -477,7 +458,7 @@ const downloadFile = (file) => {
   align-items: center;
   justify-content: space-between;
   padding: 8px 12px;
-  height: calc((100% - 36px) / 10); /* 10条内容平均分配剩余空间 */
+  height: 36px; /* 固定行高 */
   border-radius: 6px;
   background: #f8fafc;
   transition: all 0.2s ease;
@@ -656,12 +637,16 @@ const downloadFile = (file) => {
   }
   
   .files-content {
-    height: calc(100vh - 40px - 40px - 32px - 40px); /* 移动端调整高度计算 */
+    height: calc(100vh - 40px - 40px - 32px - 40px);
     padding: 8px 16px;
   }
   
+  .files-table {
+    min-height: 360px; /* 移动端调整最小高度 */
+  }
+  
   .file-row {
-    height: calc((100% - 32px) / 10);
+    height: 32px; /* 移动端固定行高 */
     padding: 6px 10px;
   }
   
@@ -700,11 +685,15 @@ const downloadFile = (file) => {
 
 @media (max-height: 600px) {
   .files-content {
-    height: calc(100vh - 32px - 32px - 24px - 32px); /* 小屏幕设备调整高度计算 */
+    height: calc(100vh - 32px - 32px - 24px - 32px);
+  }
+  
+  .files-table {
+    min-height: 320px; /* 小屏幕设备调整最小高度 */
   }
   
   .file-row {
-    height: calc((100% - 28px) / 10);
+    height: 28px; /* 小屏幕设备固定行高 */
     padding: 4px 8px;
   }
   
