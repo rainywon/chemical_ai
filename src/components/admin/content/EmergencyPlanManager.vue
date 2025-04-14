@@ -364,7 +364,7 @@
     </el-dialog>
   </div>
 </template>
-  
+
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
 import { 
@@ -751,29 +751,29 @@ const handleCurrentChange = (page) => {
 
 // 获取文件图标颜色
 const getFileIconColor = (fileType) => {
-  if (!fileType) return '#909399'
+  if (!fileType) return '#909399';
   
   const typeMap = {
     '.pdf': '#FF5252',   // 红色
     '.doc': '#2196F3',   // 蓝色
     '.docx': '#2196F3',  // 蓝色
-  }
+  };
   
-  return typeMap[fileType.toLowerCase()] || '#909399'
-}
+  return typeMap[fileType.toLowerCase()] || '#909399';
+};
 
 // 获取标签类型
 const getTagType = (fileType) => {
-  if (!fileType) return ''
+  if (!fileType) return '';
   
   const typeMap = {
     '.pdf': 'danger',
     '.doc': 'primary',
     '.docx': 'primary',
-  }
+  };
   
-  return typeMap[fileType.toLowerCase()] || 'info'
-}
+  return typeMap[fileType.toLowerCase()] || 'info';
+};
 
 // 重置所有筛选条件
 const resetFilters = () => {
@@ -784,17 +784,9 @@ const resetFilters = () => {
   loadFileList();
   ElMessage.success('已重置所有筛选条件');
 };
+</script>
 
-@media screen and (min-width: 769px) and (max-width: 1200px) {
-  .filter-item {
-    min-width: 160px;
-  }
-  
-  .refresh-button {
-    margin-top: 0;
-  }
-}
-
+<style scoped>
 /* 确保所有按钮点击时没有黑边 */
 :deep(.el-button:focus),
 :deep(.el-button:active),
@@ -810,9 +802,7 @@ const resetFilters = () => {
   border-color: #409eff !important;
   box-shadow: none !important;
 }
-</script>
 
-<style scoped>
 .knowledge-files-container {
   padding: 20px;
   position: relative;
@@ -1327,4 +1317,14 @@ const resetFilters = () => {
     max-height: 250px;
   }
 }
-</style>
+
+@media screen and (min-width: 769px) and (max-width: 1200px) {
+  .filter-item {
+    min-width: 160px;
+  }
+  
+  .refresh-button {
+    margin-top: 0;
+  }
+}
+</style> 
