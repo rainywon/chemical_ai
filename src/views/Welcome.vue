@@ -170,8 +170,6 @@ const confirmLogout = async () => {
 
 // 清除本地存储的辅助函数
 const clearLocalStorage = () => {
-  localStorage.removeItem("isAuthenticated");
-  localStorage.removeItem("userId");
   localStorage.removeItem("token");
   localStorage.removeItem("mobile");
 };
@@ -185,8 +183,8 @@ const logout = () => {
 <style scoped>
 .welcome-container {
   height: 100vh;
-  background: linear-gradient(135deg, #f0f4fa 0%, #e6ebf5 100%);
-  padding: 24px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  padding: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -199,26 +197,27 @@ const logout = () => {
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  max-height: calc(100vh - 48px);
+  gap: 20px;
+  max-height: calc(100vh - 40px);
 }
 
 /* 系统概览样式 */
 .system-overview {
   background: white;
-  border-radius: 16px;
-  padding: 20px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e9ecef;
 }
 
 /* 功能模块网格样式 */
 .features-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 20px;
+  gap: 16px;
   overflow: hidden;
   flex: 1;
-  height: calc(100vh - 200px);
+  height: calc(100vh - 180px);
 }
 
 .right-side {
@@ -226,8 +225,8 @@ const logout = () => {
   grid-row: 1;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 20px;
-  max-height: calc(100vh - 200px);
+  gap: 16px;
+  max-height: calc(100vh - 180px);
 }
 
 /* 响应式设计 */
@@ -253,15 +252,16 @@ const logout = () => {
 
 /* 暗色模式适配 */
 body.dark-theme {
-  background: #111827;
-  color: #f3f4f6;
+  background: #212529;
+  color: #f8f9fa;
 }
 
 body.dark-theme .welcome-container {
-  background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+  background: linear-gradient(135deg, #343a40 0%, #212529 100%);
 }
 
 body.dark-theme .system-overview {
-  background: #1f2937;
+  background: #343a40;
+  border-color: #495057;
 }
 </style> 

@@ -1,7 +1,6 @@
 <template>
   <div class="feature-card small-feature">
     <div class="feature-header">
-      <div class="feature-icon file">📁</div>
       <h2>安全资料库</h2>
     </div>
     <p class="feature-desc">浏览与下载各类化工安全相关文档与标准</p>
@@ -78,6 +77,7 @@ onMounted(() => {
 .feature-header {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 10px;
   margin-bottom: 15px;
 }

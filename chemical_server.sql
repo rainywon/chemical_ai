@@ -11,11 +11,34 @@
  Target Server Version : 80034
  File Encoding         : 65001
 
- Date: 14/04/2025 12:33:39
+ Date: 14/04/2025 18:55:28
 */
 
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
+
+-- ----------------------------
+-- Table structure for admin_tokens
+-- ----------------------------
+DROP TABLE IF EXISTS `admin_tokens`;
+CREATE TABLE `admin_tokens`  (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `admin_id` int NOT NULL COMMENT '管理员ID',
+  `token` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '登录令牌',
+  `device_info` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '设备信息',
+  `ip_address` varchar(45) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT 'IP地址',
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `expire_at` datetime NOT NULL COMMENT '过期时间',
+  `is_valid` tinyint NULL DEFAULT 1 COMMENT '是否有效: 0-无效, 1-有效',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `token`(`token` ASC) USING BTREE,
+  INDEX `idx_admin_id`(`admin_id` ASC) USING BTREE,
+  CONSTRAINT `admin_tokens_ibfk_1` FOREIGN KEY (`admin_id`) REFERENCES `admins` (`admin_id`) ON DELETE CASCADE ON UPDATE RESTRICT
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '管理员登录令牌表' ROW_FORMAT = DYNAMIC;
+
+-- ----------------------------
+-- Records of admin_tokens
+-- ----------------------------
 
 -- ----------------------------
 -- Table structure for admins
@@ -41,7 +64,7 @@ CREATE TABLE `admins`  (
 -- ----------------------------
 -- Records of admins
 -- ----------------------------
-INSERT INTO `admins` VALUES (1, '18350191687', 'c412e04cf954373dfea8db43c5984438', '吴凯歌', 'admin', '1028418330@qq.com', 1, '2025-04-14 11:38:10', '2025-04-12 14:52:07', '2025-04-14 11:38:10');
+INSERT INTO `admins` VALUES (1, '18350191687', 'c412e04cf954373dfea8db43c5984438', '吴凯歌', 'admin', '1028418330@qq.com', 1, '2025-04-14 14:27:03', '2025-04-12 14:52:07', '2025-04-14 16:44:47');
 
 -- ----------------------------
 -- Table structure for ai_models
@@ -119,6 +142,7 @@ INSERT INTO `chat_sessions` VALUES ('3ad1b243-41c0-4a2b-aee7-d9772300d832', '13'
 DROP TABLE IF EXISTS `content_feedbacks`;
 CREATE TABLE `content_feedbacks`  (
   `id` int NOT NULL AUTO_INCREMENT,
+  `user_id` int NOT NULL COMMENT '用户id',
   `rating` int NOT NULL COMMENT '星级评分',
   `feedback` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '反馈内容',
   `feedback_option` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '反馈选项',
@@ -134,6 +158,9 @@ CREATE TABLE `content_feedbacks`  (
 -- ----------------------------
 -- Records of content_feedbacks
 -- ----------------------------
+INSERT INTO `content_feedbacks` VALUES (1, 13, 3, '修改一下\n', 'incomplete', '<think>\n我是DeepSeek-R1，一个由深度求索公司开发的智能助手，我擅长通过思考来帮您解答复杂的数学、代码和逻辑推理等问题。如果你有任何问题，随时可以告诉我！\n', '你能做什么\n', '2025-04-14 13:08:40', 'pending', NULL, NULL);
+INSERT INTO `content_feedbacks` VALUES (2, 13, 4, '修改一下', 'incomplete', '<think>\n我是DeepSeek-R1，一个由深度求索公司开发的智能助手，我擅长通过思考来帮您解答复杂的数学、代码和逻辑推理等问题。如果你有任何问题，随时可以告诉我！\n', '你能做什么\n', '2025-04-14 13:12:15', 'pending', NULL, NULL);
+INSERT INTO `content_feedbacks` VALUES (3, 13, 2, '不好', 'incomplete', '<think>\n我是DeepSeek-R1，一个由深度求索公司开发的智能助手，我擅长通过思考来帮您解答复杂的数学、代码和逻辑推理等问题。如果你有任何问题，随时可以告诉我！\n', '你能做什么\n', '2025-04-14 13:12:46', 'pending', NULL, NULL);
 
 -- ----------------------------
 -- Table structure for emergency_plans
@@ -269,6 +296,205 @@ INSERT INTO `operation_logs` VALUES (55, NULL, 1, '查询', '管理员1查询系
 INSERT INTO `operation_logs` VALUES (56, NULL, 1, '查询', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-14 12:18:09');
 INSERT INTO `operation_logs` VALUES (57, NULL, 1, '查询', '管理员1查询AI内容反馈列表', NULL, NULL, '2025-04-14 12:18:10');
 INSERT INTO `operation_logs` VALUES (58, NULL, 1, '查询', '管理员1查询AI内容反馈统计', NULL, NULL, '2025-04-14 12:18:10');
+INSERT INTO `operation_logs` VALUES (59, NULL, NULL, 'admin_login', '管理员登录系统', NULL, NULL, '2025-04-14 12:37:34');
+INSERT INTO `operation_logs` VALUES (60, NULL, 1, '查询', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-14 12:37:42');
+INSERT INTO `operation_logs` VALUES (61, NULL, 1, '查询', '管理员1查询操作日志', NULL, NULL, '2025-04-14 12:37:51');
+INSERT INTO `operation_logs` VALUES (62, NULL, 1, '查询', '管理员1查询安全资料库文件列表', NULL, NULL, '2025-04-14 12:39:56');
+INSERT INTO `operation_logs` VALUES (63, NULL, 1, '查询', '管理员1查询知识库文件列表', NULL, NULL, '2025-04-14 12:39:59');
+INSERT INTO `operation_logs` VALUES (64, NULL, 1, '查询', '管理员1查询安全资料库文件列表', NULL, NULL, '2025-04-14 12:40:00');
+INSERT INTO `operation_logs` VALUES (65, NULL, 1, '查询', '管理员1查询应急预案文件列表', NULL, NULL, '2025-04-14 12:40:01');
+INSERT INTO `operation_logs` VALUES (66, NULL, 1, '查询', '管理员1查询安全资料库文件列表', NULL, NULL, '2025-04-14 12:40:02');
+INSERT INTO `operation_logs` VALUES (67, NULL, 1, '查询', '管理员1查询知识库文件列表', NULL, NULL, '2025-04-14 12:40:03');
+INSERT INTO `operation_logs` VALUES (68, NULL, 1, '查询', '管理员1查询安全资料库文件列表', NULL, NULL, '2025-04-14 12:40:04');
+INSERT INTO `operation_logs` VALUES (69, NULL, 1, '查询', '管理员1查询应急预案文件列表', NULL, NULL, '2025-04-14 12:40:04');
+INSERT INTO `operation_logs` VALUES (70, NULL, 1, '查询', '管理员1查询安全资料库文件列表', NULL, NULL, '2025-04-14 12:40:09');
+INSERT INTO `operation_logs` VALUES (71, NULL, 1, '查询', '管理员1查询知识库文件列表', NULL, NULL, '2025-04-14 12:40:09');
+INSERT INTO `operation_logs` VALUES (72, NULL, 1, '查询', '管理员1查询安全资料库文件列表', NULL, NULL, '2025-04-14 12:40:13');
+INSERT INTO `operation_logs` VALUES (73, NULL, 1, '查询', '管理员1查询知识库文件列表', NULL, NULL, '2025-04-14 12:40:14');
+INSERT INTO `operation_logs` VALUES (74, NULL, 1, '查询', '管理员1查询操作日志', NULL, NULL, '2025-04-14 12:40:15');
+INSERT INTO `operation_logs` VALUES (75, NULL, 1, '查询', '管理员1查询知识库文件列表', NULL, NULL, '2025-04-14 12:41:23');
+INSERT INTO `operation_logs` VALUES (76, NULL, 1, '查询', '管理员1查询安全资料库文件列表', NULL, NULL, '2025-04-14 12:45:09');
+INSERT INTO `operation_logs` VALUES (77, NULL, 1, '查询', '管理员1查询应急预案文件列表', NULL, NULL, '2025-04-14 12:45:11');
+INSERT INTO `operation_logs` VALUES (78, NULL, 1, '查询', '管理员1查询安全资料库文件列表', NULL, NULL, '2025-04-14 12:45:13');
+INSERT INTO `operation_logs` VALUES (79, NULL, 1, '查询', '管理员1查询知识库文件列表', NULL, NULL, '2025-04-14 12:45:13');
+INSERT INTO `operation_logs` VALUES (80, NULL, 1, '查询', '管理员1查询操作日志', NULL, NULL, '2025-04-14 12:51:43');
+INSERT INTO `operation_logs` VALUES (81, NULL, 1, '查询', '管理员1查询操作日志', NULL, NULL, '2025-04-14 12:51:47');
+INSERT INTO `operation_logs` VALUES (82, NULL, 1, '查询', '管理员1查询操作日志', NULL, NULL, '2025-04-14 12:51:48');
+INSERT INTO `operation_logs` VALUES (83, NULL, 1, '查询', '管理员1查询操作日志', NULL, NULL, '2025-04-14 12:51:48');
+INSERT INTO `operation_logs` VALUES (84, NULL, 1, '查询', '管理员1查询知识库文件列表', NULL, NULL, '2025-04-14 12:54:56');
+INSERT INTO `operation_logs` VALUES (85, NULL, 1, '查询', '管理员1查询安全资料库文件列表', NULL, NULL, '2025-04-14 12:55:03');
+INSERT INTO `operation_logs` VALUES (86, NULL, 1, '查询', '管理员1查询应急预案文件列表', NULL, NULL, '2025-04-14 12:55:06');
+INSERT INTO `operation_logs` VALUES (87, NULL, 1, '查询', '管理员1查询知识库文件列表', NULL, NULL, '2025-04-14 12:55:19');
+INSERT INTO `operation_logs` VALUES (88, NULL, 1, '查询', '管理员1查询知识库文件列表', NULL, NULL, '2025-04-14 12:57:10');
+INSERT INTO `operation_logs` VALUES (89, NULL, 1, '查询', '管理员1查询安全资料库文件列表', NULL, NULL, '2025-04-14 12:57:14');
+INSERT INTO `operation_logs` VALUES (90, NULL, 1, '查询', '管理员1查询应急预案文件列表', NULL, NULL, '2025-04-14 12:57:15');
+INSERT INTO `operation_logs` VALUES (91, NULL, 1, '查询', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-14 12:57:17');
+INSERT INTO `operation_logs` VALUES (92, NULL, 1, '查询', '管理员1查询AI内容反馈列表', NULL, NULL, '2025-04-14 12:57:18');
+INSERT INTO `operation_logs` VALUES (93, NULL, 1, '查询', '管理员1查询AI内容反馈统计', NULL, NULL, '2025-04-14 12:57:18');
+INSERT INTO `operation_logs` VALUES (94, NULL, 1, '查询', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-14 12:57:22');
+INSERT INTO `operation_logs` VALUES (95, NULL, 1, '查询', '管理员1查询AI内容反馈列表', NULL, NULL, '2025-04-14 12:57:24');
+INSERT INTO `operation_logs` VALUES (96, NULL, 1, '查询', '管理员1查询AI内容反馈统计', NULL, NULL, '2025-04-14 12:57:24');
+INSERT INTO `operation_logs` VALUES (97, NULL, NULL, '登录', '管理员登录系统', NULL, NULL, '2025-04-14 13:13:28');
+INSERT INTO `operation_logs` VALUES (98, NULL, 1, '查询', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-14 13:13:41');
+INSERT INTO `operation_logs` VALUES (99, NULL, 1, '查询', '管理员1查询AI内容反馈列表', NULL, NULL, '2025-04-14 13:13:41');
+INSERT INTO `operation_logs` VALUES (100, NULL, 1, '查询', '管理员1查询AI内容反馈统计', NULL, NULL, '2025-04-14 13:13:41');
+INSERT INTO `operation_logs` VALUES (101, NULL, 1, '查询', '管理员1查看AI内容反馈详情[ID:3]', NULL, NULL, '2025-04-14 13:13:49');
+INSERT INTO `operation_logs` VALUES (105, NULL, NULL, '登录', '管理员登录系统', NULL, NULL, '2025-04-14 13:23:51');
+INSERT INTO `operation_logs` VALUES (106, NULL, 1, '查询', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-14 13:24:51');
+INSERT INTO `operation_logs` VALUES (107, NULL, 1, '查询', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-14 13:25:55');
+INSERT INTO `operation_logs` VALUES (108, NULL, 1, '查询', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-14 13:26:08');
+INSERT INTO `operation_logs` VALUES (109, NULL, 1, '查询', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-14 13:26:08');
+INSERT INTO `operation_logs` VALUES (110, NULL, 1, '查询', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-14 13:26:35');
+INSERT INTO `operation_logs` VALUES (111, NULL, 1, '查询', '管理员1查询AI内容反馈列表', NULL, NULL, '2025-04-14 13:26:54');
+INSERT INTO `operation_logs` VALUES (112, NULL, 1, '查询', '管理员1查询AI内容反馈统计', NULL, NULL, '2025-04-14 13:26:54');
+INSERT INTO `operation_logs` VALUES (113, NULL, 1, '查询', '管理员1查询AI内容反馈列表', NULL, NULL, '2025-04-14 13:27:05');
+INSERT INTO `operation_logs` VALUES (114, NULL, 1, '查询', '管理员1查询AI内容反馈统计', NULL, NULL, '2025-04-14 13:27:05');
+INSERT INTO `operation_logs` VALUES (115, NULL, 1, '查询', '管理员1查询AI内容反馈列表', NULL, NULL, '2025-04-14 13:27:07');
+INSERT INTO `operation_logs` VALUES (116, NULL, 1, '查询', '管理员1查询AI内容反馈统计', NULL, NULL, '2025-04-14 13:27:07');
+INSERT INTO `operation_logs` VALUES (117, NULL, 1, '查询', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-14 13:27:18');
+INSERT INTO `operation_logs` VALUES (118, NULL, 1, '查询', '管理员1查询知识库文件列表', NULL, NULL, '2025-04-14 13:27:45');
+INSERT INTO `operation_logs` VALUES (119, NULL, 1, '查询', '管理员1查询安全资料库文件列表', NULL, NULL, '2025-04-14 13:27:46');
+INSERT INTO `operation_logs` VALUES (120, NULL, 1, '查询', '管理员1查询知识库文件列表', NULL, NULL, '2025-04-14 13:27:51');
+INSERT INTO `operation_logs` VALUES (121, NULL, 1, '查询', '管理员1查询安全资料库文件列表', NULL, NULL, '2025-04-14 13:27:52');
+INSERT INTO `operation_logs` VALUES (122, NULL, 1, '查询', '管理员1查询知识库文件列表', NULL, NULL, '2025-04-14 13:27:53');
+INSERT INTO `operation_logs` VALUES (123, NULL, 1, '查询', '管理员1查询安全资料库文件列表', NULL, NULL, '2025-04-14 13:27:54');
+INSERT INTO `operation_logs` VALUES (124, NULL, 1, '查询', '管理员1查询操作日志', NULL, NULL, '2025-04-14 13:28:44');
+INSERT INTO `operation_logs` VALUES (125, NULL, 1, '查询', '管理员1查询知识库文件列表', NULL, NULL, '2025-04-14 13:28:47');
+INSERT INTO `operation_logs` VALUES (126, NULL, 1, '查询', '管理员1查询安全资料库文件列表', NULL, NULL, '2025-04-14 13:28:48');
+INSERT INTO `operation_logs` VALUES (127, NULL, 1, '查询', '管理员1查询知识库文件列表', NULL, NULL, '2025-04-14 13:29:17');
+INSERT INTO `operation_logs` VALUES (128, NULL, 1, '查询', '管理员1查询安全资料库文件列表', NULL, NULL, '2025-04-14 13:29:18');
+INSERT INTO `operation_logs` VALUES (129, NULL, 1, '查询', '管理员1查询操作日志', NULL, NULL, '2025-04-14 13:29:26');
+INSERT INTO `operation_logs` VALUES (130, NULL, 1, '查询', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-14 13:29:37');
+INSERT INTO `operation_logs` VALUES (131, NULL, 1, '查询', '管理员1查询知识库文件列表', NULL, NULL, '2025-04-14 13:29:43');
+INSERT INTO `operation_logs` VALUES (132, NULL, 1, '查询', '管理员1查询安全资料库文件列表', NULL, NULL, '2025-04-14 13:29:43');
+INSERT INTO `operation_logs` VALUES (133, NULL, 1, '查询', '管理员1查询安全资料库文件列表', NULL, NULL, '2025-04-14 13:29:55');
+INSERT INTO `operation_logs` VALUES (134, NULL, 1, '查询', '管理员1查询安全资料库文件列表', NULL, NULL, '2025-04-14 13:30:31');
+INSERT INTO `operation_logs` VALUES (135, NULL, 1, '查询', '管理员1查询安全资料库文件列表', NULL, NULL, '2025-04-14 13:30:55');
+INSERT INTO `operation_logs` VALUES (136, NULL, 1, '查询', '管理员1查询安全资料库文件列表', NULL, NULL, '2025-04-14 13:31:09');
+INSERT INTO `operation_logs` VALUES (137, NULL, 1, '查询', '管理员1查询安全资料库文件列表', NULL, NULL, '2025-04-14 13:31:46');
+INSERT INTO `operation_logs` VALUES (138, NULL, 1, '查询', '管理员1查询安全资料库文件列表', NULL, NULL, '2025-04-14 13:33:25');
+INSERT INTO `operation_logs` VALUES (139, NULL, 1, '查询', '管理员1查询安全资料库文件列表', NULL, NULL, '2025-04-14 13:33:53');
+INSERT INTO `operation_logs` VALUES (140, NULL, 1, '查询', '管理员1查询应急预案文件列表', NULL, NULL, '2025-04-14 13:33:54');
+INSERT INTO `operation_logs` VALUES (141, NULL, 1, '查询', '管理员1查询操作日志', NULL, NULL, '2025-04-14 13:37:56');
+INSERT INTO `operation_logs` VALUES (142, NULL, 1, '查询', '管理员1查询知识库文件列表', NULL, NULL, '2025-04-14 13:37:59');
+INSERT INTO `operation_logs` VALUES (143, NULL, 1, '查询', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-14 13:38:02');
+INSERT INTO `operation_logs` VALUES (144, NULL, 1, '查询', '管理员1查询AI内容反馈列表', NULL, NULL, '2025-04-14 13:38:03');
+INSERT INTO `operation_logs` VALUES (145, NULL, 1, '查询', '管理员1查询AI内容反馈统计', NULL, NULL, '2025-04-14 13:38:03');
+INSERT INTO `operation_logs` VALUES (147, NULL, 1, '查询', '管理员1查询知识库文件列表', NULL, NULL, '2025-04-14 13:39:57');
+INSERT INTO `operation_logs` VALUES (149, NULL, 1, '查询', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-14 13:41:06');
+INSERT INTO `operation_logs` VALUES (150, NULL, 1, '查询', '管理员1查询知识库文件列表', NULL, NULL, '2025-04-14 13:41:07');
+INSERT INTO `operation_logs` VALUES (151, NULL, 1, '查询', '管理员1预览了文件[AQ 016—008]含硫化氢天然气井失控井口点火时间规定.xlsx', NULL, NULL, '2025-04-14 13:41:20');
+INSERT INTO `operation_logs` VALUES (153, NULL, 1, '查询', '管理员1查询AI内容反馈列表', NULL, NULL, '2025-04-14 13:42:51');
+INSERT INTO `operation_logs` VALUES (154, NULL, 1, '查询', '管理员1查询AI内容反馈统计', NULL, NULL, '2025-04-14 13:42:51');
+INSERT INTO `operation_logs` VALUES (155, NULL, 1, '查询', '管理员1查询应急预案文件列表', NULL, NULL, '2025-04-14 13:42:56');
+INSERT INTO `operation_logs` VALUES (156, NULL, 1, '查询', '管理员1查询应急预案文件列表', NULL, NULL, '2025-04-14 13:49:04');
+INSERT INTO `operation_logs` VALUES (157, NULL, 1, '查询', '管理员1查询应急预案文件列表', NULL, NULL, '2025-04-14 14:09:29');
+INSERT INTO `operation_logs` VALUES (158, NULL, 1, '查询', '管理员1查询安全资料库文件列表', NULL, NULL, '2025-04-14 14:09:30');
+INSERT INTO `operation_logs` VALUES (159, NULL, 1, '查询', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-14 14:09:32');
+INSERT INTO `operation_logs` VALUES (160, NULL, 1, '查询', '管理员1查询AI内容反馈列表', NULL, NULL, '2025-04-14 14:09:32');
+INSERT INTO `operation_logs` VALUES (161, NULL, 1, '查询', '管理员1查询AI内容反馈统计', NULL, NULL, '2025-04-14 14:09:32');
+INSERT INTO `operation_logs` VALUES (162, NULL, 1, '查询', '管理员1查询应急预案文件列表', NULL, NULL, '2025-04-14 14:09:33');
+INSERT INTO `operation_logs` VALUES (163, NULL, 1, '查询', '管理员1查询安全资料库文件列表', NULL, NULL, '2025-04-14 14:09:34');
+INSERT INTO `operation_logs` VALUES (164, NULL, 1, '查询', '管理员1查询应急预案文件列表', NULL, NULL, '2025-04-14 14:09:37');
+INSERT INTO `operation_logs` VALUES (165, NULL, 1, '查询', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-14 14:09:39');
+INSERT INTO `operation_logs` VALUES (166, NULL, 1, '查询', '管理员1查询AI内容反馈列表', NULL, NULL, '2025-04-14 14:09:39');
+INSERT INTO `operation_logs` VALUES (167, NULL, 1, '查询', '管理员1查询AI内容反馈统计', NULL, NULL, '2025-04-14 14:09:39');
+INSERT INTO `operation_logs` VALUES (168, NULL, 1, '查询', '管理员1查询安全资料库文件列表', NULL, NULL, '2025-04-14 14:09:51');
+INSERT INTO `operation_logs` VALUES (170, NULL, 1, '查询', '管理员1查询操作日志', NULL, NULL, '2025-04-14 14:13:31');
+INSERT INTO `operation_logs` VALUES (171, NULL, 1, '查询', '管理员1查询知识库文件列表', NULL, NULL, '2025-04-14 14:13:33');
+INSERT INTO `operation_logs` VALUES (172, NULL, 1, '查询', '管理员1查询安全资料库文件列表', NULL, NULL, '2025-04-14 14:13:35');
+INSERT INTO `operation_logs` VALUES (173, NULL, 1, '查询', '管理员1查询应急预案文件列表', NULL, NULL, '2025-04-14 14:13:36');
+INSERT INTO `operation_logs` VALUES (174, NULL, 1, '查询', '管理员1查询应急预案文件列表', NULL, NULL, '2025-04-14 14:15:06');
+INSERT INTO `operation_logs` VALUES (175, NULL, 1, '查询', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-14 14:16:51');
+INSERT INTO `operation_logs` VALUES (176, NULL, NULL, '登录', '管理员登录系统', NULL, NULL, '2025-04-14 14:27:03');
+INSERT INTO `operation_logs` VALUES (177, NULL, 1, '查询', '管理员1查询AI内容反馈列表', NULL, NULL, '2025-04-14 14:42:41');
+INSERT INTO `operation_logs` VALUES (178, NULL, 1, '查询', '管理员1查询AI内容反馈统计', NULL, NULL, '2025-04-14 14:42:41');
+INSERT INTO `operation_logs` VALUES (180, NULL, 1, '查询', '管理员1查询安全资料库文件列表', NULL, NULL, '2025-04-14 15:59:53');
+INSERT INTO `operation_logs` VALUES (181, NULL, 1, '查询', '管理员1查询知识库文件列表', NULL, NULL, '2025-04-14 15:59:55');
+INSERT INTO `operation_logs` VALUES (184, NULL, 1, '查询', '管理员1查询知识库文件列表', NULL, NULL, '2025-04-14 16:25:30');
+INSERT INTO `operation_logs` VALUES (185, NULL, 1, '查询', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-14 16:25:38');
+INSERT INTO `operation_logs` VALUES (186, NULL, 1, '查询', '管理员1查询AI内容反馈列表', NULL, NULL, '2025-04-14 16:25:41');
+INSERT INTO `operation_logs` VALUES (187, NULL, 1, '查询', '管理员1查询AI内容反馈统计', NULL, NULL, '2025-04-14 16:25:41');
+INSERT INTO `operation_logs` VALUES (188, NULL, 1, '查询', '管理员1查询AI内容反馈列表', NULL, NULL, '2025-04-14 16:27:23');
+INSERT INTO `operation_logs` VALUES (189, NULL, 1, '查询', '管理员1查询AI内容反馈统计', NULL, NULL, '2025-04-14 16:27:23');
+INSERT INTO `operation_logs` VALUES (190, NULL, 1, '查询', '管理员1查询AI内容反馈列表', NULL, NULL, '2025-04-14 16:29:56');
+INSERT INTO `operation_logs` VALUES (191, NULL, 1, '查询', '管理员1查询AI内容反馈统计', NULL, NULL, '2025-04-14 16:29:56');
+INSERT INTO `operation_logs` VALUES (192, NULL, 1, '查询', '管理员1查询AI内容反馈列表', NULL, NULL, '2025-04-14 16:30:13');
+INSERT INTO `operation_logs` VALUES (193, NULL, 1, '查询', '管理员1查询AI内容反馈统计', NULL, NULL, '2025-04-14 16:30:13');
+INSERT INTO `operation_logs` VALUES (194, NULL, 1, '查询', '管理员1查询知识库文件列表', NULL, NULL, '2025-04-14 16:30:28');
+INSERT INTO `operation_logs` VALUES (195, NULL, 1, '查询', '管理员1查询操作日志', NULL, NULL, '2025-04-14 16:30:30');
+INSERT INTO `operation_logs` VALUES (196, NULL, 1, '查询', '管理员1查询操作日志', NULL, NULL, '2025-04-14 16:30:33');
+INSERT INTO `operation_logs` VALUES (197, NULL, 1, '查询', '管理员1查询操作日志', NULL, NULL, '2025-04-14 16:30:34');
+INSERT INTO `operation_logs` VALUES (198, NULL, 1, '查询', '管理员1查询操作日志', NULL, NULL, '2025-04-14 16:30:34');
+INSERT INTO `operation_logs` VALUES (199, NULL, 1, '查询', '管理员1查询操作日志', NULL, NULL, '2025-04-14 16:30:35');
+INSERT INTO `operation_logs` VALUES (200, NULL, 1, '查询', '管理员1查询操作日志', NULL, NULL, '2025-04-14 16:30:35');
+INSERT INTO `operation_logs` VALUES (201, NULL, 1, '查询', '管理员1查询操作日志', NULL, NULL, '2025-04-14 16:30:37');
+INSERT INTO `operation_logs` VALUES (202, NULL, 1, '查询', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-14 16:30:56');
+INSERT INTO `operation_logs` VALUES (203, NULL, 1, '查询', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-14 16:30:57');
+INSERT INTO `operation_logs` VALUES (205, NULL, 1, '查询', '管理员1查看用户13详情', NULL, NULL, '2025-04-14 16:31:07');
+INSERT INTO `operation_logs` VALUES (206, NULL, 1, '查询', '管理员1查询系统功能反馈列表', NULL, NULL, '2025-04-14 16:31:12');
+INSERT INTO `operation_logs` VALUES (207, NULL, 1, '查询', '管理员1查询知识库文件列表', NULL, NULL, '2025-04-14 16:31:14');
+INSERT INTO `operation_logs` VALUES (208, NULL, 1, '查询', '管理员1查询知识库文件列表', NULL, NULL, '2025-04-14 16:31:20');
+INSERT INTO `operation_logs` VALUES (209, NULL, 1, '查询', '管理员1预览了文件[GB_T 9567—2016]工业用三聚氰胺.xlsx', NULL, NULL, '2025-04-14 16:31:28');
+INSERT INTO `operation_logs` VALUES (211, NULL, 1, '查询', '管理员1查询个人资料', NULL, NULL, '2025-04-14 16:34:58');
+INSERT INTO `operation_logs` VALUES (212, NULL, 1, '更新', '管理员1更新个人资料', NULL, NULL, '2025-04-14 16:35:59');
+INSERT INTO `operation_logs` VALUES (213, NULL, 1, '查询', '管理员1查询个人资料', NULL, NULL, '2025-04-14 16:35:59');
+INSERT INTO `operation_logs` VALUES (214, NULL, 1, '更新', '管理员1更新个人资料', NULL, NULL, '2025-04-14 16:36:09');
+INSERT INTO `operation_logs` VALUES (215, NULL, 1, '查询', '管理员1查询个人资料', NULL, NULL, '2025-04-14 16:36:09');
+INSERT INTO `operation_logs` VALUES (216, NULL, 1, '查询', '管理员1查询个人资料', NULL, NULL, '2025-04-14 16:36:28');
+INSERT INTO `operation_logs` VALUES (217, NULL, 1, '查询', '管理员1查询个人资料', NULL, NULL, '2025-04-14 16:39:17');
+INSERT INTO `operation_logs` VALUES (218, NULL, 1, '查询', '管理员1查询个人资料', NULL, NULL, '2025-04-14 16:40:37');
+INSERT INTO `operation_logs` VALUES (219, NULL, 1, '更新', '管理员1更新个人资料', NULL, NULL, '2025-04-14 16:41:06');
+INSERT INTO `operation_logs` VALUES (220, NULL, 1, '更新', '管理员1更新个人资料（含手机号）', NULL, NULL, '2025-04-14 16:44:40');
+INSERT INTO `operation_logs` VALUES (221, NULL, 1, '更新', '管理员1更新个人资料（含手机号）', NULL, NULL, '2025-04-14 16:44:47');
+INSERT INTO `operation_logs` VALUES (222, 13, NULL, '查询', '用户13查询安全资料库文件列表，页码：1，搜索关键词：无', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0', '2025-04-14 17:34:04');
+INSERT INTO `operation_logs` VALUES (223, 13, NULL, '查询', '用户13查询安全资料库文件列表，页码：1，搜索关键词：无', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0', '2025-04-14 17:36:01');
+INSERT INTO `operation_logs` VALUES (224, 13, NULL, '查询', '用户13查询安全资料库文件列表，页码：1，搜索关键词：无', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0', '2025-04-14 17:36:06');
+INSERT INTO `operation_logs` VALUES (225, 13, NULL, '下载文件', '用户13下载了文件[[主席令第14号]中华人民共和国农村土地承包经营纠纷调解仲裁法.docx]', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0', '2025-04-14 17:36:24');
+INSERT INTO `operation_logs` VALUES (226, 13, NULL, '查询', '用户13查询安全资料库文件列表，页码：1，搜索关键词：无', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0', '2025-04-14 17:36:36');
+INSERT INTO `operation_logs` VALUES (227, 13, NULL, '查询', '用户13查询安全资料库文件列表，页码：4，搜索关键词：无', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0', '2025-04-14 17:36:38');
+INSERT INTO `operation_logs` VALUES (228, 13, NULL, '查询', '用户13查询安全资料库文件列表，页码：3，搜索关键词：无', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0', '2025-04-14 17:36:39');
+INSERT INTO `operation_logs` VALUES (229, 13, NULL, '查询', '用户13查询安全资料库文件列表，页码：2，搜索关键词：无', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0', '2025-04-14 17:36:39');
+INSERT INTO `operation_logs` VALUES (230, 13, NULL, '查询', '用户13查询安全资料库文件列表，页码：1，搜索关键词：无', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0', '2025-04-14 17:36:40');
+INSERT INTO `operation_logs` VALUES (231, 13, NULL, '查询', '用户13查询安全资料库文件列表，页码：3，搜索关键词：无', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0', '2025-04-14 17:36:43');
+INSERT INTO `operation_logs` VALUES (232, 13, NULL, '查询', '用户13查询安全资料库文件列表，页码：1，搜索关键词：无', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0', '2025-04-14 17:36:44');
+INSERT INTO `operation_logs` VALUES (233, 13, NULL, '查询', '用户13查询安全资料库文件列表，页码：1，搜索关键词：赔偿', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0', '2025-04-14 17:36:48');
+INSERT INTO `operation_logs` VALUES (234, 13, NULL, '查询', '用户13查询安全资料库文件列表，页码：1，搜索关键词：赔', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0', '2025-04-14 17:36:49');
+INSERT INTO `operation_logs` VALUES (235, 13, NULL, '查询', '用户13查询安全资料库文件列表，页码：1，搜索关键词：无', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0', '2025-04-14 17:36:49');
+INSERT INTO `operation_logs` VALUES (236, 13, NULL, '查询', '用户13查询安全资料库文件列表，页码：1，搜索关键词：赔偿', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0', '2025-04-14 17:36:53');
+INSERT INTO `operation_logs` VALUES (237, 13, NULL, '查询', '用户13查询安全资料库文件列表，页码：1，搜索关键词：赔', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0', '2025-04-14 17:36:53');
+INSERT INTO `operation_logs` VALUES (238, 13, NULL, '查询', '用户13查询安全资料库文件列表，页码：1，搜索关键词：无', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0', '2025-04-14 17:36:53');
+INSERT INTO `operation_logs` VALUES (239, 13, NULL, '查询', '用户13查询安全资料库文件列表，页码：1，搜索关键词：无', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0', '2025-04-14 17:38:49');
+INSERT INTO `operation_logs` VALUES (240, 13, NULL, '查询', '用户13查询安全资料库文件列表，页码：1，搜索关键词：无', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0', '2025-04-14 17:39:46');
+INSERT INTO `operation_logs` VALUES (241, 13, NULL, '查询', '用户13查询安全资料库文件列表，页码：1，搜索关键词：无', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0', '2025-04-14 17:40:36');
+INSERT INTO `operation_logs` VALUES (242, 13, NULL, '查询', '用户13查询安全资料库文件列表，页码：1，搜索关键词：无', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0', '2025-04-14 17:41:45');
+INSERT INTO `operation_logs` VALUES (243, 13, NULL, '查询', '用户13查询安全资料库文件列表，页码：1，搜索关键词：无', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0', '2025-04-14 17:42:47');
+INSERT INTO `operation_logs` VALUES (244, 13, NULL, '查询', '用户13查询安全资料库文件列表，页码：1，搜索关键词：无', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0', '2025-04-14 17:46:42');
+INSERT INTO `operation_logs` VALUES (245, 13, NULL, '查询', '用户13查询安全资料库文件列表，页码：1，搜索关键词：无', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0', '2025-04-14 17:46:48');
+INSERT INTO `operation_logs` VALUES (246, 13, NULL, '查询', '用户13查询安全资料库文件列表，页码：1，搜索关键词：无', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0', '2025-04-14 17:46:53');
+INSERT INTO `operation_logs` VALUES (247, 13, NULL, '查询', '用户13查询安全资料库文件列表，页码：1，搜索关键词：无', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0', '2025-04-14 17:46:55');
+INSERT INTO `operation_logs` VALUES (248, 13, NULL, '查询', '用户13查询安全资料库文件列表，页码：1，搜索关键词：无', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0', '2025-04-14 17:46:57');
+INSERT INTO `operation_logs` VALUES (249, 13, NULL, '查询', '用户13查询安全资料库文件列表，页码：1，搜索关键词：无', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0', '2025-04-14 18:15:34');
+INSERT INTO `operation_logs` VALUES (250, 13, NULL, '查询', '用户13查询应急资料库文件列表，页码：1，搜索关键词：无', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0', '2025-04-14 18:20:57');
+INSERT INTO `operation_logs` VALUES (251, 13, NULL, '查询', '用户13查询安全资料库文件列表，页码：1，搜索关键词：无', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0', '2025-04-14 18:21:01');
+INSERT INTO `operation_logs` VALUES (252, 13, NULL, '查询', '用户13查询应急资料库文件列表，页码：1，搜索关键词：无', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0', '2025-04-14 18:24:01');
+INSERT INTO `operation_logs` VALUES (253, 13, NULL, '查询', '用户13查询安全资料库文件列表，页码：1，搜索关键词：无', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0', '2025-04-14 18:24:38');
+INSERT INTO `operation_logs` VALUES (254, 13, NULL, '查询', '用户13查询应急资料库文件列表，页码：1，搜索关键词：无', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0', '2025-04-14 18:24:38');
+INSERT INTO `operation_logs` VALUES (255, 13, NULL, '查询', '用户13查询应急资料库文件列表，页码：1，搜索关键词：无', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0', '2025-04-14 18:25:27');
+INSERT INTO `operation_logs` VALUES (256, 13, NULL, '查询', '用户13查询应急资料库文件列表，页码：1，搜索关键词：无', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0', '2025-04-14 18:27:44');
+INSERT INTO `operation_logs` VALUES (257, 13, NULL, '查询', '用户13查询安全资料库文件列表，页码：1，搜索关键词：无', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0', '2025-04-14 18:27:44');
+INSERT INTO `operation_logs` VALUES (258, 13, NULL, '查询', '用户13查询安全资料库文件列表，页码：1，搜索关键词：无', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0', '2025-04-14 18:27:49');
+INSERT INTO `operation_logs` VALUES (259, 13, NULL, '查询', '用户13查询应急资料库文件列表，页码：1，搜索关键词：无', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0', '2025-04-14 18:27:49');
+INSERT INTO `operation_logs` VALUES (260, 13, NULL, '查询', '用户13查询安全资料库文件列表，页码：1，搜索关键词：无', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0', '2025-04-14 18:28:55');
+INSERT INTO `operation_logs` VALUES (261, 13, NULL, '查询', '用户13查询应急资料库文件列表，页码：1，搜索关键词：无', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0', '2025-04-14 18:28:55');
+INSERT INTO `operation_logs` VALUES (262, 13, NULL, '查询', '用户13查询应急资料库文件列表，页码：1，搜索关键词：无', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0', '2025-04-14 18:29:33');
+INSERT INTO `operation_logs` VALUES (263, 13, NULL, '查询', '用户13查询安全资料库文件列表，页码：1，搜索关键词：无', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0', '2025-04-14 18:29:37');
+INSERT INTO `operation_logs` VALUES (264, 13, NULL, '查询', '用户13查询应急资料库文件列表，页码：1，搜索关键词：无', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0', '2025-04-14 18:29:37');
+INSERT INTO `operation_logs` VALUES (265, 13, NULL, '查询', '用户13查询安全资料库文件列表，页码：1，搜索关键词：无', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0', '2025-04-14 18:32:32');
+INSERT INTO `operation_logs` VALUES (266, 13, NULL, '查询', '用户13查询应急资料库文件列表，页码：1，搜索关键词：无', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0', '2025-04-14 18:32:32');
+INSERT INTO `operation_logs` VALUES (267, 13, NULL, '查询', '用户13查询安全资料库文件列表，页码：1，搜索关键词：无', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0', '2025-04-14 18:38:30');
+INSERT INTO `operation_logs` VALUES (268, 13, NULL, '查询', '用户13查询应急资料库文件列表，页码：1，搜索关键词：无', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0', '2025-04-14 18:38:30');
+INSERT INTO `operation_logs` VALUES (269, 13, NULL, '查询', '用户13查询应急资料库文件列表，页码：1，搜索关键词：无', '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0', '2025-04-14 18:40:42');
 
 -- ----------------------------
 -- Table structure for system_configs
@@ -336,6 +562,7 @@ CREATE TABLE `user_feedback`  (
 -- ----------------------------
 -- Records of user_feedback
 -- ----------------------------
+INSERT INTO `user_feedback` VALUES (1, 13, 'suggestion', '前端优化一下', '2025-04-14 12:36:12', 'pending', NULL, NULL);
 
 -- ----------------------------
 -- Table structure for user_tokens
@@ -359,9 +586,8 @@ CREATE TABLE `user_tokens`  (
 -- ----------------------------
 -- Records of user_tokens
 -- ----------------------------
-INSERT INTO `user_tokens` VALUES (1, 13, '546f227d-d04a-4e1a-afd7-2de18a6009a5', NULL, NULL, '2025-04-11 18:52:58', '2025-04-18 18:52:59', 0);
-INSERT INTO `user_tokens` VALUES (2, 13, '2c26e5ac-8dce-4bed-a11d-3b9776ae1772', NULL, NULL, '2025-04-11 22:04:20', '2025-04-18 22:04:20', 0);
-INSERT INTO `user_tokens` VALUES (3, 13, '63ed55a2-06ee-41be-a6d8-7488bb7fd58a', NULL, NULL, '2025-04-14 12:18:52', '2025-04-21 12:18:52', 1);
+INSERT INTO `user_tokens` VALUES (4, 13, '806585bc-f9eb-4bb2-b4cf-9871d47a328e', NULL, NULL, '2025-04-14 18:52:15', '2025-04-21 18:52:16', 0);
+INSERT INTO `user_tokens` VALUES (5, 13, 'e8990dd3-683a-4757-babc-188cd5b4a5c2', NULL, NULL, '2025-04-14 18:54:54', '2025-04-21 18:54:54', 1);
 
 -- ----------------------------
 -- Table structure for users
@@ -383,7 +609,7 @@ CREATE TABLE `users`  (
 -- ----------------------------
 -- Records of users
 -- ----------------------------
-INSERT INTO `users` VALUES (13, '18350191687', 'c412e04cf954373dfea8db43c5984438', 'light', '2025-04-11 18:52:58', '2025-04-14 12:18:52', 1);
+INSERT INTO `users` VALUES (13, '18350191687', 'c412e04cf954373dfea8db43c5984438', 'light', '2025-04-11 18:52:58', '2025-04-14 18:54:54', 1);
 
 -- ----------------------------
 -- Table structure for verification_codes

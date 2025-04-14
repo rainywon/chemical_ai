@@ -23,7 +23,7 @@
     <div class="main-content">
       <!-- 顶部标题和搜索 -->
       <div class="content-header">
-        <h1 class="page-title">安全资料库</h1>
+        <h1 class="page-title">应急资料库</h1>
         <div class="search-area">
           <div class="search-box">
             <input type="text" v-model="searchQuery" placeholder="搜索文件..." class="search-input" />
@@ -107,7 +107,7 @@ const fileList = ref([]);
 // 获取文件列表
 const fetchFiles = async () => {
   try {
-    const response = await fetch(`${API_BASE_URL}/safety_files/?page=${currentPage.value}&page_size=${filesPerPage}&search=${searchQuery.value}`, {
+    const response = await fetch(`${API_BASE_URL}/emergency_files/?page=${currentPage.value}&page_size=${filesPerPage}&search=${searchQuery.value}`, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('token')}`
       }
@@ -134,7 +134,7 @@ const fetchFiles = async () => {
 // 下载文件
 const downloadFile = async (file) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/safety_files/download/${file.id}`, {
+    const response = await fetch(`${API_BASE_URL}/emergency_files/download/${file.id}`, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('token')}`
       }
@@ -704,4 +704,4 @@ const viewFile = (file) => {
     font-size: 12px;
   }
 }
-</style> 
+</style>

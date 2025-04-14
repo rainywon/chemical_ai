@@ -418,31 +418,21 @@ const login = async () => {
 
     if (data.code === 200) {
       // 存储登录状态和Token
-      localStorage.setItem("isAuthenticated", "true");
       localStorage.setItem("mobile", formData.phone);
       if (data.token && loginMode.value !== 2) {
         localStorage.setItem("token", data.token);
-        localStorage.setItem("user_id", data.user_id);
       }
       
       // 管理员状态处理
       if (loginMode.value === 2) {
         localStorage.setItem("isAdmin", "true");
         // 可能还需要保存其他管理员特定信息
-        if (data.admin_id) {
-          localStorage.setItem("admin_id", data.admin_id);
-        }
-        if (data.admin_name) {
-          localStorage.setItem("admin_name", data.admin_name);
-        }
         if(data.token){
           localStorage.setItem("token", data.token);
         }
       } else {
         // 非管理员登录时清除管理员状态
         localStorage.removeItem("isAdmin");
-        localStorage.removeItem("admin_id");
-        localStorage.removeItem("admin_name");
       }
       
       resultMessage.value = "登录成功，正在跳转...";

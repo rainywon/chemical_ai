@@ -1,7 +1,6 @@
 <template>
   <div class="feature-card ai-feature">
     <div class="feature-header">
-      <div class="feature-icon ai">🧪</div>
       <h2>化工安全智能问答</h2>
     </div>
     
@@ -41,38 +40,34 @@
 <style scoped>
 .feature-card {
   background: white;
-  border-radius: 16px;
+  border-radius: 12px;
   padding: 20px;
   display: flex;
   flex-direction: column;
   position: relative;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   overflow: hidden;
+  text-align: center;
 }
 
 .ai-feature {
   grid-column: 1;
   grid-row: 1;
-  max-height: calc(100vh - 200px);
+  max-height: calc(100vh - 180px);
   display: flex;
   flex-direction: column;
 }
 
 .feature-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
   margin-bottom: 15px;
-}
-
-.feature-icon {
-  font-size: 1.5rem;
+  text-align: center;
 }
 
 .feature-card h2 {
   margin: 0;
   font-size: 1.3rem;
   color: #1a1f36;
+  text-align: center;
 }
 
 /* AI能力样式 */
@@ -81,8 +76,8 @@
   justify-content: space-between;
   margin: 15px 0;
   background: rgba(79, 70, 229, 0.05);
-  border-radius: 12px;
-  padding: 15px;
+  border-radius: 8px;
+  padding: 12px;
 }
 
 .ai-capability {
@@ -97,16 +92,18 @@
   font-size: 0.9rem;
   font-weight: 600;
   color: #4f46e5;
+  text-align: center;
 }
 
 /* 示例问题样式 */
 .example-box {
   background: rgba(79, 70, 229, 0.05);
-  border-radius: 12px;
-  padding: 15px;
+  border-radius: 8px;
+  padding: 12px;
   margin: 15px 0;
   flex: 1;
   overflow-y: auto;
+  text-align: center;
 }
 
 .example-header {
@@ -114,18 +111,22 @@
   font-weight: 600;
   color: #1a1f36;
   margin-bottom: 12px;
+  text-align: center;
 }
 
 .example-list {
   margin: 0;
-  padding-left: 20px;
+  padding-left: 0;
   font-size: 0.85rem;
   color: #4a5568;
+  text-align: center;
+  list-style-position: inside;
 }
 
 .example-list li {
   margin-bottom: 8px;
   line-height: 1.4;
+  text-align: center;
 }
 
 /* 按钮容器 */
@@ -144,7 +145,7 @@
   background: #4f46e5;
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
   padding: 10px 16px;
   font-size: 0.85rem;
   font-weight: 600;

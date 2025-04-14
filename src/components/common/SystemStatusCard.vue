@@ -1,7 +1,6 @@
 <template>
   <div class="info-card">
     <div class="info-card-header">
-      <span class="info-icon">📊</span>
       <h3>系统状态</h3>
     </div>
     <div class="info-grid">
@@ -68,20 +67,15 @@ onMounted(() => {
 }
 
 .info-card-header {
-  display: flex;
-  align-items: center;
   margin-bottom: 12px;
-}
-
-.info-icon {
-  font-size: 1.2rem;
-  margin-right: 8px;
+  text-align: center;
 }
 
 .info-card h3 {
   font-size: 1rem;
   margin: 0;
   color: #1a1f36;
+  text-align: center;
 }
 
 .info-grid {

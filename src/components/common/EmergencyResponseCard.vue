@@ -1,32 +1,23 @@
 <template>
   <div class="feature-card small-feature">
     <div class="feature-header">
-      <div class="feature-icon emergency">🚨</div>
       <h2>应急处理</h2>
     </div>
     <p class="feature-desc">化工事故应急预案与快速响应流程</p>
     <div class="emergency-actions">
-      <div class="emergency-category">
+      <div 
+        class="emergency-category" 
+        v-for="file in emergencyFiles" 
+        :key="file.id"
+        :title="file.name"
+      >
         <div class="category-name">
-          <span>火灾爆炸</span>
+          <span>{{ truncateFileName(file.name) }}</span>
         </div>
-        <router-link to="/emergency/fire" class="quick-link">查看</router-link>
-      </div>
-      <div class="emergency-category">
-        <div class="category-name">
-          <span>化学泄漏</span>
-        </div>
-        <router-link to="/emergency/leak" class="quick-link">查看</router-link>
-      </div>
-      <div class="emergency-category">
-        <div class="category-name">
-          <span>人员中毒</span>
-        </div>
-        <router-link to="/emergency/poison" class="quick-link">查看</router-link>
       </div>
     </div>
     <div class="button-container">
-      <router-link to="/emergency" class="action-button emergency-button">
+      <router-link to="/emergency_files" class="action-button emergency-button">
         应急指南
       </router-link>
     </div>
@@ -34,7 +25,52 @@
 </template>
 
 <script setup>
-// No props or state needed for this component
+import { ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import { API_BASE_URL } from '@/config';
+
+const router = useRouter();
+const emergencyFiles = ref([]);
+
+// 获取应急文件列表
+const fetchEmergencyFiles = async () => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/emergency_files/?page=1&page_size=5`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'X-User-ID': localStorage.getItem('user_id')
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error('获取文件列表失败');
+    }
+    
+    const data = await response.json();
+    if (data.code === 200) {
+      emergencyFiles.value = data.data;
+    }
+  } catch (error) {
+    console.error('获取应急文件列表失败:', error);
+  }
+};
+
+// 截断文件名，确保在一行内显示
+const truncateFileName = (name) => {
+  if (name.length > 25) {
+    return name.substring(0, 25) + '...';
+  }
+  return name;
+};
+
+// 查看文件
+const viewFile = (file) => {
+  router.push(`/emergency_files/${file.id}`);
+};
+
+onMounted(() => {
+  fetchEmergencyFiles();
+});
 </script>
 
 <style scoped>
@@ -58,6 +94,7 @@
 .feature-header {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 10px;
   margin-bottom: 15px;
 }
@@ -87,6 +124,8 @@
   margin-bottom: 12px;
   flex: 1;
   overflow-y: auto;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .emergency-category {
@@ -96,21 +135,25 @@
   background: rgba(239, 68, 68, 0.05);
   padding: 8px 12px;
   border-radius: 8px;
+  transition: all 0.2s ease;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.emergency-category:hover {
+  background: rgba(239, 68, 68, 0.1);
 }
 
 .category-name {
-  display: flex;
-  align-items: center;
-  font-size: 0.8rem;
+  display: block;
+  font-size: 0.9rem;
   font-weight: 500;
   color: #4a5568;
-}
-
-.quick-link {
-  font-size: 0.75rem;
-  color: #ef4444;
-  font-weight: 600;
-  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* 按钮容器 */

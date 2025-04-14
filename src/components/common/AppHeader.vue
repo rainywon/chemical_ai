@@ -1,32 +1,28 @@
 <template>
   <div class="header">
     <div class="logo-container">
-      <img src="@/assets/product_logo.png" alt="应用Logo" class="logo animated" />
+      <img src="@/assets/product_logo.png" alt="应用Logo" class="logo" />
     </div>
     <div class="title-container">
-      <h1 class="title">智能化工安全助手</h1>
+      <h1 class="title">天工AI智能助手</h1>
       <p class="subtitle">您的专业化工安全AI对话助手，提供实时咨询与安全指导</p>
     </div>
     <div class="status-section">
       <div class="status-badge" :class="systemStatus">
-        <span class="status-icon">{{ statusIcon }}</span>
         <span>{{ statusText }}</span>
       </div>
-      <div class="settings-dropdown">
+      <div class="settings-dropdown" ref="settingsDropdown">
         <button class="settings-button" @click="toggleSettings">
-          <span class="settings-icon">⚙️</span>
+          <span class="settings-icon">设置</span>
         </button>
         <div class="dropdown-menu" v-show="showSettings">
           <div class="dropdown-item" @click="$emit('toggle-theme')">
-            <span class="item-icon">🌓</span>
             <span>切换主题 ({{ currentTheme === 'light' ? '浅色' : '深色' }})</span>
           </div>
           <div class="dropdown-item" @click="$emit('show-feedback')">
-            <span class="item-icon">📝</span>
             <span>信息反馈</span>
           </div>
           <div class="dropdown-item" @click="$emit('logout')">
-            <span class="item-icon">🚪</span>
             <span>退出登录</span>
           </div>
         </div>
@@ -36,7 +32,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { API_BASE_URL } from '../../config';
 
 // Props
@@ -53,6 +49,14 @@ defineEmits(['toggle-theme', 'show-feedback', 'logout']);
 // State
 const showSettings = ref(false);
 const systemStatus = ref('normal');
+const settingsDropdown = ref(null);
+
+// 点击外部关闭下拉菜单
+const handleClickOutside = (event) => {
+  if (settingsDropdown.value && !settingsDropdown.value.contains(event.target)) {
+    showSettings.value = false;
+  }
+};
 
 // 获取系统状态
 const fetchSystemStatus = async () => {
@@ -69,20 +73,7 @@ const fetchSystemStatus = async () => {
   }
 };
 
-// 状态图标和文本
-const statusIcon = computed(() => {
-  switch (systemStatus.value) {
-    case 'normal':
-      return '✓';
-    case 'warning':
-      return '⚠️';
-    case 'error':
-      return '✕';
-    default:
-      return '✓';
-  }
-});
-
+// 状态文本
 const statusText = computed(() => {
   switch (systemStatus.value) {
     case 'normal':
@@ -106,6 +97,13 @@ onMounted(() => {
   fetchSystemStatus();
   // 每30秒更新一次系统状态
   setInterval(fetchSystemStatus, 30000);
+  // 添加点击外部关闭事件监听
+  document.addEventListener('click', handleClickOutside);
+});
+
+// 组件卸载时移除事件监听
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside);
 });
 </script>
 
@@ -127,20 +125,9 @@ onMounted(() => {
   object-fit: contain;
 }
 
-/* Logo动画 */
-.logo.animated {
-  border-radius: 15px;
-  transition: transform 0.5s ease, box-shadow 0.5s ease;
-  overflow: hidden;
-}
-
-.logo.animated:hover {
-  transform: rotate(5deg) scale(1.05);
-  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
-}
-
 .title-container {
   flex-grow: 1;
+  text-align: center;
 }
 
 .title {
@@ -149,6 +136,7 @@ onMounted(() => {
   color: #1a1f36;
   margin: 0 0 4px 0;
   line-height: 1.2;
+  text-align: center;
 }
 
 .subtitle {
@@ -156,6 +144,7 @@ onMounted(() => {
   color: #4a5568;
   margin: 0;
   line-height: 1.4;
+  text-align: center;
 }
 
 .status-section {
@@ -188,10 +177,6 @@ onMounted(() => {
   color: #ef4444;
 }
 
-.status-icon {
-  margin-right: 6px;
-}
-
 /* 设置按钮和下拉菜单 */
 .settings-dropdown {
   position: relative;
@@ -200,22 +185,16 @@ onMounted(() => {
 .settings-button {
   background: transparent;
   border: none;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  padding: 6px 12px;
+  border-radius: 4px;
   cursor: pointer;
   transition: background 0.3s ease;
+  font-size: 0.9rem;
+  color: #4a5568;
 }
 
 .settings-button:hover {
   background: rgba(0, 0, 0, 0.05);
-}
-
-.settings-icon {
-  font-size: 1.2rem;
 }
 
 .dropdown-menu {
@@ -232,9 +211,6 @@ onMounted(() => {
 
 .dropdown-item {
   padding: 10px 15px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
   cursor: pointer;
   transition: background 0.2s ease;
   font-size: 0.85rem;
@@ -242,10 +218,6 @@ onMounted(() => {
 
 .dropdown-item:hover {
   background: rgba(0, 0, 0, 0.05);
-}
-
-.item-icon {
-  font-size: 1rem;
 }
 
 /* Dark theme styles */
@@ -267,6 +239,10 @@ body.dark-theme .dropdown-item {
 
 body.dark-theme .dropdown-item:hover {
   background: rgba(255, 255, 255, 0.1);
+}
+
+body.dark-theme .settings-button {
+  color: #d1d5db;
 }
 
 body.dark-theme .settings-button:hover {

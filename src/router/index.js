@@ -4,6 +4,7 @@ import Chat from '../views/Chat.vue';
 import Register from '../views/Register.vue'
 import Welcome from '../views/Welcome.vue'; // 导入新的欢迎页组件
 import SaftyFiles from '@/views/SaftyFiles.vue'
+import EmergencyFiles from '@/views/EmergencyFiles.vue'
 
 // 导入管理系统布局组件
 import AdminLayout from '../views/admin/AdminLayout.vue';
@@ -36,6 +37,14 @@ const routes = [
         component: SaftyFiles,
         meta: {
             title: '安全资料库 - 化工安全AI助手'
+        }
+    },
+    {
+        path: '/emergency_files',
+        name: 'EmergencyFiles',
+        component: EmergencyFiles,
+        meta: {
+            title: '应急处理资料库 - 化工安全AI助手'
         }
     },
     // 管理系统路由

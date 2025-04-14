@@ -427,8 +427,6 @@ const cancelConfirm = () => {
 
 /* ------------------ 用户操作 ------------------ */
 // 登录相关操作
-const checkLogin = () => localStorage.getItem("isAuthenticated") === "true";
-const getUserId = () => localStorage.getItem("user_id");
 const tologin = async () => {
   try {
     await showConfirm({
@@ -450,8 +448,6 @@ const tologin = async () => {
             throw new Error('退出登录失败');
           }
 
-          localStorage.removeItem("isAuthenticated");
-          localStorage.removeItem("user_id");
           localStorage.removeItem("token");
           localStorage.removeItem("mobile");
           localStorage.removeItem("generateMode");
