@@ -77,3 +77,51 @@ button:focus-visible {
         background-color: #f9f9f9;
     }
 }
+
+/* 全局移除Element Plus按钮点击时的黑边 */
+.el-button,
+.el-button:focus,
+.el-button:active,
+.el-button:hover,
+.el-button:visited {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* 移除Element Plus组件的所有黑边 */
+:focus {
+  outline: none !important;
+}
+
+.el-input__inner:focus,
+.el-textarea__inner:focus,
+.el-select:focus,
+.el-select .el-input__inner:focus,
+.el-date-editor:focus,
+.el-date-editor .el-input__inner:focus,
+.el-radio:focus,
+.el-checkbox:focus,
+.el-switch:focus,
+.el-input-number:focus,
+.el-cascader:focus,
+.el-slider:focus,
+.el-tabs__item:focus,
+.el-pagination__jump .el-input__inner:focus,
+.el-cascader__search-input:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* 解决点击对话框中的按钮黑边问题 */
+.el-dialog .el-button:focus,
+.el-dialog .el-button:active,
+.el-message-box .el-button:focus,
+.el-message-box .el-button:active,
+.el-popconfirm .el-button:focus,
+.el-popconfirm .el-button:active,
+.el-drawer .el-button:focus,
+.el-drawer .el-button:active {
+  outline: none !important;
+  box-shadow: none !important;
+  border-color: initial;
+}

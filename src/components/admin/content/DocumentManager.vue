@@ -946,14 +946,18 @@ function getTagType(fileType) {
   display: flex;
   flex-wrap: wrap;
   gap: 15px;
-  align-items: center;
+  align-items: flex-end;
   padding: 16px 20px;
+  justify-content: space-between;
 }
 
 .filter-item {
   display: flex;
   flex-direction: column;
-  min-width: 200px;
+  flex: 1 0 auto;
+  min-width: 180px;
+  max-width: 250px;
+  margin-bottom: 10px;
 }
 
 .filter-label {
@@ -963,18 +967,18 @@ function getTagType(fileType) {
 }
 
 .search-input {
-  width: 250px;
+  width: 100%;
 }
 
 .filter-select,
 .date-picker {
-  width: 200px;
+  width: 100%;
 }
 
 .refresh-button {
-  margin-left: auto;
   height: 40px;
-  align-self: flex-end;
+  margin-bottom: 10px;
+  flex: 0 0 auto;
 }
 
 /* 表格卡片样式 */
@@ -1167,7 +1171,7 @@ function getTagType(fileType) {
 
 .instruction-list li {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   margin-bottom: 10px;
   color: #444;
 }
@@ -1180,6 +1184,7 @@ function getTagType(fileType) {
   color: #409EFF;
   margin-right: 8px;
   font-size: 16px;
+  flex-shrink: 0;
 }
 
 .upload-area {
@@ -1225,6 +1230,8 @@ function getTagType(fileType) {
 :deep(.file-uploader .el-upload__text) {
   color: #606266;
   font-size: 16px;
+  text-align: center;
+  padding: 0 10px;
 }
 
 :deep(.file-uploader .el-upload__text em) {
@@ -1286,6 +1293,8 @@ function getTagType(fileType) {
   max-height: 90vh !important;
   display: flex !important;
   flex-direction: column !important;
+  width: 80% !important;
+  max-width: 900px !important;
 }
 
 :deep(.upload-file-dialog .el-dialog__body) {
@@ -1364,10 +1373,40 @@ function getTagType(fileType) {
 }
 
 /* 添加响应式布局支持 */
+@media screen and (max-width: 1200px) {
+  :deep(.upload-file-dialog .el-dialog) {
+    width: 90% !important;
+  }
+}
+
 @media screen and (max-width: 768px) {
   :deep(.upload-file-dialog .el-dialog) {
     width: 95% !important;
     margin: 10px auto !important;
+  }
+  
+  :deep(.file-uploader .el-upload-dragger) {
+    height: 100px;
+  }
+  
+  :deep(.file-uploader .el-icon--upload) {
+    font-size: 36px;
+  }
+
+  :deep(.file-uploader .el-upload__text) {
+    font-size: 14px;
+  }
+  
+  .instruction-list li {
+    align-items: flex-start;
+  }
+  
+  .instruction-icon {
+    margin-top: 2px;
+  }
+  
+  .selected-files-container {
+    max-height: 250px;
   }
   
   .search-input,
@@ -1379,19 +1418,43 @@ function getTagType(fileType) {
   
   .filter-container {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
   }
-  
+
   .filter-item {
-    width: 100%;
-    margin-bottom: 10px;
+    max-width: 100%;
   }
   
   .refresh-button {
-    margin-left: 0;
-    margin-top: 10px;
     width: 100%;
+    margin-top: 10px;
   }
+}
+
+@media screen and (min-width: 769px) and (max-width: 1200px) {
+  .filter-item {
+    min-width: 160px;
+  }
+  
+  .refresh-button {
+    margin-top: 0;
+  }
+}
+
+/* 确保所有按钮点击时没有黑边 */
+:deep(.el-button:focus),
+:deep(.el-button:active),
+:deep(.el-button:focus-visible) {
+  outline: none !important;
+  box-shadow: none !important;
+  border-color: var(--el-button-hover-border-color);
+}
+
+:deep(.el-upload-dragger:focus),
+:deep(.el-upload-dragger:active) {
+  outline: none !important;
+  border-color: #409eff !important;
+  box-shadow: none !important;
 }
 </style>
   

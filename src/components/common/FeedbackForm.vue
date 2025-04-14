@@ -7,7 +7,14 @@
       </div>
       
       <div class="feedback-content">
-        <div class="feedback-layout">
+        <div v-if="isSubmitSuccess" class="submit-success-container">
+          <div class="success-icon">
+            <el-icon><Check /></el-icon>
+          </div>
+          <h3>感谢您的反馈！</h3>
+          <p>您的反馈对我们非常重要，我们将持续优化AI助手的回答质量</p>
+        </div>
+        <div v-else class="feedback-layout">
           <div class="feedback-column content-column">
             <h3 class="section-title">天工AI智能助手的回答：</h3>
             <div class="ai-message">
@@ -93,6 +100,7 @@
 <script setup>
 import { ref, onMounted, computed } from "vue";
 import { ElMessageBox, ElMessage } from "element-plus";
+import { Check } from '@element-plus/icons-vue';
 import { API_BASE_URL } from "../../config";
 import axios from "axios";
 import MarkdownIt from 'markdown-it';
@@ -123,6 +131,7 @@ const emit = defineEmits(["update:visible", "submitFeedback"]);
 
 const feedback = ref("");
 const rating = ref(0);
+const isSubmitSuccess = ref(false);
 
 const feedbackOptions = [
   { value: "inaccurate", label: "内容不准确" },
@@ -135,20 +144,25 @@ const selectedFeedbackOption = ref("");
 
 const closeFeedback = () => {
   emit("update:visible", false);
+  setTimeout(() => {
+    isSubmitSuccess.value = false;
+  }, 300);
 };
 
 const submitFeedback = async () => {
   if (rating.value) {
     try {
-      const response = await fetch(`${API_BASE_URL}/submit-content_feedback`, {
+      const user_id = localStorage.getItem('user_id');
+      const response = await fetch(`${API_BASE_URL}/submit-feedback/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          user_id: user_id ? parseInt(user_id) : null,
           rating: rating.value,
           feedback: feedback.value,
-          feedbackOption: selectedFeedbackOption.value,
+          feedback_option: selectedFeedbackOption.value,
           message: props.message,
           question: props.question,
         }),
@@ -156,13 +170,25 @@ const submitFeedback = async () => {
 
       const result = await response.json();
       if (response.ok) {
+        isSubmitSuccess.value = true;
+        
         ElMessage({
-          message: "反馈提交成功！",
+          message: "感谢您的反馈！我们将持续优化AI助手的回答质量",
           type: "success",
+          duration: 3000,
+          showClose: true,
+          offset: 80,
         });
-        closeFeedback();
+        
+        feedback.value = "";
+        selectedFeedbackOption.value = "";
+        rating.value = 0;
+        
+        setTimeout(() => {
+          closeFeedback();
+        }, 2000);
       } else {
-        ElMessage.error(result.error || "提交失败");
+        ElMessage.error(result.error || result.detail || "提交失败");
       }
     } catch (error) {
       ElMessage.error("提交失败，请稍后再试");
@@ -748,4 +774,65 @@ button:last-child:hover {
   margin: 2em 0;
 }
 
+.submit-success-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  text-align: center;
+  padding: 2rem;
+}
+
+.success-icon {
+  width: 80px;
+  height: 80px;
+  background: linear-gradient(135deg, #4ade80, #22c55e);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 10px 25px rgba(34, 197, 94, 0.3);
+  animation: scaleIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both;
+}
+
+.success-icon i,
+.success-icon .el-icon {
+  font-size: 40px;
+  color: white;
+}
+
+.submit-success-container h3 {
+  font-size: 24px;
+  font-weight: 700;
+  color: #16a34a;
+  margin-bottom: 0.75rem;
+  animation: fadeInUp 0.5s ease 0.4s both;
+}
+
+.submit-success-container p {
+  font-size: 16px;
+  color: #4b5563;
+  max-width: 450px;
+  line-height: 1.6;
+  animation: fadeInUp 0.5s ease 0.6s both;
+}
+
+@keyframes scaleIn {
+  from { transform: scale(0); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes fadeInUp {
+  from { 
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 </style>

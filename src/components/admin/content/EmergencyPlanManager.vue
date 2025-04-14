@@ -784,6 +784,32 @@ const resetFilters = () => {
   loadFileList();
   ElMessage.success('已重置所有筛选条件');
 };
+
+@media screen and (min-width: 769px) and (max-width: 1200px) {
+  .filter-item {
+    min-width: 160px;
+  }
+  
+  .refresh-button {
+    margin-top: 0;
+  }
+}
+
+/* 确保所有按钮点击时没有黑边 */
+:deep(.el-button:focus),
+:deep(.el-button:active),
+:deep(.el-button:focus-visible) {
+  outline: none !important;
+  box-shadow: none !important;
+  border-color: var(--el-button-hover-border-color);
+}
+
+:deep(.el-upload-dragger:focus),
+:deep(.el-upload-dragger:active) {
+  outline: none !important;
+  border-color: #409eff !important;
+  box-shadow: none !important;
+}
 </script>
 
 <style scoped>
@@ -895,14 +921,18 @@ const resetFilters = () => {
   display: flex;
   flex-wrap: wrap;
   gap: 15px;
-  align-items: center;
+  align-items: flex-end;
   padding: 16px 20px;
+  justify-content: space-between;
 }
 
 .filter-item {
   display: flex;
   flex-direction: column;
-  min-width: 200px;
+  flex: 1 0 auto;
+  min-width: 180px;
+  max-width: 250px;
+  margin-bottom: 10px;
 }
 
 .filter-label {
@@ -912,18 +942,18 @@ const resetFilters = () => {
 }
 
 .search-input {
-  width: 250px;
+  width: 100%;
 }
 
 .filter-select,
 .date-picker {
-  width: 200px;
+  width: 100%;
 }
 
 .refresh-button {
-  margin-left: auto;
   height: 40px;
-  align-self: flex-end;
+  margin-bottom: 10px;
+  flex: 0 0 auto;
 }
 
 /* 表格卡片样式 */
@@ -1129,7 +1159,7 @@ const resetFilters = () => {
 
 .instruction-list li {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   margin-bottom: 10px;
   color: #444;
 }
@@ -1142,6 +1172,7 @@ const resetFilters = () => {
   color: #409EFF;
   margin-right: 8px;
   font-size: 16px;
+  flex-shrink: 0;
 }
 
 .upload-area {
@@ -1187,6 +1218,8 @@ const resetFilters = () => {
 :deep(.file-uploader .el-upload__text) {
   color: #606266;
   font-size: 16px;
+  text-align: center;
+  padding: 0 10px;
 }
 
 :deep(.file-uploader .el-upload__text em) {
@@ -1248,6 +1281,8 @@ const resetFilters = () => {
   max-height: 90vh !important;
   display: flex !important;
   flex-direction: column !important;
+  width: 80% !important;
+  max-width: 900px !important;
 }
 
 :deep(.upload-file-dialog .el-dialog__body) {
@@ -1256,103 +1291,40 @@ const resetFilters = () => {
   max-height: calc(90vh - 120px) !important;
 }
 
-:deep(.el-dialog__wrapper) {
-  position: fixed !important;
-  top: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  left: 0 !important;
-  overflow: auto !important;
-  margin: 0 !important;
-  z-index: 3000 !important;
+@media screen and (max-width: 1200px) {
+  :deep(.upload-file-dialog .el-dialog) {
+    width: 90% !important;
+  }
 }
 
-:deep(.el-dialog) {
-  position: relative !important;
-  margin: 15vh auto 50px !important;
-  z-index: 3001 !important;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1) !important;
-}
-
-:deep(.el-upload-dragger:focus),
-:deep(.el-upload-dragger:active) {
-  outline: none !important;
-  border-color: #409eff !important;
-}
-
-:deep(.el-button:focus),
-:deep(.el-button:active) {
-  outline: none !important;
-  box-shadow: none !important;
-}
-
-:deep(.file-uploader .el-upload-list) {
-  max-height: 0;
-  overflow: hidden;
-}
-
-:deep(.selected-files .el-scrollbar__wrap) {
-  overflow-x: hidden;
-}
-
-/* 添加files-scrollbar样式 */
-.files-scrollbar {
-  flex: 1;
-  overflow: hidden;
-}
-
-:deep(.el-upload__tip) {
-  width: 100%;
-  box-sizing: border-box;
-  word-break: break-word;
-}
-
-:deep(.date-picker) {
-  max-width: 100%;
-  box-sizing: border-box;
-}
-
-:deep(.el-table) {
-  width: 100% !important;
-  table-layout: fixed;
-}
-
-:deep(.el-table__body) {
-  width: 100% !important;
-}
-
-:deep(.el-table .cell) {
-  word-break: break-word;
-}
-
-/* 添加响应式布局支持 */
 @media screen and (max-width: 768px) {
   :deep(.upload-file-dialog .el-dialog) {
     width: 95% !important;
     margin: 10px auto !important;
   }
   
-  .search-input,
-  .filter-select,
-  .date-picker {
-    width: 100%;
-    max-width: 250px;
+  :deep(.file-uploader .el-upload-dragger) {
+    height: 100px;
   }
   
-  .filter-container {
-    flex-direction: column;
+  :deep(.file-uploader .el-icon--upload) {
+    font-size: 36px;
+  }
+
+  :deep(.file-uploader .el-upload__text) {
+    font-size: 14px;
+  }
+  
+  .instruction-list li {
     align-items: flex-start;
   }
   
-  .filter-item {
-    width: 100%;
-    margin-bottom: 10px;
+  .instruction-icon {
+    margin-top: 2px;
   }
   
-  .refresh-button {
-    margin-left: 0;
-    margin-top: 10px;
-    width: 100%;
+  .selected-files-container {
+    max-height: 250px;
   }
 }
 </style>
