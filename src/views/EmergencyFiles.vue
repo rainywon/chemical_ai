@@ -206,7 +206,6 @@ const displayedPages = computed(() => {
 
 // 文件操作函数
 const viewFile = (file) => {
-  console.log('查看文件:', file);
   // 实现文件预览逻辑，可能打开新窗口或使用预览组件
 };
 </script>

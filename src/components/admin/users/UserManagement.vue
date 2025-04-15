@@ -164,7 +164,8 @@ const fetchUserList = async () => {
     const response = await fetch(`${API_BASE_URL}/admin/users?${params.toString()}`, {
       method: 'GET',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
       }
     });
     
@@ -229,7 +230,6 @@ const handleStatusChange = (user) => {
   
   const action = user.status === 1 ? '禁用' : '启用';
   const newStatus = user.status === 1 ? 0 : 1;
-  const adminId = localStorage.getItem('admin_id');
   
   // 自定义确认对话框样式
   ElMessageBox.confirm(
@@ -251,12 +251,12 @@ const handleStatusChange = (user) => {
       const response = await fetch(`${API_BASE_URL}/admin/users/status`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
         body: JSON.stringify({
           user_id: user.user_id,
-          status: newStatus,
-          admin_id:adminId
+          status: newStatus
         })
       });
       

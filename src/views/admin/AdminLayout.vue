@@ -327,12 +327,11 @@ const fetchAdminInfo = async () => {
       adminInfo.value = response.data.data;
       // 初始化表单数据
       profileForm.value = {
-        admin_id: parseInt(adminId.value),
+        admin_id: adminInfo.value.admin_id,
         full_name: adminInfo.value.full_name || '',
         email: adminInfo.value.email || '',
         phone_number: adminInfo.value.phone_number || ''
       };
-      console.log('获取到管理员信息:', adminInfo.value);
     } else {
       ElMessage.error(response.data.message || '获取管理员信息失败');
       if (response.data.code === 404) {
@@ -369,7 +368,6 @@ const toggleFullScreen = () => {
 // 搜索处理
 const handleSearch = () => {
   if (searchQuery.value.trim()) {
-    console.log('执行搜索:', searchQuery.value);
     // 这里可以实现搜索逻辑
   }
 };
@@ -544,8 +542,6 @@ const updateProfile = async () => {
           return;
         }
         
-        console.log('更新个人资料:', profileForm.value);
-        
         const response = await axios.put(
           `${API_BASE_URL}/admin/profile`, 
           profileForm.value,
@@ -633,7 +629,7 @@ const updatePassword = async () => {
           
           // 清空密码表单
           passwordForm.value = {
-            admin_id: parseInt(adminId.value),
+            admin_id: adminInfo.value.admin_id,
             old_password: '',
             new_password: '',
             confirm_password: ''
@@ -675,9 +671,7 @@ const handleLogout = () => {
   )
     .then(() => {
       // 清除本地存储中的登录信息
-      localStorage.removeItem('adminId');
-      localStorage.removeItem('adminName');
-      localStorage.removeItem('adminToken');
+      localStorage.removeItem('token');
       
       // 提示用户已登出
       ElMessage.success('已成功退出登录');

@@ -35,10 +35,15 @@ const emergencyFiles = ref([]);
 // 获取应急文件列表
 const fetchEmergencyFiles = async () => {
   try {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      console.error('未找到认证令牌');
+      return;
+    }
+    
     const response = await fetch(`${API_BASE_URL}/emergency_files/?page=1&page_size=5`, {
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        'X-User-ID': localStorage.getItem('user_id')
+        'Authorization': `Bearer ${token}`
       }
     });
     

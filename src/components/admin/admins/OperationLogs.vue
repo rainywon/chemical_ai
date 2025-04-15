@@ -224,15 +224,6 @@ const fetchOperationLogs = async () => {
       params.append('end_date', searchParams.endDate);
     }
     
-    // 获取当前管理员ID
-    const currentAdminId = localStorage.getItem('admin_id');
-    if (currentAdminId) {
-      const adminIdNum = parseInt(currentAdminId);
-      if (!isNaN(adminIdNum)) {
-        params.append('current_admin_id', adminIdNum.toString());
-      }
-    }
-    
     // 获取认证 token
     const token = localStorage.getItem('token');
     if (!token) {
@@ -327,20 +318,8 @@ const showLogDetail = async (log) => {
       return;
     }
     
-    // 获取当前管理员ID
-    const adminId = localStorage.getItem('admin_id');
-    let url = `${apiBaseUrl.value}/admin/operation-logs/${log.log_id}`;
-    
-    // 添加管理员ID到查询参数
-    if (adminId) {
-      const adminIdNum = parseInt(adminId);
-      if (!isNaN(adminIdNum)) {
-        url += `?current_admin_id=${adminIdNum}`;
-      }
-    }
-    
     // 查询日志详情
-    const response = await fetch(url, {
+    const response = await fetch(`${apiBaseUrl.value}/admin/operation-logs/${log.log_id}`, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
@@ -378,12 +357,7 @@ const showLogDetail = async (log) => {
 
 // 生命周期钩子
 onMounted(() => {
-  // 检查管理员身份
-  const isAdmin = localStorage.getItem('isAdmin') === 'true';
-  if (!isAdmin) {
-    ElMessage.error('只有管理员才能访问此页面');
-    return;
-  }
+
   
   // 加载操作日志记录
   fetchOperationLogs();

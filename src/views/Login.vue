@@ -415,7 +415,6 @@ const login = async () => {
     });
     
     const data = await response.json();
-    console.log(data);
     if (data.code === 200) {
       // 存储登录状态和Token
       if (data.data.token && loginMode.value !== 2) {

@@ -409,14 +409,26 @@ const showConfirm = (options) => {
   confirmType.value = options.type || 'warning'; 
   confirmText.value = options.confirmButtonText || '确定';
   cancelText.value = options.cancelButtonText || '取消';
-  confirmAction.value = options.onConfirm || (() => {});
+  confirmAction.value = async () => {
+    showCustomConfirm.value = false;
+    try {
+      if (options.onConfirm) await options.onConfirm();
+    } catch (error) {
+      ElMessage.error(error.message || "操作失败");
+    }
+  };
   showCustomConfirm.value = true;
   
   return new Promise((resolve, reject) => {
-    confirmAction.value = () => {
+    confirmAction.value = async () => {
       showCustomConfirm.value = false;
-      if (options.onConfirm) options.onConfirm();
-      resolve(true);
+      try {
+        if (options.onConfirm) await options.onConfirm();
+        resolve(true);
+      } catch (error) {
+        ElMessage.error(error.message || "操作失败");
+        reject(error);
+      }
     };
   });
 };
@@ -437,10 +449,16 @@ const tologin = async () => {
       cancelButtonText: '取消',
       onConfirm: async () => {
         try {
+          const token = localStorage.getItem('token');
+          if (!token) {
+            console.error('未找到认证令牌');
+            return;
+          }
+          
           const response = await fetch(`${API_BASE_URL}/logout/`, {
             method: 'POST',
             headers: {
-              'Authorization': `Bearer ${localStorage.getItem('token')}`
+              'Authorization': `Bearer ${token}`
             }
           });
 
@@ -527,16 +545,21 @@ const handleSendMessage = async () => {
         await loadChatSessionMessages(mostRecentSession.id);
       } else {
         // 没有现有会话，创建新会话
-        const userId = getUserId();
+        const token = localStorage.getItem('token');
+        if (!token) {
+          console.error('未找到认证令牌');
+          return;
+        }
+        
         const title = `新对话`;
         
         const response = await fetch(`${API_BASE_URL}/chat/sessions`, {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
           },
           body: JSON.stringify({
-            user_id: userId,
             title: title
           })
         });
@@ -544,6 +567,7 @@ const handleSendMessage = async () => {
         if (!response.ok) throw new Error("创建会话失败");
         
         const data = await response.json();
+        
         currentChatId.value = data.id;
         currentChatTitle.value = data.title;
         
@@ -683,9 +707,18 @@ const processAIResponse = async (question, aiMsgOrId) => {
       generate_mode = "query_rag";
     }
 
+    const token = localStorage.getItem('token');
+    if (!token) {
+      console.error('未找到认证令牌');
+      throw new Error("未找到认证令牌，请重新登录");
+    }
+
     const response = await fetch(`${API_BASE_URL}/${generate_mode}/`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
       body: JSON.stringify({ question: question }),
       signal: abortController.signal,
     });
@@ -802,7 +835,7 @@ const processAIResponse = async (question, aiMsgOrId) => {
     
   } catch (error) {
     if (error.name === 'AbortError') {
-      console.log('请求被用户中断');
+      // 移除非必要的日志
     } else {
       console.error("处理AI响应时出错:", error);
       
@@ -835,11 +868,18 @@ const processAIResponse = async (question, aiMsgOrId) => {
 /* ------------------ 聊天历史管理 ------------------ */
 // 加载用户的所有聊天会话
 const loadUserChatSessions = async () => {
-
-  
   try {
-    const userId = 13;
-    const response = await fetch(`${API_BASE_URL}/chat/sessions/${userId}`);
+    const token = localStorage.getItem('token');
+    if (!token) {
+      console.error('未找到认证令牌');
+      return;
+    }
+    
+    const response = await fetch(`${API_BASE_URL}/chat/sessions`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
     
     if (!response.ok) {
       throw new Error("获取会话列表失败");
@@ -864,7 +904,17 @@ const loadChatSessionMessages = async (sessionId) => {
   currentChatHistory.value = []; // 清空当前消息
   
   try {
-    const response = await fetch(`${API_BASE_URL}/chat/sessions/${sessionId}/messages`);
+    const token = localStorage.getItem('token');
+    if (!token) {
+      console.error('未找到认证令牌');
+      return;
+    }
+    
+    const response = await fetch(`${API_BASE_URL}/chat/sessions/${sessionId}/messages`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
     
     if (!response.ok) {
       throw new Error("获取会话消息失败");
@@ -956,23 +1006,28 @@ const loadChatSessionMessages = async (sessionId) => {
 
 // 创建新的聊天会话
 const createNewChatSession = async () => {
-  if (!checkLogin()) {
+  if (!localStorage.getItem("token")) {
     showLoginPrompt.value = true;
     return;
   }
   
   try {
     // 创建新会话
-    const userId = getUserId();
+    const token = localStorage.getItem('token');
+    if (!token) {
+      console.error('未找到认证令牌');
+      return;
+    }
+    
     const title = `新对话`;
     
     const response = await fetch(`${API_BASE_URL}/chat/sessions`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify({
-        user_id: userId,
         title: title
       })
     });
@@ -1047,8 +1102,17 @@ const deleteChatSession = async (sessionId) => {
       cancelButtonText: '取消',
       onConfirm: async () => {
         try {
+          const token = localStorage.getItem('token');
+          if (!token) {
+            console.error('未找到认证令牌');
+            return;
+          }
+          
           const response = await fetch(`${API_BASE_URL}/chat/sessions/${sessionId}`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
           });
           
           if (!response.ok) {
@@ -1079,7 +1143,7 @@ const deleteChatSession = async (sessionId) => {
 
 // 清除所有聊天历史
 const clearAllChatHistory = async () => {
-  if (!checkLogin()) {
+  if (!localStorage.getItem("token")) {
     showLoginPrompt.value = true;
     return;
   }
@@ -1098,30 +1162,65 @@ const clearAllChatHistory = async () => {
       cancelButtonText: '取消',
       onConfirm: async () => {
         try {
-          const userId = getUserId();
-          const response = await fetch(`${API_BASE_URL}/chat/sessions/user/${userId}`, {
-            method: 'DELETE'
-          });
-          
-          if (!response.ok) {
-            throw new Error("清除历史失败");
+          const token = localStorage.getItem('token');
+          if (!token) {
+            console.error('未找到认证令牌');
+            throw new Error("未找到认证令牌，请重新登录");
           }
           
-          // 清空会话列表和当前消息
-          totalChatHistory.value = [];
-          currentChatHistory.value = [];
-          currentChatId.value = null;
-          currentChatTitle.value = "";
-          
-          ElMessage.success("所有历史对话已清除");
+          try {
+            // 尝试常规删除
+            const response = await axios.delete(`${API_BASE_URL}/chat/sessions`, {
+              headers: {
+                'Authorization': `Bearer ${token}`
+              }
+            }).catch(error => {
+              console.error("常规清除历史错误详情:", error.response || error);
+              // 如果常规请求失败，记录但不抛出错误
+              return { status: error.response?.status || 500, data: error.response?.data || {} };
+            });
+            
+            // 检查常规删除是否成功
+            if (response.status === 200) {
+              // 清空会话列表和当前消息
+              totalChatHistory.value = [];
+              currentChatHistory.value = [];
+              currentChatId.value = null;
+              currentChatTitle.value = "";
+              
+              ElMessage.success("所有历史对话已清除");
+              return;
+            }
+            
+            // 如果常规删除返回403（权限错误）或404（未找到），尝试使用紧急清理端点
+            if (response.status === 403 || response.status === 404 || response.status === 500) {
+              // 尝试使用紧急清理端点
+              const emergencyResponse = await axios.delete(`${API_BASE_URL}/chat/sessions/emergency-clean`, {
+                headers: {
+                  'Authorization': `Bearer ${token}`
+                }
+              });
+              
+              // 清空会话列表和当前消息
+              totalChatHistory.value = [];
+              currentChatHistory.value = [];
+              currentChatId.value = null;
+              currentChatTitle.value = "";
+              
+              ElMessage.success("所有历史对话已清除");
+            }
+          } catch (finalError) {
+            console.error("清除历史彻底失败:", finalError);
+            throw new Error(`清除历史失败: ${finalError.message || "未知错误"}`);
+          }
         } catch (error) {
           console.error("清除历史失败:", error);
-          ElMessage.error("清除历史失败");
+          throw error;
         }
       }
     });
-  } catch (e) {
-    // 移除非必要的日志
+  } catch (error) {
+    console.error("清除历史操作被取消或出错:", error);
   }
 };
 
@@ -1133,6 +1232,12 @@ const saveMessage = async (message) => {
   }
   
   try {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      console.error('未找到认证令牌');
+      return;
+    }
+    
     // 处理 references 字段，将对象转换为 JSON 字符串
     let referencesJson = '[]';
     if (message.references) {
@@ -1161,7 +1266,8 @@ const saveMessage = async (message) => {
     const response = await fetch(`${API_BASE_URL}/chat/messages`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify(messageData)
     });
@@ -1186,6 +1292,12 @@ const updateMessage = async (message) => {
   }
   
   try {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      console.error('未找到认证令牌');
+      return;
+    }
+    
     // 处理 references 字段，将对象转换为 JSON 字符串
     let referencesJson = '[]';
     if (message.references) {
@@ -1208,7 +1320,8 @@ const updateMessage = async (message) => {
     const response = await fetch(`${API_BASE_URL}/chat/messages/${message.id}`, {
       method: 'PUT',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify(messageData)
     });
@@ -1251,10 +1364,17 @@ const saveEditedTitle = async () => {
   }
   
   try {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      console.error('未找到认证令牌');
+      return;
+    }
+    
     const response = await fetch(`${API_BASE_URL}/chat/sessions/${currentChatId.value}`, {
       method: 'PUT',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify({
         title: editingTitle.value
@@ -1292,6 +1412,12 @@ const updateSessionTitle = async (sessionId, messageText) => {
   if (!sessionId) return;
   
   try {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      console.error('未找到认证令牌');
+      return;
+    }
+    
     // 截取消息的前20个字符作为标题
     let title = messageText.trim();
     if (title.length > 20) {
@@ -1302,7 +1428,8 @@ const updateSessionTitle = async (sessionId, messageText) => {
     const response = await fetch(`${API_BASE_URL}/chat/sessions/${sessionId}`, {
       method: 'PUT',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify({
         title: title

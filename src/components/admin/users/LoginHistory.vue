@@ -199,22 +199,13 @@ const fetchLoginHistory = async () => {
       if (dateRange.value[0]) params.append('start_date', dateRange.value[0]);
       if (dateRange.value[1]) params.append('end_date', dateRange.value[1]);
     }
-
-    // 获取并添加管理员ID
-    const adminId = localStorage.getItem('admin_id');
-    if (adminId) {
-      const adminIdNum = parseInt(adminId);
-      if (!isNaN(adminIdNum)) {
-        params.append('admin_id', adminIdNum.toString());
-      }
-    }
-
     
     // 使用新的API路径
     const response = await fetch(`${apiBaseUrl.value}/admin/login-history/all?${params.toString()}`, {
       method: 'GET',
       headers: {
-        'Accept': 'application/json'
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
       }
     });
     
@@ -280,24 +271,12 @@ const viewUserDetails = async (userId) => {
       loading.value = false;
       return;
     }
-
-    // 获取管理员ID并转换为整数
-    const adminId = localStorage.getItem('admin_id');
-    const params = new URLSearchParams();
     
-    if (adminId && adminId.trim() !== '') {
-      const adminIdNum = parseInt(adminId);
-      if (!isNaN(adminIdNum)) {
-        params.append('admin_id', adminIdNum);
-      }
-    }
-    
-    // 调试输出
-    
-    const response = await fetch(`${apiBaseUrl.value}/admin/users/${userIdNum}?${params.toString()}`, {
+    const response = await fetch(`${apiBaseUrl.value}/admin/users/${userIdNum}`, {
       method: 'GET',
       headers: {
-        'Accept': 'application/json'
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
       }
     });
     
@@ -326,13 +305,6 @@ const viewUserDetails = async (userId) => {
 
 // 生命周期钩子
 onMounted(() => {
-  // 检查管理员身份
-  const isAdmin = localStorage.getItem('isAdmin') === 'true';
-  if (!isAdmin) {
-    ElMessage.error('只有管理员才能访问此页面');
-    return;
-  }
-  
   // 加载登录历史记录
   fetchLoginHistory();
 });

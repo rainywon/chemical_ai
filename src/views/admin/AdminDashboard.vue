@@ -187,7 +187,7 @@
                     <div class="activity-content">
                       <div class="activity-title">{{ scope.row.title || '无标题对话' }}</div>
                       <div class="activity-meta">
-                        <span>用户: {{ scope.row.user_id }}</span>
+                        <span>用户: {{ scope.row.mobile }}</span>
                         <span>消息数: {{ scope.row.message_count }}</span>
                         <span class="activity-time">{{ scope.row.created_at }}</span>
                       </div>
@@ -224,7 +224,7 @@
                     <div class="activity-content">
                       <div class="activity-title">用户登录</div>
                       <div class="activity-meta">
-                        <span>用户: {{ scope.row.user_id }}</span>
+                        <span>用户: {{ scope.row.mobile }}</span>
                         <span class="activity-time">{{ scope.row.login_time }}</span>
                       </div>
                     </div>
@@ -571,8 +571,6 @@ const loadStats = async () => {
         stats.contentFeedbacks = data.feedback_stats.content_feedbacks || 0;
         stats.avgRating = data.feedback_stats.avg_rating || 0;
       }
-
-      console.log('内容统计数据:', data.content_stats);
     }
   } catch (error) {
     console.error('加载统计数据失败:', error);
@@ -972,12 +970,6 @@ const loadContentStats = async () => {
     if (emergencyResponse && emergencyResponse.data && emergencyResponse.data.success && emergencyResponse.data.data) {
       stats.emergencyCount = emergencyResponse.data.data.total || 0;
     }
-    
-    console.log('内容数据已通过单独API加载:', {
-      knowledge: stats.knowledgeCount,
-      safety: stats.safetyCount,
-      emergency: stats.emergencyCount
-    });
   } catch (error) {
     console.error('加载内容统计数据失败:', error);
   }
@@ -1369,30 +1361,6 @@ onMounted(() => {
 
 .feedback-card .data-value::after {
   background-color: #f56c6c;
-}
-
-.data-item:hover .data-value::after {
-  width: 100%;
-}
-
-.user-card .data-value:hover {
-  color: #409eff;
-  transform: scale(1.05);
-}
-
-.content-card .data-value:hover {
-  color: #67c23a;
-  transform: scale(1.05);
-}
-
-.activity-card .data-value:hover {
-  color: #e6a23c;
-  transform: scale(1.05);
-}
-
-.feedback-card .data-value:hover {
-  color: #f56c6c;
-  transform: scale(1.05);
 }
 
 .data-trend {

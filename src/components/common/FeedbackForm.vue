@@ -163,9 +163,6 @@ const submitFeedback = async () => {
         question: props.question || " ", // 确保question始终有值
       };
       
-      // 打印要发送的数据
-      console.log('Sending feedback data:', requestData);
-      
       const response = await fetch(`${API_BASE_URL}/submit-feedback/`, {
         method: "POST",
         headers: {
@@ -175,9 +172,7 @@ const submitFeedback = async () => {
         body: JSON.stringify(requestData),
       });
 
-      console.log('Response status:', response.status);
       const responseText = await response.text();
-      console.log('Response text:', responseText);
       
       // 尝试解析JSON
       let result;
