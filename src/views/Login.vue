@@ -114,12 +114,22 @@
       </div>
       
 
-      <!-- 隐私协议 -->
-          <div class="agreement-area" v-if="loginMode !== 2">
-            <el-checkbox v-model="formData.agreed" class="agreement-checkbox">
-              我已阅读并同意<a href="javascript:void(0)" class="agreement-link">《用户服务协议》</a>和<a href="javascript:void(0)" class="agreement-link">《隐私政策》</a>，未注册手机号将自动完成注册
-        </el-checkbox>
-
+      <!-- 隐私协议或管理员说明 -->
+      <div class="agreement-area">
+        <template v-if="loginMode !== 2">
+          <el-checkbox v-model="formData.agreed" class="agreement-checkbox">
+            我已阅读并同意<a href="javascript:void(0)" class="agreement-link">《用户服务协议》</a>和<a href="javascript:void(0)" class="agreement-link">《隐私政策》</a>，未注册手机号将自动完成注册
+          </el-checkbox>
+        </template>
+        <div v-else class="admin-notice">
+          <div class="admin-notice-icon">
+            <el-icon><Lock /></el-icon>
+          </div>
+          <div class="admin-notice-content">
+            <h4 class="admin-notice-title">管理员专属入口</h4>
+            <p class="admin-notice-desc">此入口仅限系统管理员使用，普通用户请使用验证码或密码登录</p>
+        </div>
+      </div>
       </div>
 
           
@@ -131,19 +141,20 @@
               :disabled="!isFormValid" 
               @click="login"
             >
-              <span v-if="!loading">登录</span>
+              <span v-if="!loading">{{ loginMode === 2 ? '管理员登录' : '登录' }}</span>
               <span v-else class="loading-spinner"></span>
             </button>
             
-            <!-- 注册按钮 -->
+            <!-- 底部按钮/提示 -->
             <button 
-              v-if="loginMode !== 2" 
+              v-if="loginMode !== 2"
               class="register-btn" 
               @click="goToRegister"
             >
               <span>注册账号</span>
               <el-icon class="register-icon"><ArrowRight /></el-icon>
             </button>
+
           </div>
         </div>
       </div>
@@ -1636,7 +1647,7 @@ watch(loginMode, (newValue) => {
   .brand-content {
     padding: 20px;
     max-width: 280px;
-    width: 100%;
+  width: 100%;
   }
   
   .logo {
@@ -1729,5 +1740,55 @@ watch(loginMode, (newValue) => {
   background-size: 200px 200px;
   z-index: 0;
   opacity: 0.6;
+}
+
+/* 管理员登录提示样式 */
+.admin-notice {
+  display: flex;
+  background-color: rgba(235, 248, 255, 0.5);
+  border-radius: 8px;
+  padding: 12px 16px;
+  border: 1px dashed rgba(66, 153, 225, 0.4);
+  margin-bottom: 5px;
+}
+
+.admin-notice-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background-color: rgba(66, 153, 225, 0.15);
+  border-radius: 50%;
+  margin-right: 14px;
+  color: #2b6cb0;
+}
+
+.admin-notice-content {
+  flex: 1;
+}
+
+.admin-notice-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #2c5282;
+  margin: 0 0 4px;
+}
+
+.admin-notice-desc {
+    font-size: 12px;
+  color: var(--neutral-600);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.admin-tip {
+  text-align: center;
+  font-size: 13px;
+  color: var(--neutral-500);
+  margin-top: 5px;
+  padding: 8px;
+  border-radius: 4px;
+  background-color: rgba(235, 248, 255, 0.3);
 }
 </style>
