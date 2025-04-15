@@ -55,7 +55,11 @@
       </div>
 
         <!-- 表单区域 -->
-        <div class="form-area">
+        <form class="form-area" @submit.prevent="login" autocomplete="on" :id="loginMode === 2 ? 'admin-login-form' : 'user-login-form'">
+          <!-- 隐藏字段辅助浏览器自动填充 -->
+          <input v-if="loginMode === 2" type="text" name="username" autocomplete="username" style="display:none">
+          <input v-else type="tel" name="phone" autocomplete="tel" style="display:none">
+          
           <!-- 手机号输入 -->
           <div class="input-group">
             <div class="input-icon">
@@ -63,13 +67,15 @@
             </div>
           <el-input 
             v-model="formData.phone" 
-              class="form-input" 
+            class="form-input" 
             placeholder="请输入11位手机号" 
             @input="handlePhoneInput"
             type="tel"
-            name="phone"
-            autocomplete="tel"
+            :name="loginMode === 2 ? 'username' : 'phone'"
+            :autocomplete="loginMode === 2 ? 'username' : 'tel'"
+            :id="loginMode === 2 ? 'admin-username' : 'user-phone'"
             maxlength="11"
+            ref="phoneInputRef"
           />
         </div>
         
@@ -90,8 +96,10 @@
               type="password"
               show-password
               name="password"
-              autocomplete="current-password"
+              :autocomplete="loginMode === 2 ? 'current-password' : 'current-password'"
+              :id="loginMode === 2 ? 'admin-password' : 'user-password'"
                 key="password-input"
+                ref="passwordInputRef"
               />
               
               <!-- 验证码输入框 -->
@@ -101,11 +109,18 @@
                   class="form-input code-input" 
                   placeholder="请输入6位数验证码"
                   @input="handleVerificationCodeInput"
+                  name="one-time-code"
+                  autocomplete="one-time-code"
+                  id="verification-code"
+                  inputmode="numeric"
+                  pattern="[0-9]*"
+                  ref="verificationCodeInputRef"
                 />
                 <button 
                   class="code-btn" 
                   :disabled="isCodeSent || !isPhoneValid"
                   @click="sendVerificationCode"
+                  type="button"
                 >
               {{ isCodeSent ? countdownText : '发送验证码' }}
                 </button>
@@ -139,7 +154,7 @@
               class="submit-btn" 
               :class="{ disabled: !isFormValid }"
               :disabled="!isFormValid" 
-              @click="login"
+              type="submit"
             >
               <span v-if="!loading">{{ loginMode === 2 ? '管理员登录' : '登录' }}</span>
               <span v-else class="loading-spinner"></span>
@@ -150,20 +165,21 @@
               v-if="loginMode !== 2"
               class="register-btn" 
               @click="goToRegister"
+              type="button"
             >
               <span>注册账号</span>
               <el-icon class="register-icon"><ArrowRight /></el-icon>
             </button>
 
           </div>
-        </div>
+        </form>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onUnmounted, watch } from "vue";
+import { ref, reactive, computed, onUnmounted, watch, onMounted, nextTick } from "vue";
 import { PhoneFilled, Search, Lock, Message, User, ArrowRight } from "@element-plus/icons-vue";
 import { useRouter } from "vue-router";
 import { API_BASE_URL } from "../config";
@@ -254,6 +270,112 @@ const countdownText = computed(() => {
   return `${countdown.value.toString().padStart(2, "0")}`;
 });
 
+// 自动聚焦功能
+const phoneInputRef = ref(null);
+const passwordInputRef = ref(null);
+const verificationCodeInputRef = ref(null);
+
+// 使用多种方法尝试聚焦元素，提高成功率
+const tryFocusElement = (el) => {
+  if (!el) return false;
+  
+  try {
+    // 尝试多种方法聚焦
+    el.focus();
+    
+    // 添加特殊处理，解决某些移动浏览器的问题
+    setTimeout(() => {
+      el.focus();
+      // 一些浏览器需要触发点击才能显示软键盘
+      el.click && el.click();
+    }, 50);
+    
+    return true;
+  } catch (e) {
+    console.warn("聚焦输入框失败:", e);
+    return false;
+  }
+};
+
+const focusPhoneInput = () => {
+  setTimeout(() => {
+    if (phoneInputRef.value && phoneInputRef.value.$el) {
+      // 先尝试直接聚焦组件
+      if (typeof phoneInputRef.value.focus === 'function') {
+        phoneInputRef.value.focus();
+      }
+      
+      // 再尝试聚焦内部input元素
+      const inputEl = phoneInputRef.value.$el.querySelector('input');
+      if (inputEl) {
+        tryFocusElement(inputEl);
+      }
+    }
+  }, 100);
+};
+
+const focusPasswordInput = () => {
+  setTimeout(() => {
+    if (passwordInputRef.value && passwordInputRef.value.$el) {
+      // 先尝试直接聚焦组件
+      if (typeof passwordInputRef.value.focus === 'function') {
+        passwordInputRef.value.focus();
+      }
+      
+      // 再尝试聚焦内部input元素
+      const inputEl = passwordInputRef.value.$el.querySelector('input');
+      if (inputEl) {
+        tryFocusElement(inputEl);
+      }
+    }
+  }, 100);
+};
+
+const focusVerificationCodeInput = () => {
+  setTimeout(() => {
+    if (verificationCodeInputRef.value && verificationCodeInputRef.value.$el) {
+      // 先尝试直接聚焦组件
+      if (typeof verificationCodeInputRef.value.focus === 'function') {
+        verificationCodeInputRef.value.focus();
+      }
+      
+      // 再尝试聚焦内部input元素
+      const inputEl = verificationCodeInputRef.value.$el.querySelector('input');
+      if (inputEl) {
+        tryFocusElement(inputEl);
+      }
+    }
+  }, 100);
+};
+
+// 监听页面挂载
+onMounted(() => {
+  // 尝试从localStorage获取上次登录的手机号
+  const savedPhone = localStorage.getItem("mobile");
+  if (savedPhone) {
+    formData.phone = savedPhone;
+  }
+  
+  // 延迟执行聚焦，确保组件已完全渲染
+  setTimeout(focusPhoneInput, 100);
+  
+  // 再次尝试聚焦，防止首次不成功
+  setTimeout(focusPhoneInput, 300);
+  setTimeout(focusPhoneInput, 500);
+  
+  // 设置一个标志来跟踪是否是首次加载
+  const isFirstVisit = sessionStorage.getItem('visited') !== 'true';
+  
+  // 如果是首次访问，确保自动聚焦
+  if (isFirstVisit) {
+    // 多次尝试聚焦，提高成功率
+    for (let i = 1; i <= 5; i++) {
+      setTimeout(focusPhoneInput, i * 200);
+    }
+    sessionStorage.setItem('visited', 'true');
+  }
+});
+
 onUnmounted(() => {
   if (timer) clearInterval(timer);
   if (messageTimeout.value) clearTimeout(messageTimeout.value);
@@ -273,9 +395,20 @@ const showMessage = (message, type = "info", duration = 3000) => {
   // 设置自动关闭
   if (duration > 0) {
     messageTimeout.value = setTimeout(() => {
-  resultMessage.value = "";
+      resultMessage.value = "";
     }, duration);
   }
+  
+  // 添加动画效果的延迟处理
+  setTimeout(() => {
+    const messageIcon = document.querySelector('.message-icon');
+    if (messageIcon) {
+      messageIcon.classList.add('icon-animated');
+      setTimeout(() => {
+        messageIcon.classList.remove('icon-animated');
+      }, 1000);
+    }
+  }, 100);
 };
   
 // 忘记密码处理
@@ -351,6 +484,7 @@ const login = async () => {
   // 检测手机号
   if (!isPhoneValid.value) {
     showMessage("请输入有效的11位手机号", "warning");
+    focusPhoneInput();
     return;
   }
 
@@ -358,6 +492,7 @@ const login = async () => {
   if (loginMode.value === 1 || loginMode.value === 2) {
     if (!isPasswordValid.value) {
       showMessage("密码长度不能少于6位", "warning");
+      focusPasswordInput();
       return;
     }
     if (loginMode.value === 1 && !formData.agreed) {
@@ -367,6 +502,7 @@ const login = async () => {
   } else {
     if (!isVerificationCodeValid.value) {
       showMessage("验证码必须是6位数字", "warning");
+      focusVerificationCodeInput();
       return;
     }
     if (!formData.agreed) {
@@ -446,9 +582,31 @@ const login = async () => {
       }, 1000);
     } else {
       showMessage(data.message || "登录失败", "error");
+      
+      // 登录失败后重新聚焦
+      setTimeout(() => {
+        if (loginMode.value === 0) {
+          // 验证码登录失败，清空验证码并重新聚焦
+          formData.verificationCode = "";
+          focusVerificationCodeInput();
+        } else {
+          // 密码登录失败，清空密码并重新聚焦
+          formData.password = "";
+          focusPasswordInput();
+        }
+      }, 100);
     }
   } catch (error) {
     showMessage("网络连接异常，请检查网络", "error");
+    
+    // 添加网络异常时的特殊处理
+    setTimeout(() => {
+      if (loginMode.value === 0) {
+        focusVerificationCodeInput();
+      } else {
+        focusPasswordInput();
+      }
+    }, 100);
   } finally {
     loading.value = false;
   }
@@ -469,6 +627,22 @@ const loginModeChangeHandler = (newMode) => {
     // 切换到密码登录或管理员登录
     formData.verificationCode = "";
   }
+  
+  // 延迟执行，确保DOM更新完成
+  setTimeout(() => {
+    // 优先聚焦到手机号，如果手机号已有效则聚焦到下一个输入项
+    if (!isPhoneValid.value) {
+      focusPhoneInput();
+    } else {
+      if (newMode === 0) {
+        // 验证码登录
+        focusVerificationCodeInput();
+      } else {
+        // 密码登录
+        focusPasswordInput();
+      }
+    }
+  }, 200);
 };
 
 // 监听loginMode变化
@@ -872,92 +1046,223 @@ watch(loginMode, (newValue) => {
   position: fixed;
   top: 20px;
   right: 20px;
-  padding: 12px 20px 12px 15px;
-  border-radius: 8px;
+  padding: 14px 20px;
+  border-radius: 10px;
   background-color: white;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
   display: flex;
   align-items: center;
   max-width: 400px;
   z-index: 9999;
-  animation: slideIn 0.3s ease;
+  animation: message-slide-in 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transform-origin: top right;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+}
+
+.global-message:hover {
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12), 0 3px 6px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
 }
 
 .global-message.success {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(16, 185, 129, 0.03) 100%);
   border-left: 4px solid var(--success);
 }
 
 .global-message.warning {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(245, 158, 11, 0.03) 100%);
   border-left: 4px solid var(--warning);
 }
 
 .global-message.error {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, rgba(239, 68, 68, 0.03) 100%);
   border-left: 4px solid var(--error);
 }
 
 .global-message.info {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(59, 130, 246, 0.03) 100%);
   border-left: 4px solid var(--info);
 }
 
 .message-icon {
-  display: inline-block;
-  width: 20px;
-  height: 20px;
-  margin-right: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  margin-right: 12px;
   position: relative;
+  border-radius: 50%;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.message-icon.icon-animated {
+  animation: icon-pulse 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes icon-pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+.success .message-icon {
+  background-color: rgba(16, 185, 129, 0.15);
+}
+
+.warning .message-icon {
+  background-color: rgba(245, 158, 11, 0.15);
+}
+
+.error .message-icon {
+  background-color: rgba(239, 68, 68, 0.15);
+}
+
+.info .message-icon {
+  background-color: rgba(59, 130, 246, 0.15);
 }
 
 .message-icon::before {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  text-align: center;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   font-weight: bold;
-  font-size: 16px;
+  font-size: 14px;
 }
 
-.success .message-icon::before { content: '✓'; color: var(--success); }
-.warning .message-icon::before { content: '!'; color: var(--warning); }
-.error .message-icon::before { content: '✕'; color: var(--error); }
-.info .message-icon::before { content: 'i'; color: var(--info); font-style: italic; }
+.success .message-icon::before { 
+  content: '✓'; 
+  color: var(--success); 
+}
+
+.warning .message-icon::before { 
+  content: '!'; 
+  color: var(--warning);
+  font-weight: 900;
+}
+
+.error .message-icon::before { 
+  content: '✕'; 
+  color: var(--error); 
+}
+
+.info .message-icon::before { 
+  content: 'i'; 
+  color: var(--info); 
+  font-style: italic;
+  font-weight: 900;
+}
 
 .message-text {
   flex: 1;
   font-size: 14px;
   color: var(--neutral-700);
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.success .message-text {
+  color: #065f46;
+}
+
+.warning .message-text {
+  color: #92400e;
+}
+
+.error .message-text {
+  color: #b91c1c;
+}
+
+.info .message-text {
+  color: #1e40af;
 }
 
 .message-close {
-  margin-left: 10px;
+  margin-left: 12px;
   cursor: pointer;
   font-size: 18px;
   color: var(--neutral-500);
-  transition: color 0.2s ease;
+  transition: all 0.2s ease;
+  opacity: 0.7;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
 }
 
 .message-close:hover {
   color: var(--neutral-800);
+  background-color: rgba(0, 0, 0, 0.05);
+  opacity: 1;
+  transform: rotate(90deg);
 }
 
-@keyframes slideIn {
+@keyframes message-slide-in {
   from {
-    transform: translateX(30px);
+    transform: translateY(-20px) scale(0.95);
     opacity: 0;
   }
   to {
-    transform: translateX(0);
+    transform: translateY(0) scale(1);
     opacity: 1;
   }
 }
 
-.message-fade-enter-active, .message-fade-leave-active {
-  transition: all 0.3s ease;
+@keyframes message-slide-out {
+  from {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(-20px) scale(0.95);
+    opacity: 0;
+  }
+}
+
+.message-fade-enter-active {
+  animation: message-slide-in 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.message-fade-leave-active {
+  animation: message-slide-out 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .message-fade-enter-from, .message-fade-leave-to {
-    opacity: 0;
-  transform: translateX(30px);
+  opacity: 0;
+  transform: translateY(-20px) scale(0.95);
+}
+
+/* 在移动设备上的消息样式调整 */
+@media (max-width: 480px) {
+  .global-message {
+    max-width: calc(100% - 40px);
+    top: 10px;
+    right: 10px;
+    padding: 12px 16px;
+    border-radius: 8px;
+  }
+  
+  .message-icon {
+    width: 22px;
+    height: 22px;
+    margin-right: 10px;
+  }
+  
+  .message-text {
+    font-size: 13px;
+  }
+  
+  .message-close {
+    width: 20px;
+    height: 20px;
+    font-size: 16px;
+  }
 }
 
 /* 登录面板 */
@@ -1268,6 +1573,21 @@ watch(loginMode, (newValue) => {
   transition: all 0.2s ease !important;
   padding-left: 38px !important;
   font-size: 14px !important;
+}
+
+/* 自动填充样式优化 */
+.form-input:-webkit-autofill,
+.form-input:-webkit-autofill:hover, 
+.form-input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0px 1000px var(--neutral-50) inset !important;
+  -webkit-text-fill-color: var(--neutral-800) !important;
+  transition: background-color 5000s ease-in-out 0s !important;
+  caret-color: var(--primary) !important;
+  border-color: var(--primary) !important;
+}
+
+.form-input:focus:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0px 1000px white inset !important;
 }
 
 .form-input:focus {
@@ -1792,3 +2112,4 @@ watch(loginMode, (newValue) => {
   background-color: rgba(235, 248, 255, 0.3);
 }
 </style>
+

@@ -677,7 +677,7 @@ const handleLogout = () => {
       ElMessage.success('已成功退出登录');
       
       // 跳转到登录页
-      router.push('/admin/login');
+      router.push('/login');
     })
     .catch(() => {
       // 用户取消登出操作
@@ -702,8 +702,6 @@ const handleLogout = () => {
   background-color: #001529;
   color: white;
   overflow-y: auto;
-  scrollbar-width: thin;
-  -ms-overflow-style: none;
   position: fixed;
   top: 0;
   left: 0;
@@ -711,24 +709,18 @@ const handleLogout = () => {
   z-index: 1000;
   transition: all 0.3s ease;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
 }
 
 .sidebar.collapsed {
   width: 64px;
 }
 
-/* 定制滚动条样式 */
+/* 隐藏滚动条但保留滚动功能 */
 .sidebar::-webkit-scrollbar {
-  width: 4px;
-}
-
-.sidebar::-webkit-scrollbar-thumb {
-  background-color: rgba(255, 255, 255, 0.2);
-  border-radius: 4px;
-}
-
-.sidebar::-webkit-scrollbar-track {
-  background-color: transparent;
+  width: 0;
+  display: none; /* Chrome, Safari, Opera */
 }
 
 .logo {

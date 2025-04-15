@@ -66,13 +66,15 @@ button:focus-visible {
 }
 
 @media (prefers-color-scheme: light) {
-     :root {
+    :root {
         color: #213547;
         background-color: #ffffff;
     }
+
     a:hover {
         color: #747bff;
     }
+
     button {
         background-color: #f9f9f9;
     }
@@ -84,13 +86,13 @@ button:focus-visible {
 .el-button:active,
 .el-button:hover,
 .el-button:visited {
-  outline: none !important;
-  box-shadow: none !important;
+    outline: none !important;
+    box-shadow: none !important;
 }
 
 /* 移除Element Plus组件的所有黑边 */
 :focus {
-  outline: none !important;
+    outline: none !important;
 }
 
 .el-input__inner:focus,
@@ -107,9 +109,22 @@ button:focus-visible {
 .el-slider:focus,
 .el-tabs__item:focus,
 .el-pagination__jump .el-input__inner:focus,
-.el-cascader__search-input:focus {
-  outline: none !important;
-  box-shadow: none !important;
+.el-input__inner:active,
+.el-textarea__inner:active,
+.el-select:active,
+.el-select .el-input__inner:active,
+.el-date-editor:active,
+.el-date-editor .el-input__inner:active,
+.el-radio:active,
+.el-checkbox:active,
+.el-switch:active,
+.el-input-number:active,
+.el-cascader:active,
+.el-slider:active,
+.el-tabs__item:active,
+.el-pagination__jump .el-input__inner:active {
+    outline: none !important;
+    box-shadow: none !important;
 }
 
 /* 解决点击对话框中的按钮黑边问题 */
@@ -121,7 +136,116 @@ button:focus-visible {
 .el-popconfirm .el-button:active,
 .el-drawer .el-button:focus,
 .el-drawer .el-button:active {
-  outline: none !important;
-  box-shadow: none !important;
-  border-color: initial;
+    outline: none !important;
+    box-shadow: none !important;
+    border-color: initial;
+}
+
+/* 全局消息提示美化样式 */
+.el-message {
+    border-width: 0 !important;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08), 0 3px 6px -4px rgba(0, 0, 0, 0.12) !important;
+    border-radius: 8px !important;
+    padding: 12px 20px !important;
+    backdrop-filter: blur(4px);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    min-width: 300px !important;
+}
+
+.el-message__content {
+    font-size: 14px !important;
+    line-height: 1.5 !important;
+    color: #333 !important;
+    font-weight: 500 !important;
+}
+
+.el-message__icon {
+    margin-right: 12px !important;
+    font-size: 18px !important;
+    transform: scale(1.2);
+}
+
+.el-message__closeBtn {
+    font-size: 16px !important;
+    color: #909399 !important;
+    opacity: 0.8;
+    transition: opacity 0.3s ease;
+}
+
+.el-message__closeBtn:hover {
+    opacity: 1;
+    color: #606266 !important;
+}
+
+/* 成功消息 */
+.el-message--success {
+    background: linear-gradient(135deg, #f0fff4 0%, #f6ffee 100%) !important;
+    border-left: 4px solid #10b981 !important;
+}
+
+.el-message--success .el-message__icon {
+    color: #10b981 !important;
+}
+
+/* 警告消息 */
+.el-message--warning {
+    background: linear-gradient(135deg, #fffbeb 0%, #fff7e6 100%) !important;
+    border-left: 4px solid #f59e0b !important;
+}
+
+.el-message--warning .el-message__icon {
+    color: #f59e0b !important;
+}
+
+/* 错误消息 */
+.el-message--error {
+    background: linear-gradient(135deg, #fff5f5 0%, #feeae6 100%) !important;
+    border-left: 4px solid #ef4444 !important;
+}
+
+.el-message--error .el-message__icon {
+    color: #ef4444 !important;
+}
+
+/* 信息消息 */
+.el-message--info {
+    background: linear-gradient(135deg, #ebf8ff 0%, #e6f7ff 100%) !important;
+    border-left: 4px solid #3b82f6 !important;
+}
+
+.el-message--info .el-message__icon {
+    color: #3b82f6 !important;
+}
+
+/* 消息动画效果 */
+@keyframes slideInRight {
+    from {
+        transform: translateX(30px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOutRight {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+
+    to {
+        transform: translateX(30px);
+        opacity: 0;
+    }
+}
+
+.el-message-fade-enter-active {
+    animation: slideInRight 0.3s ease forwards;
+}
+
+.el-message-fade-leave-active {
+    animation: slideOutRight 0.3s ease forwards;
 }
