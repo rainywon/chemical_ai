@@ -11,7 +11,7 @@
         </template>
         <div class="chat-message ai">
           <!-- 使用 v-html 渲染 Markdown 后的 HTML 内容 -->
-          <div class="message-content" v-html="parsedMessage" @click="handleThinkBlockClick"></div>
+          <div class="message-content" ref="messageContentRef" v-html="parsedMessage" @click="handleThinkBlockClick"></div>
         </div>
         <!-- 加载指示器 -->
         <div v-if="isLoading" class="loading-indicator"></div>
@@ -64,11 +64,23 @@ import FeedbackForm from "./FeedbackForm.vue";
 import hljs from "highlight.js";
 import Prism from "prismjs"; //导入代码高亮插件的core（里面提供了其他官方插件及代码高亮样式主题，你只需要引入即可）
 import "prismjs/themes/prism-tomorrow.min.css";
+// 导入额外的Prism插件和组件
+import "prismjs/plugins/line-numbers/prism-line-numbers.min.css";
+import "prismjs/plugins/line-numbers/prism-line-numbers.min.js";
+import "prismjs/plugins/toolbar/prism-toolbar.min.css";
+import "prismjs/plugins/toolbar/prism-toolbar.min.js";
+import "prismjs/plugins/copy-to-clipboard/prism-copy-to-clipboard.min.js";
+import "prismjs/plugins/show-language/prism-show-language.min.js";
+// 导入KaTeX数学公式渲染支持
+import katex from 'katex';
+import 'katex/dist/katex.min.css';
+import { renderMathInElement } from 'katex/dist/contrib/auto-render.min.js';
 
 // 使用markRaw避免Vue对这些大型对象进行响应式处理
 const markedInstance = markRaw(marked);
 const prismInstance = markRaw(Prism);
 const domPurify = markRaw(DOMPurify);
+const katexInstance = markRaw(katex);
 
 const emit = defineEmits(["regenerate"]);
 
@@ -88,6 +100,18 @@ const thinkBlocksState = shallowRef(new Map());
 const cachedParsedMessage = shallowRef('');
 // 标记是否需要重新解析消息
 const needsReparse = ref(true);
+// 消息容器引用，用于后续处理数学公式
+const messageContentRef = ref(null);
+
+// 配置DOMPurify以允许KaTeX生成的标签和属性
+DOMPurify.addHook('afterSanitizeAttributes', function(node) {
+  if (node.hasAttribute('data-latex') || 
+      node.classList && (node.classList.contains('katex') || 
+                        node.classList.contains('math-inline') || 
+                        node.classList.contains('math-block'))) {
+    node.setAttribute('data-latex-safe', 'true');
+  }
+});
 
 // 使用防抖函数优化事件处理
 const debounce = (fn, delay = 300) => {
@@ -171,8 +195,64 @@ const parsedMessage = computed(() => {
   }
   
   try {
-    // 先使用marked解析markdown
-    let rawHtml = markedInstance(props.message || "");
+    // 处理Markdown内容前先保护数学公式
+    let processedMessage = props.message || "";
+    
+    // 1. 保存所有数学公式到安全区域
+    const mathExpressions = [];
+    
+    // 处理块级公式
+    processedMessage = processedMessage.replace(/\$\$([\s\S]+?)\$\$/g, function(match, formula) {
+      const id = mathExpressions.length;
+      mathExpressions.push({type: 'block', formula: formula});
+      return `@@MATH_BLOCK_${id}@@`;
+    });
+    
+    // 处理行内公式
+    processedMessage = processedMessage.replace(/\$([^$\n]+?)\$/g, function(match, formula) {
+      const id = mathExpressions.length;
+      mathExpressions.push({type: 'inline', formula: formula});
+      return `@@MATH_INLINE_${id}@@`;
+    });
+    
+    // 2. 使用Marked处理Markdown
+    let rawHtml = markedInstance(processedMessage);
+    
+    // 3. 将公式占位符替换回KaTeX渲染后的HTML
+    mathExpressions.forEach((item, index) => {
+      let renderedFormula = '';
+      try {
+        if (item.type === 'block') {
+          renderedFormula = katexInstance.renderToString(item.formula, {
+            displayMode: true,
+            throwOnError: false,
+            output: 'html'
+          });
+          renderedFormula = `<div class="math-block" data-latex="true">${renderedFormula}</div>`;
+        } else {
+          renderedFormula = katexInstance.renderToString(item.formula, {
+            displayMode: false,
+            throwOnError: false,
+            output: 'html'
+          });
+          renderedFormula = `<span class="math-inline" data-latex="true">${renderedFormula}</span>`;
+        }
+      } catch (err) {
+        console.error('KaTeX rendering error:', err);
+        renderedFormula = item.type === 'block' 
+          ? `<div class="math-error">$$${item.formula}$$</div>` 
+          : `<span class="math-error">$${item.formula}$</span>`;
+      }
+      
+      const blockRegex = new RegExp(`@@MATH_BLOCK_${index}@@`, 'g');
+      const inlineRegex = new RegExp(`@@MATH_INLINE_${index}@@`, 'g');
+      
+      if (item.type === 'block') {
+        rawHtml = rawHtml.replace(blockRegex, renderedFormula);
+      } else {
+        rawHtml = rawHtml.replace(inlineRegex, renderedFormula);
+      }
+    });
     
     // 替换 <think> 标签，添加展开/收起功能
     let thinkBlockCounter = 0;
@@ -199,9 +279,36 @@ const parsedMessage = computed(() => {
         </div>
       `;
     });
+
+    // 增强图片处理，添加可点击放大功能
+    rawHtml = rawHtml.replace(/<img src="([^"]+)"([^>]*)>/g, (match, src, attrs) => {
+      return `<div class="md-image-container">
+        <img src="${src}" ${attrs} loading="lazy" />
+        <div class="md-image-caption">点击查看大图</div>
+      </div>`;
+    });
     
-    // 清理HTML
-    const sanitizedHtml = domPurify.sanitize(rawHtml);
+    // 为代码块添加语言标签和更好的复制按钮
+    rawHtml = rawHtml.replace(/<pre class="line-numbers" data-language="([^"]*)">([\s\S]*?)<\/pre>/g, (match, lang, code) => {
+      // 获取友好的语言名称
+      const langDisplay = getLangDisplayName(lang);
+      return `<div class="code-block-wrapper">
+        <div class="code-block-header">
+          <span class="code-lang-tag">${langDisplay}</span>
+          <button class="code-copy-btn" title="复制代码">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            <span class="copy-text">复制</span>
+          </button>
+        </div>
+        ${match}
+      </div>`;
+    });
+    
+    // 配置DOMPurify允许KaTeX相关标签
+    const sanitizedHtml = domPurify.sanitize(rawHtml, {
+      ADD_TAGS: ['math', 'mrow', 'mi', 'mo', 'mn', 'msup', 'msub', 'mfrac', 'mspace', 'mtable', 'mtr', 'mtd', 'annotation', 'semantics', 'svg', 'mstyle'],
+      ADD_ATTR: ['display', 'encoding', 'data-latex', 'data-latex-safe', 'class', 'style', 'id', 'viewBox', 'width', 'height', 'xmlns', 'd', 'preserveAspectRatio']
+    });
     
     // 更新缓存和状态
     cachedParsedMessage.value = sanitizedHtml;
@@ -219,6 +326,51 @@ const parsedMessage = computed(() => {
   }
 });
 
+// 获取语言的友好显示名称
+const getLangDisplayName = (lang) => {
+  const langMap = {
+    'js': 'JavaScript',
+    'jsx': 'React JSX',
+    'ts': 'TypeScript',
+    'tsx': 'React TSX',
+    'html': 'HTML',
+    'css': 'CSS',
+    'scss': 'SCSS',
+    'less': 'Less',
+    'json': 'JSON',
+    'py': 'Python',
+    'python': 'Python',
+    'java': 'Java',
+    'c': 'C',
+    'cpp': 'C++',
+    'cs': 'C#',
+    'go': 'Go',
+    'rust': 'Rust',
+    'rb': 'Ruby',
+    'ruby': 'Ruby',
+    'php': 'PHP',
+    'sh': '命令行',
+    'bash': '命令行',
+    'sql': 'SQL',
+    'swift': 'Swift',
+    'kotlin': 'Kotlin',
+    'dart': 'Dart',
+    'vue': 'Vue',
+    'xml': 'XML',
+    'yaml': 'YAML',
+    'yml': 'YAML',
+    'md': 'Markdown',
+    'markdown': 'Markdown',
+    'docker': 'Dockerfile',
+    'dockerfile': 'Dockerfile',
+    'plaintext': '纯文本',
+    'txt': '纯文本',
+    'text': '纯文本'
+  };
+  
+  return langMap[lang.toLowerCase()] || lang.toUpperCase() || '代码';
+};
+
 // DOM操作优化 - 将所有DOM操作合并到一个函数
 const handlePostRender = debounce(() => {
   // 使用IntersectionObserver判断元素是否可见，只处理可见元素
@@ -230,7 +382,34 @@ const handlePostRender = debounce(() => {
         entries.forEach(entry => {
           if (entry.isIntersecting) {
             try {
+              // 激活Prism的代码高亮和插件功能
               prismInstance.highlightElement(entry.target);
+              
+              // 获取代码块wrapper
+              const codeWrapper = entry.target.closest('.code-block-wrapper');
+              if (codeWrapper) {
+                // 绑定复制按钮事件
+                const copyBtn = codeWrapper.querySelector('.code-copy-btn');
+                if (copyBtn && !copyBtn.hasAttribute('data-listener-attached')) {
+                  copyBtn.setAttribute('data-listener-attached', 'true');
+                  copyBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const code = entry.target.textContent;
+                    navigator.clipboard.writeText(code).then(() => {
+                      // 显示复制成功提示
+                      copyBtn.classList.add('copied');
+                      copyBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg><span class="copy-text">已复制!</span>';
+                      
+                      setTimeout(() => {
+                        copyBtn.classList.remove('copied');
+                        copyBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg><span class="copy-text">复制</span>';
+                      }, 2000);
+                    }).catch(err => {
+                      console.error('复制失败:', err);
+                    });
+                  });
+                }
+              }
             } catch (e) {
               console.warn('Code highlighting error:', e);
             }
@@ -256,6 +435,50 @@ const handlePostRender = debounce(() => {
           content.style.maxHeight = '0';
         }
       });
+    }
+
+    // 处理图片点击放大
+    const images = document.querySelectorAll('.message-content .md-image-container img');
+    images.forEach(img => {
+      if (!img.hasAttribute('data-zoom-initialized')) {
+        img.setAttribute('data-zoom-initialized', 'true');
+        img.addEventListener('click', () => {
+          const overlay = document.createElement('div');
+          overlay.className = 'image-zoom-overlay';
+          
+          const imgClone = document.createElement('img');
+          imgClone.src = img.src;
+          imgClone.className = 'zoomed-image';
+          
+          overlay.appendChild(imgClone);
+          document.body.appendChild(overlay);
+          
+          overlay.addEventListener('click', () => {
+            document.body.removeChild(overlay);
+          });
+        });
+      }
+    });
+
+    // 确保数学公式正确渲染（备用方案）
+    const messageContentElement = document.querySelector('.message-content');
+    if (messageContentElement) {
+      // 检查是否有未渲染的公式占位符
+      const unrenderedBlocks = messageContentElement.innerHTML.match(/@@MATH_(BLOCK|INLINE)_\d+@@/g);
+      if (unrenderedBlocks && unrenderedBlocks.length > 0) {
+        console.warn('Found unrendered math blocks, applying auto-render fallback');
+        try {
+          renderMathInElement(messageContentElement, {
+            delimiters: [
+              {left: '$$', right: '$$', display: true},
+              {left: '$', right: '$', display: false}
+            ],
+            throwOnError: false
+          });
+        } catch (err) {
+          console.error('Auto-render fallback failed:', err);
+        }
+      }
     }
   } else {
     // 降级处理 - 直接处理DOM
@@ -477,6 +700,7 @@ const handleFeedbackSubmit = (feedback) => {
   text-rendering: optimizeLegibility; /* 优化字体渲染 */
 }
 
+/* 增强的代码块样式 */
 .message-content :deep(pre) {
   position: relative;
   padding: 30px !important;
@@ -484,146 +708,329 @@ const handleFeedbackSubmit = (feedback) => {
   transform: translateZ(0); /* 启用GPU加速 */
   contain: content; /* 包含内容，提高渲染性能 */
   will-change: transform; /* 告知浏览器变化特性，优化渲染 */
+  background-color: #282c34;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  margin: 24px 0;
+  overflow: hidden;
+  font-family: 'SF Mono', 'Fira Code', 'Menlo', 'Monaco', 'Courier New', monospace;
 }
 
-/* 优化思考块性能 */
-.message-content :deep(.think-container) {
-  transform: translateZ(0); /* 启用GPU加速 */
-  contain: content; /* 包含内容，提高渲染性能 */
-  will-change: transform, max-height; /* 优化变换和高度变化 */
+.message-content :deep(pre.line-numbers) {
+  padding-left: 60px !important;
+  counter-reset: linenumber;
 }
 
-.message-content :deep(.think-content) {
-  transform: translateZ(0); /* 启用GPU加速 */
-  backface-visibility: hidden; /* 优化3D渲染 */
-  will-change: max-height; /* 指定会改变的属性，优化渲染 */
+.message-content :deep(pre .line-numbers-rows) {
+  position: absolute;
+  left: 0;
+  width: 50px;
+  text-align: center;
+  background-color: rgba(0, 0, 0, 0.15);
+  padding-top: 30px;
+  padding-bottom: 30px;
 }
 
-/* 保留其余样式不变 */
-/* 标题样式 */
-.message-content :deep(h1) {
-  margin: 0.8em 0 0.5em;
-  font-weight: 600;
-  border-bottom: 1px solid #eaecef;
-  padding-bottom: 0.3em;
+.message-content :deep(.code-copy-button) {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.8);
+  padding: 5px 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-size: 12px;
 }
 
-.message-content :deep(h2) {
-  margin: 0.7em 0 0.4em;
-  font-weight: 550;
-}
-
-.message-content :deep(h3) {
-  margin: 0.6em 0 0.3em;
+.message-content :deep(.code-copy-button::after) {
+  content: "复制";
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
   font-weight: 500;
 }
 
-/* 段落与文本 */
-.message-content :deep(p) {
-  margin: 0.5em 0 !important;
-  word-wrap: break-word;
+.message-content :deep(.code-copy-button:hover) {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
 }
 
-.message-content :deep(strong) {
-  font-weight: 600;
-  color: #2c3e50;
+.message-content :deep(.code-copy-button:active) {
+  transform: scale(0.95);
 }
 
-.message-content :deep(em) {
-  color: #666;
-  font-style: italic;
+/* 增强的图片样式 */
+.message-content :deep(.md-image-container) {
+  display: inline-block;
+  margin: 16px 0;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-/* 列表系统 */
-.message-content :deep(ul),
-.message-content :deep(ol) {
-  padding-left: 1.2em;
-  margin: 0.4em 0;
+.message-content :deep(.md-image-container:hover) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
 }
 
-.message-content :deep(li) {
-  margin: 0.2em 0;
-  padding-left: 0.3em;
+.message-content :deep(.md-image-container img) {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  transition: filter 0.2s ease;
 }
 
-.message-content :deep(ul) {
-  list-style-type: "• ";
+.message-content :deep(.md-image-caption) {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  padding: 8px;
+  font-size: 12px;
+  text-align: center;
+  opacity: 0;
+  transition: opacity 0.2s ease;
 }
 
-.message-content :deep(ol) {
-  list-style-type: decimal;
+.message-content :deep(.md-image-container:hover .md-image-caption) {
+  opacity: 1;
 }
 
-/* 代码块系统 */
-/* 调整原有代码块样式 */
-.message-content :deep(code) {
-  font-size: 0.9em;
+.message-content :deep(.image-zoom-overlay) {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  cursor: zoom-out;
 }
 
-.message-content :deep(pre code) {
-  font-size: 0.9em;
+.message-content :deep(.zoomed-image) {
+  max-width: 90%;
+  max-height: 90%;
+  object-fit: contain;
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
 }
 
-/* 表格系统 */
+/* 增强的表格样式 */
 .message-content :deep(table) {
-  border-collapse: collapse;
-  margin: 0.8em 0;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin: 20px 0;
   width: 100%;
-  box-shadow: 0 0 0 1px #dfe2e5;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  border-radius: 12px;
+  overflow: hidden;
 }
 
 .message-content :deep(th),
 .message-content :deep(td) {
-  border: 1px solid #dfe2e5;
-  padding: 6px 12px;
+  border: none;
+  border-bottom: 1px solid #eaeef2;
+  padding: 12px 16px;
   text-align: left;
 }
 
 .message-content :deep(th) {
-  background: #f6f8fa;
+  background: linear-gradient(to right, #f8f9fc, #eef1f6);
   font-weight: 600;
+  color: #4a5173;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
 }
 
-/* 引用块 */
+.message-content :deep(tr:last-child td) {
+  border-bottom: none;
+}
+
+.message-content :deep(tr:nth-child(even)) {
+  background-color: #f9fafd;
+}
+
+.message-content :deep(tr:hover) {
+  background-color: #f3f5fa;
+}
+
+/* 增强的引用块样式 */
 .message-content :deep(blockquote) {
-  border-left: 4px solid #dfe2e5;
-  margin: 0.8em 0;
-  padding: 0.5em 1em;
-  color: #6a737d;
-  background: #f8f9fa;
+  border-left: 4px solid #4a6ee0;
+  margin: 20px 0;
+  padding: 14px 20px;
+  background: linear-gradient(to right, rgba(74, 110, 224, 0.05), rgba(74, 110, 224, 0.01));
+  border-radius: 0 12px 12px 0;
+  color: #4a5173;
+  font-style: italic;
+  position: relative;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
 }
 
-/* 链接系统 */
+.message-content :deep(blockquote::before) {
+  content: "\201C"; /* 使用Unicode转义序列代替直接使用引号 */
+  font-size: 48px;
+  position: absolute;
+  left: -12px;
+  top: -12px;
+  color: rgba(74, 110, 224, 0.2);
+  font-family: Georgia, serif;
+}
+
+.message-content :deep(blockquote p) {
+  margin: 0 !important;
+}
+
+/* 增强的列表样式 */
+.message-content :deep(ul),
+.message-content :deep(ol) {
+  padding-left: 1.6em;
+  margin: 16px 0;
+}
+
+.message-content :deep(li) {
+  margin: 8px 0;
+  padding-left: 0.5em;
+  position: relative;
+}
+
+.message-content :deep(ul) {
+  list-style: none;
+}
+
+.message-content :deep(ul li::before) {
+  content: "•";
+  color: #4a6ee0;
+  font-weight: bold;
+  display: inline-block;
+  width: 1em;
+  margin-left: -1em;
+  position: absolute;
+  left: 0;
+}
+
+.message-content :deep(ol) {
+  list-style-type: decimal;
+  counter-reset: item;
+}
+
+.message-content :deep(ol li) {
+  counter-increment: item;
+}
+
+.message-content :deep(ol li::marker) {
+  color: #4a6ee0;
+  font-weight: bold;
+}
+
+/* 增强的链接样式 */
 .message-content :deep(a) {
-  color: #0366d6;
+  color: #4a6ee0;
   text-decoration: none;
-  border-bottom: 1px solid rgba(3, 102, 214, 0.2);
+  border-bottom: 1px solid rgba(74, 110, 224, 0.3);
+  transition: all 0.2s ease;
+  font-weight: 500;
+  padding: 0 1px;
 }
 
 .message-content :deep(a:hover) {
-  color: #034c9e;
-  border-bottom-color: currentColor;
+  color: #3a56b4;
+  background-color: rgba(74, 110, 224, 0.08);
+  border-bottom-color: rgba(58, 86, 180, 0.6);
+  border-radius: 2px;
 }
 
-/* 分割线 */
+/* 增强的标题样式 */
+.message-content :deep(h1),
+.message-content :deep(h2),
+.message-content :deep(h3),
+.message-content :deep(h4),
+.message-content :deep(h5),
+.message-content :deep(h6) {
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+  color: #2c3e50;
+  line-height: 1.3;
+  position: relative;
+}
+
+.message-content :deep(h1) {
+  font-size: 2em;
+  border-bottom: 1px solid #eaecef;
+  padding-bottom: 0.3em;
+  margin-top: 0.8em;
+  font-weight: 700;
+}
+
+.message-content :deep(h2) {
+  font-size: 1.5em;
+  border-bottom: 1px solid #f0f0f0;
+  padding-bottom: 0.2em;
+  font-weight: 600;
+}
+
+.message-content :deep(h3) {
+  font-size: 1.25em;
+  font-weight: 600;
+}
+
+.message-content :deep(h4) {
+  font-size: 1.1em;
+  font-weight: 500;
+}
+
+.message-content :deep(h1::before),
+.message-content :deep(h2::before),
+.message-content :deep(h3::before) {
+  content: ""; /* 确保字符串正确闭合 */
+  display: block;
+  height: 4px;
+  width: 100%;
+  margin-bottom: 5px;
+  background: linear-gradient(to right, rgba(74, 110, 224, 0.7), transparent);
+  border-radius: 2px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.message-content :deep(h1:hover::before),
+.message-content :deep(h2:hover::before),
+.message-content :deep(h3:hover::before) {
+  opacity: 1;
+}
+
+/* 增强分割线样式 */
 .message-content :deep(hr) {
-  border: 0;
   height: 1px;
-  background: #e1e4e8;
-  margin: 1em 0;
+  background: linear-gradient(to right, transparent, #e1e4e8, transparent);
+  border: none;
+  margin: 30px 0;
 }
 
-.message-content :deep(.think) {
-  font-family: "Arial", sans-serif; /* 选择易读的字体 */
-  font-size: 14px; /* 设置适中的字体大小 */
-  line-height: 1.5; /* 设置行高 */
-  font-weight: 400; /* 设置正常字重 */
-  letter-spacing: 0.5px; /* 调整字间距 */
-  color: #626262; /* 浅灰色 */
-  background-color: #f5f5f4;
-  border-radius: 15px;
-  padding: 10px;
-  text-rendering: optimizeLegibility; /* 启用抗锯齿 */
+/* 增强的内联代码样式 */
+.message-content :deep(:not(pre) > code) {
+  font-family: 'SF Mono', 'Menlo', 'Monaco', 'Courier New', monospace;
+  background-color: rgba(74, 110, 224, 0.08);
+  color: #4a6ee0;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.9em;
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  margin: 0 2px;
 }
 
 /* 更新 think 相关样式 */
@@ -872,5 +1279,239 @@ const handleFeedbackSubmit = (feedback) => {
   opacity: 0.6;
   border-top-left-radius: 16px;
   border-bottom-left-radius: 16px;
+}
+
+/* 数学公式样式 */
+.message-content :deep(.math-inline) {
+  display: inline-flex !important;
+  align-items: center;
+  margin: 0 3px;
+  vertical-align: middle;
+  font-size: 1.1em;
+}
+
+.message-content :deep(.math-block) {
+  display: flex !important;
+  justify-content: center;
+  margin: 20px 0;
+  padding: 16px;
+  background-color: rgba(247, 247, 252, 0.7);
+  border-radius: 8px;
+  overflow-x: auto;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.message-content :deep(.math-block:hover) {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+}
+
+.message-content :deep(.katex) {
+  font-size: 1.1em !important;
+  font-family: 'KaTeX_Math', 'Times New Roman', serif !important;
+  line-height: 1.3 !important;
+}
+
+.message-content :deep(.katex-display) {
+  margin: 0 !important;
+  padding: 4px 0 !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+}
+
+.message-content :deep(.katex-display > .katex) {
+  white-space: nowrap !important;
+}
+
+.message-content :deep(.math-error) {
+  color: #e53935;
+  background-color: rgba(229, 57, 53, 0.1);
+  padding: 8px 12px;
+  border-radius: 6px;
+  border-left: 3px solid #e53935;
+  font-family: 'Courier New', monospace;
+  white-space: pre-wrap;
+  margin: 10px 0;
+}
+
+/* 代码块容器样式 */
+.message-content :deep(.code-block-wrapper) {
+  position: relative;
+  margin: 24px 0;
+  border-radius: 12px;
+  overflow: hidden;
+  background-color: #f5f8ff;
+  box-shadow: 0 4px 20px rgba(0, 0, 50, 0.08);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border: 1px solid rgba(147, 174, 243, 0.3);
+}
+
+.message-content :deep(.code-block-wrapper:hover) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(0, 0, 100, 0.12);
+}
+
+/* 代码块头部 */
+.message-content :deep(.code-block-header) {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 16px;
+  background-color: #e1e8ff;
+  color: #3a4b7c;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 12px;
+  border-bottom: 1px solid rgba(147, 174, 243, 0.3);
+}
+
+/* 语言标签 */
+.message-content :deep(.code-lang-tag) {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background-color: rgba(93, 116, 209, 0.12);
+  color: #5d74d1;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 11px;
+}
+
+/* 复制按钮 */
+.message-content :deep(.code-copy-btn) {
+  background: rgba(93, 116, 209, 0.12);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border-radius: 6px;
+  padding: 3px 8px;
+  color: #5d74d1;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.message-content :deep(.code-copy-btn .copy-text) {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.message-content :deep(.code-copy-btn:hover) {
+  background: rgba(93, 116, 209, 0.18);
+  color: #2b4098;
+}
+
+.message-content :deep(.code-copy-btn.copied) {
+  background-color: rgba(46, 204, 113, 0.15);
+  color: #27ae60;
+}
+
+/* 代码块样式 */
+.message-content :deep(pre) {
+  margin: 0 !important;
+  border-radius: 0 !important; 
+  background-color: #f5f8ff !important;
+  padding: 16px !important;
+  overflow-x: auto;
+  font-family: 'Fira Code', 'SF Mono', 'Menlo', 'Monaco', 'Courier New', monospace;
+  font-size: 14px;
+  line-height: 1.5;
+  tab-size: 2;
+  color: #2c3e50;
+}
+
+/* 行号样式 */
+.message-content :deep(pre.line-numbers) {
+  padding-left: 3.8em !important;
+  counter-reset: linenumber;
+}
+
+.message-content :deep(pre.line-numbers > code) {
+  position: relative;
+  white-space: inherit;
+  font-family: 'Fira Code', 'SF Mono', 'Menlo', 'Monaco', 'Courier New', monospace !important;
+}
+
+.message-content :deep(.line-numbers-rows) {
+  position: absolute;
+  top: 0;
+  left: -3.8em;
+  width: 3em;
+  letter-spacing: -1px;
+  border-right: 1px solid rgba(93, 116, 209, 0.15);
+  user-select: none;
+  pointer-events: none;
+  font-size: 14px;
+  font-family: 'Fira Code', 'SF Mono', 'Menlo', 'Monaco', 'Courier New', monospace;
+  padding-top: 16px;
+  padding-bottom: 16px;
+}
+
+.message-content :deep(.line-numbers-rows > span) {
+  display: block;
+  counter-increment: linenumber;
+  color: rgba(44, 62, 80, 0.4);
+  text-align: right;
+  padding: 0 8px;
+}
+
+.message-content :deep(.line-numbers-rows > span::before) {
+  content: counter(linenumber);
+  color: rgba(44, 62, 80, 0.4);
+}
+
+/* 代码高亮调优 - 白蓝色主题 */
+.message-content :deep(.token.comment),
+.message-content :deep(.token.prolog),
+.message-content :deep(.token.doctype),
+.message-content :deep(.token.cdata) {
+  color: #5c6370;
+}
+
+.message-content :deep(.token.punctuation) {
+  color: #5c6370;
+}
+
+.message-content :deep(.token.property),
+.message-content :deep(.token.tag),
+.message-content :deep(.token.boolean),
+.message-content :deep(.token.number),
+.message-content :deep(.token.constant),
+.message-content :deep(.token.symbol) {
+  color: #0550ae;
+}
+
+.message-content :deep(.token.selector),
+.message-content :deep(.token.attr-name),
+.message-content :deep(.token.string),
+.message-content :deep(.token.char),
+.message-content :deep(.token.builtin) {
+  color: #0a7d33;
+}
+
+.message-content :deep(.token.operator),
+.message-content :deep(.token.entity),
+.message-content :deep(.token.url),
+.message-content :deep(.language-css .token.string),
+.message-content :deep(.style .token.string) {
+  color: #5c6370;
+}
+
+.message-content :deep(.token.atrule),
+.message-content :deep(.token.attr-value),
+.message-content :deep(.token.keyword) {
+  color: #7928ca;
+}
+
+.message-content :deep(.token.function) {
+  color: #f97316;
+}
+
+.message-content :deep(.token.regex),
+.message-content :deep(.token.important),
+.message-content :deep(.token.variable) {
+  color: #e11d48;
 }
 </style>
