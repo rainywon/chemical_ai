@@ -1,62 +1,46 @@
 <template>
-  <div class="register">
-    <!-- 添加科技感网格背景 -->
-    <div class="tech-grid"></div>
-    
-    <!-- 添加光晕效果 -->
-    <div class="glow-effect"></div>
-    
-    <!-- 添加背景特效 -->
-    <div class="neural-network">
-      <div v-for="n in 20" :key="`node-${n}`" class="node" :style="{
-        left: `${Math.random() * 100}%`,
-        top: `${Math.random() * 100}%`,
-        opacity: 0.3 + Math.random() * 0.7
-      }"></div>
-      <div v-for="n in 30" :key="`connection-${n}`" class="connection" :style="{
-        left: `${Math.random() * 100}%`,
-        top: `${Math.random() * 100}%`,
-        width: `${50 + Math.random() * 150}px`,
-        transform: `rotate(${Math.random() * 360}deg)`,
-        opacity: 0.1 + Math.random() * 0.3
-      }"></div>
+  <div class="register-page">
+    <!-- 背景效果 -->
+    <div class="bg-molecules"></div>
+    <div class="bg-tech-overlay"></div>
+    <div class="bg-data-flow">
+      <div v-for="n in 12" :key="`flow-${n}`" class="data-stream"></div>
     </div>
-    
-    <div class="register-container">
-      <!-- 标题 -->
-      <div class="img-title">
-        <img src="../assets/product.png" alt="" />
-        <span>账号注册</span>
+    <div class="bg-nodes">
+      <div v-for="n in 8" :key="`node-${n}`" class="node">
+        <div class="node-center"></div>
+        <div v-for="c in 3" :key="`connection-${n}-${c}`" class="node-connection"></div>
+      </div>
       </div>
 
-      <!-- 表单 -->
-      <div class="register-form">
-        <!-- 步骤提示 -->
-        <div class="step-indicator">
-          <div class="step completed">
-            <div class="step-number">1</div>
-            <div class="step-label">输入手机号</div>
-          </div>
-          <div class="step-line"></div>
-          <div class="step active">
-            <div class="step-number">2</div>
-            <div class="step-label">设置信息</div>
-          </div>
-          <div class="step-line"></div>
-          <div class="step">
-            <div class="step-number">3</div>
-            <div class="step-label">完成注册</div>
+    <!-- 注册面板 -->
+    <div class="register-panel">
+      <!-- 左侧品牌区域 -->
+      <div class="brand-area">
+        <div class="brand-content">
+          <img src="../assets/product.png" alt="Logo" class="logo" />
+          <h1 class="title">天工AI智能助手</h1>
+          <p class="subtitle">智能问答系统 · 专业高效</p>
           </div>
         </div>
 
-        <!-- 手机号 -->
-        <div class="form-item">
+      <!-- 右侧注册区域 -->
+      <div class="register-area">
+        <h2 class="register-title">账号注册</h2>
+        
+
+
+        <!-- 表单区域 -->
+        <div class="form-area">
+          <!-- 手机号输入 -->
+          <div class="input-group">
+            <div class="input-icon">
+              <el-icon><PhoneFilled /></el-icon>
+            </div>
           <el-input 
             v-model="formData.phone" 
-            class="input-field" 
+              class="form-input" 
             placeholder="请输入11位手机号" 
-            :prefix-icon="PhoneFilled"
-            size="large" 
             @input="handlePhoneInput"
             type="tel"
             name="phone"
@@ -65,26 +49,37 @@
           />
         </div>
         
-        <!-- 验证码 -->
-        <div class="form-item">
           <!-- 验证码输入 -->
-          <el-input v-model="formData.verificationCode" class="input-field" placeholder="请输入6位数验证码"
-            :prefix-icon="Key" size="large" @input="handleVerificationCodeInput" />
-          <!-- 发送验证码按钮 -->
-          <el-button type="primary" class="verification-btn" :disabled="isCodeSent || !isPhoneValid"
-            @click="sendVerificationCode">
+          <div class="input-group auth-input-container">
+            <div class="input-icon">
+              <el-icon><Key /></el-icon>
+            </div>
+            <div class="code-input-group">
+              <el-input 
+                v-model="formData.verificationCode" 
+                class="form-input code-input" 
+                placeholder="请输入6位数验证码"
+                @input="handleVerificationCodeInput"
+              />
+              <button 
+                class="code-btn" 
+                :disabled="isCodeSent || !isPhoneValid"
+                @click="sendVerificationCode"
+              >
             {{ isCodeSent ? countdownText : '发送验证码' }}
-          </el-button>
+              </button>
+            </div>
         </div>
         
-        <!-- 密码 -->
-        <div class="form-item">
+          <!-- 密码输入 -->
+          <div class="input-group">
+            <div class="input-icon">
+              <el-icon><Lock /></el-icon>
+            </div>
           <el-input 
             v-model="formData.password" 
-            class="input-field" 
+              class="form-input" 
             placeholder="请输入密码（至少6位）" 
-            :prefix-icon="Lock" 
-            size="large" 
             type="password"
             show-password
             name="password"
@@ -92,47 +87,57 @@
           />
         </div>
         
-        <!-- 确认密码 -->
-        <div class="form-item">
+          <!-- 确认密码输入 -->
+          <div class="input-group">
+            <div class="input-icon">
+              <el-icon><Lock /></el-icon>
+            </div>
           <el-input 
             v-model="formData.confirmPassword" 
-            class="input-field" 
+              class="form-input" 
             placeholder="请再次输入密码" 
-            :prefix-icon="Lock" 
-            size="large" 
             type="password"
             show-password
             name="confirmPassword"
             autocomplete="new-password"
           />
-        </div>
       </div>
       
       <!-- 结果信息 -->
       <div v-if="resultMessage" :class="['result-message', messageType]">
-        {{ resultMessage }}
+            <span class="message-icon"></span>
+            <span class="message-text">{{ resultMessage }}</span>
       </div>
 
       <!-- 隐私协议 -->
-      <div class="privacy-agreement">
-        <el-checkbox v-model="formData.agreed" class="checkbox">
-          我已阅读并同意《用户协议》和《隐私政策》
+          <div class="agreement-area">
+            <el-checkbox v-model="formData.agreed" class="agreement-checkbox">
+              我已阅读并同意<a href="javascript:void(0)" class="agreement-link">《用户服务协议》</a>和<a href="javascript:void(0)" class="agreement-link">《隐私政策》</a>
         </el-checkbox>
       </div>
 
-      <!-- 按钮组 -->
-      <div class="button-group">
-        <!-- 注册按钮 -->
-        <el-button type="primary" class="action-btn register-btn"
-          :disabled="!isFormValid" @click="register" :loading="loading">
-          立即注册
-        </el-button>
-        
-        <!-- 返回登录 -->
-        <el-button type="default" class="action-btn back-btn"
-          @click="goToLogin">
-          返回登录
-        </el-button>
+          <!-- 按钮区域 -->
+          <div class="button-area">
+            <button 
+              class="submit-btn" 
+              :class="{ disabled: !isFormValid }"
+              :disabled="!isFormValid" 
+              @click="register"
+            >
+              <span v-if="!loading">立即注册</span>
+              <span v-else class="loading-spinner"></span>
+            </button>
+            
+            <!-- 返回登录按钮 -->
+            <button 
+              class="register-btn" 
+              @click="goToLogin"
+            >
+              <span>返回登录</span>
+              <el-icon class="register-icon"><ArrowLeft /></el-icon>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -140,7 +145,7 @@
 
 <script setup>
 import { ref, reactive, computed, onUnmounted } from "vue";
-import { PhoneFilled, Key, Lock } from "@element-plus/icons-vue";
+import { PhoneFilled, Key, Lock, ArrowLeft } from "@element-plus/icons-vue";
 import { useRouter } from "vue-router";
 import { API_BASE_URL } from "../config";
 import { ElMessage } from 'element-plus';
@@ -370,170 +375,397 @@ const goToLogin = () => {
 </script>
 
 <style scoped>
-/* 整体页面背景 */
-.register {
+/* 全局变量 */
+:root {
+  --primary: #4299e1;
+  --primary-light: #63b3ed;
+  --primary-dark: #3182ce;
+  --primary-bg: #ebf8ff;
+  --neutral-50: #f8fafc;
+  --neutral-100: #f1f5f9;
+  --neutral-200: #e2e8f0;
+  --neutral-300: #cbd5e1;
+  --neutral-500: #64748b;
+  --neutral-600: #475569;
+  --neutral-700: #334155;
+  --neutral-800: #1e293b;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --error: #ef4444;
+  --info: #3b82f6;
+}
+
+/* 基础布局 */
+.register-page {
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
   height: 100vh;
-  background: linear-gradient(125deg, #0b1437 0%, #172554 50%, #1e3a8a 100%);
+  width: 100%;
   overflow: hidden;
   position: relative;
+  background-color: #f0f9ff;
 }
 
-/* 科技感网格背景 */
-.tech-grid {
+/* 背景效果 - 分子背景 */
+.bg-molecules {
   position: absolute;
-  top: 0;
-  left: 0;
   width: 100%;
   height: 100%;
   background-image: 
-    linear-gradient(rgba(99, 102, 241, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(99, 102, 241, 0.05) 1px, transparent 1px);
-  background-size: 40px 40px;
+    radial-gradient(circle at 15% 20%, rgba(59, 130, 246, 0.08) 0, transparent 120px),
+    radial-gradient(circle at 85% 30%, rgba(49, 130, 206, 0.09) 0, transparent 160px),
+    radial-gradient(circle at 35% 70%, rgba(30, 64, 175, 0.07) 0, transparent 140px),
+    radial-gradient(circle at 65% 85%, rgba(66, 153, 225, 0.08) 0, transparent 130px);
+  background-size: 100% 100%;
   z-index: 0;
-  perspective: 1000px;
-  transform-style: preserve-3d;
-  animation: gridMove 60s linear infinite;
 }
 
-@keyframes gridMove {
-  0% {
-    background-position: 0 0;
-  }
-  100% {
-    background-position: 40px 40px;
-  }
-}
-
-/* 神经网络效果 */
-.neural-network {
+.bg-tech-overlay {
   position: absolute;
-  top: 0;
-  left: 0;
   width: 100%;
   height: 100%;
-  z-index: 0;
-  overflow: hidden;
+  background-image: 
+    radial-gradient(circle at 25% 25%, rgba(191, 219, 254, 0.04) 0, transparent 80px),
+    radial-gradient(circle at 75% 40%, rgba(147, 197, 253, 0.04) 0, transparent 100px),
+    radial-gradient(circle at 45% 60%, rgba(96, 165, 250, 0.04) 0, transparent 90px),
+    radial-gradient(circle at 80% 75%, rgba(59, 130, 246, 0.04) 0, transparent 110px);
+  z-index: 1;
+  opacity: 0.9;
+}
+
+.bg-data-flow {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.data-stream {
+  position: absolute;
+  height: 2px;
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    rgba(66, 153, 225, 0.15) 20%, 
+    rgba(30, 64, 175, 0.25) 50%,
+    rgba(66, 153, 225, 0.15) 80%,
+    transparent 100%);
+  opacity: 0.6;
+  animation: dataStream 8s infinite linear;
+  transform-origin: left;
+  border-radius: 2px;
+}
+
+.data-stream:nth-child(1) {
+  width: 20%;
+  top: 15%;
+  left: 0;
+  animation-delay: 0s;
+  animation-duration: 7s;
+}
+
+.data-stream:nth-child(2) {
+  width: 30%;
+  top: 25%;
+  left: 20%;
+  animation-delay: 1s;
+  animation-duration: 8s;
+}
+
+.data-stream:nth-child(3) {
+  width: 25%;
+  top: 35%;
+  left: 10%;
+  animation-delay: 2s;
+  animation-duration: 6s;
+}
+
+.data-stream:nth-child(4) {
+  width: 35%;
+  top: 48%;
+  left: 30%;
+  animation-delay: 3s;
+  animation-duration: 9s;
+}
+
+.data-stream:nth-child(5) {
+  width: 28%;
+  top: 62%;
+  left: 15%;
+  animation-delay: 2.5s;
+  animation-duration: 7.5s;
+}
+
+.data-stream:nth-child(6) {
+  width: 32%;
+  top: 78%;
+  left: 5%;
+  animation-delay: 1.5s;
+  animation-duration: 8.5s;
+}
+
+.data-stream:nth-child(7) {
+  width: 22%;
+  top: 85%;
+  left: 40%;
+  animation-delay: 3.5s;
+  animation-duration: 7s;
+}
+
+.data-stream:nth-child(8) {
+  width: 18%;
+  top: 8%;
+  left: 50%;
+  animation-delay: 4s;
+  animation-duration: 6.5s;
+}
+
+.data-stream:nth-child(9) {
+  width: 28%;
+  top: 28%;
+  left: 60%;
+  animation-delay: 2s;
+  animation-duration: 7.5s;
+}
+
+.data-stream:nth-child(10) {
+  width: 35%;
+  top: 40%;
+  left: 65%;
+  animation-delay: 1s;
+  animation-duration: 8s;
+}
+
+.data-stream:nth-child(11) {
+  width: 30%;
+  top: 65%;
+  left: 55%;
+  animation-delay: 3s;
+  animation-duration: 7s;
+}
+
+.data-stream:nth-child(12) {
+  width: 25%;
+  top: 80%;
+  left: 70%;
+  animation-delay: 2.5s;
+  animation-duration: 6.5s;
+}
+
+@keyframes dataStream {
+  0% {
+    transform: scaleX(0);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scaleX(1);
+    opacity: 0.3;
+  }
+  100% {
+    transform: scaleX(0);
+    opacity: 0.7;
+  }
+}
+
+.bg-nodes {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  z-index: 3;
+  pointer-events: none;
 }
 
 .node {
   position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: rgba(66, 153, 225, 0.08);
+  box-shadow: 0 0 20px rgba(66, 153, 225, 0.2);
+}
+
+.node-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   width: 4px;
   height: 4px;
-  background-color: rgba(255, 255, 255, 0.4);
   border-radius: 50%;
-  box-shadow: 0 0 10px rgba(147, 197, 253, 0.6);
+  background-color: rgba(30, 64, 175, 0.4);
+  animation: pulse 4s infinite ease-in-out;
+}
+
+.node-connection {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  height: 2px;
+  width: 50px;
+  background: linear-gradient(90deg, 
+    rgba(59, 130, 246, 0.4) 0%,
+    transparent 100%);
+  transform-origin: left;
+}
+
+.node:nth-child(1) {
+  top: 20%;
+  left: 25%;
+  animation-delay: 0s;
+}
+
+.node:nth-child(1) .node-connection:nth-child(2) {
+  transform: rotate(45deg);
+}
+
+.node:nth-child(1) .node-connection:nth-child(3) {
+  transform: rotate(180deg);
+}
+
+.node:nth-child(1) .node-connection:nth-child(4) {
+  transform: rotate(270deg);
+}
+
+/* 其余节点样式与Login.vue相同 */
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.5;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.5);
+  }
+}
+
+/* 注册面板 */
+.register-panel {
+  display: flex;
+  width: 900px;
+  max-width: 90%;
+  height: 600px;
+  max-height: 90vh;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+  position: relative;
+  z-index: 10;
+  background-color: white;
+}
+
+/* 品牌区域 */
+.brand-area {
+  width: 40%;
+  background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+  color: white;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.brand-area::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: 
+    linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.5) 0%, transparent 50%);
   z-index: 1;
 }
 
-.connection {
-  position: absolute;
-  height: 1px;
-  background: linear-gradient(90deg, rgba(147, 197, 253, 0.1), rgba(147, 197, 253, 0.3), rgba(147, 197, 253, 0.1));
-  transform-origin: left center;
-  z-index: 0;
-}
-
-/* 光晕效果 */
-.glow-effect {
+.brand-area::after {
+  content: '';
   position: absolute;
   width: 100%;
   height: 100%;
   top: 0;
   left: 0;
-  background: 
-    radial-gradient(circle at 20% 20%, rgba(56, 189, 248, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 80% 80%, rgba(168, 85, 247, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.05) 0%, transparent 70%);
-  filter: blur(40px);
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M54.627,0.353 L59.383,5.109 C59.533,5.260 59.533,5.503 59.383,5.654 L54.627,10.410 C54.476,10.561 54.233,10.561 54.083,10.410 L49.327,5.654 C49.176,5.503 49.176,5.260 49.327,5.109 L54.083,0.353 C54.233,0.202 54.476,0.202 54.627,0.353 Z' fill='%23FFFFFF' fill-opacity='0.02'/%3E%3C/svg%3E");
+  background-size: 60px 60px;
+  opacity: 0.4;
   z-index: 0;
-  animation: glowPulse 15s infinite alternate;
 }
 
-@keyframes glowPulse {
-  0% {
-    opacity: 0.7;
-  }
-  50% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0.7;
-  }
+.brand-content {
+  z-index: 2;
+  text-align: center;
+  padding: 40px 30px;
 }
 
-/* 注册容器 */
-.register-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 100%;
-  max-width: 450px;
-  padding: 45px;
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(12px);
-  border-radius: 24px;
-  box-shadow: 
-    0 10px 30px rgba(0, 0, 0, 0.08), 
-    0 1px 8px rgba(0, 0, 0, 0.03),
-    0 0 0 1px rgba(255, 255, 255, 0.9) inset;
-  margin-top: 0;
-  overflow: visible;
-  position: relative;
-  z-index: 1;
-  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  border: 1px solid rgba(255, 255, 255, 0.9);
-}
-
-.register-container:hover {
-  box-shadow: 
-    0 20px 40px rgba(0, 0, 0, 0.1), 
-    0 5px 15px rgba(0, 0, 0, 0.05),
-    0 0 0 1px rgba(255, 255, 255, 0.95) inset;
-  transform: translateY(-5px);
-}
-
-/* 标题样式 */
-.img-title {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.logo {
+  width: 80px;
+  height: 80px;
   margin-bottom: 30px;
-  position: relative;
-  width: 100%;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.2));
+  transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-.img-title::after {
+.brand-content:hover .logo {
+  transform: translateY(-5px);
+  filter: drop-shadow(0 8px 12px rgba(0, 0, 0, 0.3));
+}
+
+.title {
+  font-size: 30px;
+  font-weight: 800;
+  margin-bottom: 16px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  letter-spacing: 1px;
+}
+
+.subtitle {
+  position: relative;
+  display: inline-block;
+  font-size: 16px;
+  opacity: 0.9;
+  letter-spacing: 2px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  padding: 0 30px;
+  line-height: 1.6;
+  white-space: nowrap;
+  min-width: 200px;
+}
+
+.subtitle::before,
+.subtitle::after {
   content: '';
   position: absolute;
-  bottom: -15px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 70px;
-  height: 3px;
-  background: linear-gradient(90deg, #3b82f6, #60a5fa, #93c5fd);
-  border-radius: 3px;
+  top: 50%;
+  width: 20px;
+  height: 1px;
+  background-color: rgba(255, 255, 255, 0.5);
 }
 
-.img-title img {
-  width: 55px;
-  height: 55px;
-  margin-right: 18px;
-  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.15));
+.subtitle::before {
+  left: 0;
 }
 
-.img-title span {
-  font-size: 26px;
-  font-weight: 800;
-  color: #1e293b;
-  letter-spacing: 0.5px;
-  background: linear-gradient(135deg, #1e293b, #475569);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+.subtitle::after {
+  right: 0;
+}
+
+/* 注册区域 */
+.register-area {
+  width: 60%;
+  padding: 30px;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.register-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--neutral-800);
+  margin-bottom: 20px;
+  text-align: center;
 }
 
 /* 步骤指示器 */
@@ -542,7 +774,7 @@ const goToLogin = () => {
   justify-content: space-between;
   align-items: center;
   width: 100%;
-  margin-bottom: 30px;
+  margin-bottom: 20px;
 }
 
 .step {
@@ -550,6 +782,7 @@ const goToLogin = () => {
   flex-direction: column;
   align-items: center;
   position: relative;
+  z-index: 1;
 }
 
 .step-number {
@@ -560,292 +793,456 @@ const goToLogin = () => {
   align-items: center;
   justify-content: center;
   font-weight: bold;
-  background-color: #e2e8f0;
-  color: #64748b;
+  background-color: var(--neutral-200);
+  color: var(--neutral-600);
   margin-bottom: 8px;
   transition: all 0.3s ease;
 }
 
 .step.active .step-number {
-  background-color: #3b82f6;
+  background-color: var(--primary);
   color: white;
-  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2);
+  box-shadow: 0 0 0 4px rgba(66, 153, 225, 0.2);
 }
 
 .step.completed .step-number {
-  background-color: #10b981;
+  background-color: var(--success);
   color: white;
 }
 
 .step-label {
   font-size: 14px;
-  color: #64748b;
+  color: var(--neutral-600);
   font-weight: 500;
 }
 
 .step.active .step-label {
-  color: #3b82f6;
+  color: var(--primary);
   font-weight: 600;
 }
 
 .step.completed .step-label {
-  color: #10b981;
+  color: var(--success);
 }
 
 .step-line {
   flex: 1;
   height: 2px;
-  background-color: #e2e8f0;
+  background-color: var(--neutral-200);
   margin: 0 10px;
   margin-bottom: 20px;
 }
 
-/* 表单样式 */
-.register-form {
+/* 表单区域 */
+.form-area {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  width: 100%;
+  transition: all 0.3s ease;
 }
 
-.form-item {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  width: 100%;
-  margin-bottom: 22px;
+.input-group {
   position: relative;
-}
-
-/* 输入框样式 */
-.input-field {
-  width: 100%;
-  height: 54px;
-  font-size: 15px;
-  border-radius: 14px !important;
-  background: rgba(255, 255, 255, 0.9) !important;
-  border: 1px solid rgba(226, 232, 240, 0.8) !important;
-  box-shadow: 
-    0 2px 6px rgba(0, 0, 0, 0.03), 
-    0 0 0 1px rgba(255, 255, 255, 0.8) inset !important;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
-  padding-left: 16px !important;
-}
-
-.input-field:focus {
-  border-color: #3b82f6 !important;
-  box-shadow: 
-    0 0 0 3px rgba(59, 130, 246, 0.25), 
-    0 2px 8px rgba(0, 0, 0, 0.05) !important;
-  background: #ffffff !important;
-  transform: translateY(-1px);
-}
-
-/* 验证码按钮 */
-.verification-btn {
-  margin-left: 12px;
-  height: 54px;
-  min-width: 120px;
-  border-radius: 14px !important;
-  background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
-  border: none !important;
-  color: white !important;
-  font-weight: 600 !important;
-  letter-spacing: 0.5px;
-  box-shadow: 
-    0 4px 12px rgba(37, 99, 235, 0.25), 
-    0 2px 4px rgba(37, 99, 235, 0.1) !important;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
-  position: relative;
+  margin-bottom: 16px;
   overflow: hidden;
+  transition: all 0.3s ease;
 }
 
-.verification-btn:hover:not(:disabled) {
+.input-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--neutral-500);
+  font-size: 16px;
+  z-index: 2;
+}
+
+.form-input {
+  width: 100%;
+  height: 44px;
+  border-radius: 8px !important;
+  border: 1px solid var(--neutral-200) !important;
+  background-color: var(--neutral-50) !important;
+  transition: all 0.2s ease !important;
+  padding-left: 38px !important;
+  font-size: 14px !important;
+}
+
+.form-input:focus {
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.15) !important;
+  background-color: white !important;
+}
+
+.code-input-group {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  transition: all 0.3s ease;
+}
+
+.code-input {
+  border-top-right-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+  transition: all 0.3s ease;
+}
+
+.code-btn {
+  min-width: 120px;
+  height: 48px;
+  border: none;
+  background-color: #2b6cb0; /* 更深的蓝色，增强可见性 */
+  color: #ffffff; /* 确保文字为纯白色 */
+  font-weight: 700; /* 加粗字体 */
+  border-radius: 0 8px 8px 0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 16px; /* 增大字体 */
+  white-space: nowrap;
+  padding: 0 15px;
+  box-shadow: 0 4px 8px rgba(49, 130, 206, 0.4); /* 增加阴影 */
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2); /* 添加文字阴影 */
+}
+
+.code-btn:hover:not(:disabled) {
+  background-color: #1a4e82; /* 悬停时颜色更深 */
+  box-shadow: 0 6px 12px rgba(49, 130, 206, 0.5);
   transform: translateY(-2px);
-  box-shadow: 
-    0 6px 18px rgba(37, 99, 235, 0.3), 
-    0 2px 6px rgba(37, 99, 235, 0.2) !important;
-  background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
 }
 
-.verification-btn:active:not(:disabled) {
-  transform: translateY(0);
-}
-
-/* 禁用状态 */
-.verification-btn:disabled {
-  background: linear-gradient(135deg, #93c5fd, #bfdbfe) !important;
-  color: #eff6ff !important;
-  box-shadow: none !important;
+.code-btn:disabled {
+  background-color: #4299e1;
+  opacity: 0.8;
   cursor: not-allowed;
 }
 
 /* 结果消息 */
 .result-message {
   padding: 12px 16px;
-  border-radius: 12px;
-  font-size: 14px;
-  line-height: 1.5;
-  margin-bottom: 18px;
-  width: 100%;
-  text-align: left;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-  backdrop-filter: blur(4px);
+  border-radius: 8px;
+  margin: 10px 0 15px;
   display: flex;
   align-items: center;
-  position: relative;
-  overflow: hidden;
 }
 
 .result-message.success {
-  background: rgba(236, 253, 245, 0.7);
-  border-left: 3px solid #10b981;
-  color: #065f46;
-}
-
-.result-message.info {
-  background: rgba(236, 246, 255, 0.7);
-  border-left: 3px solid #3b82f6;
-  color: #1e40af;
+  background-color: rgba(16, 185, 129, 0.1);
+  border-left: 4px solid var(--success);
 }
 
 .result-message.warning {
-  background: rgba(255, 251, 235, 0.7);
-  border-left: 3px solid #f59e0b;
-  color: #92400e;
+  background-color: rgba(245, 158, 11, 0.1);
+  border-left: 4px solid var(--warning);
 }
 
 .result-message.error {
-  background: rgba(254, 226, 226, 0.7);
-  border-left: 3px solid #ef4444;
-  color: #b91c1c;
+  background-color: rgba(239, 68, 68, 0.1);
+  border-left: 4px solid var(--error);
 }
 
-/* 隐私协议 */
-.privacy-agreement {
-  margin-bottom: 25px;
+.result-message.info {
+  background-color: rgba(59, 130, 246, 0.1);
+  border-left: 4px solid var(--info);
+}
+
+.message-icon {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  margin-right: 10px;
+  position: relative;
+}
+
+.message-icon::before {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
+  text-align: center;
+  font-weight: bold;
+  font-size: 16px;
 }
 
-.checkbox {
-  font-size: 14px;
-  color: #64748b;
-  text-align: left;
-  word-wrap: break-word;
-  word-break: break-word;
-  transition: color 0.3s ease;
-}
+.success .message-icon::before { content: '✓'; color: var(--success); }
+.warning .message-icon::before { content: '!'; color: var(--warning); }
+.error .message-icon::before { content: '✕'; color: var(--error); }
+.info .message-icon::before { content: 'i'; color: var(--info); font-style: italic; }
 
-.checkbox:hover {
-  color: #475569;
-}
-
-/* 按钮组 */
-.button-group {
-  display: flex;
-  width: 100%;
-  gap: 15px;
-  margin-top: 10px;
-}
-
-.action-btn {
+.message-text {
   flex: 1;
-  height: 54px !important;
-  border-radius: 14px !important;
-  font-weight: 600 !important;
-  letter-spacing: 0.5px;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  font-size: 14px;
+  color: var(--neutral-700);
+}
+
+/* 协议区域 */
+.agreement-area {
+  margin-bottom: 20px;
+}
+
+.agreement-checkbox {
+  font-size: 13px;
+  color: var(--neutral-600);
+  line-height: 1.5;
+  display: flex;
+  align-items: flex-start;
+}
+
+.agreement-checkbox :deep(.el-checkbox__input) {
+  margin-top: 3px;
+  align-self: flex-start;
+}
+
+.agreement-checkbox :deep(.el-checkbox__label) {
+  white-space: normal;
+  line-height: 1.5;
+  word-break: break-word;
+  text-align: left;
+  padding-top: 0;
+}
+
+.agreement-link {
+  color: #3182ce;
+  text-decoration: none;
+  transition: color 0.2s ease;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.agreement-link:hover {
+  color: #2c5282;
+  text-decoration: underline;
+}
+
+/* 按钮区域 */
+.button-area {
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  transition: all 0.3s ease;
+}
+
+.submit-btn {
+  width: 100%;
+  height: 48px;
+  border-radius: 8px;
+  background-color: #3182ce; /* 更深的蓝色 */
+  color: white;
+  font-weight: 800; /* 更粗的字体 */
+  font-size: 17px; /* 更大的字体 */
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 5px 10px rgba(49, 130, 206, 0.5); /* 增强阴影 */
+  letter-spacing: 2px;
   position: relative;
   overflow: hidden;
-  font-size: 16px !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2); /* 添加文字阴影 */
+}
+
+.submit-btn:hover:not(:disabled) {
+  background-color: #2c5282; /* 悬停时颜色更深 */
+  box-shadow: 0 7px 14px rgba(49, 130, 206, 0.6);
+  transform: translateY(-3px);
+}
+
+.submit-btn.disabled {
+  background-color: #63b3ed;
+  opacity: 0.8;
+  cursor: not-allowed;
+  box-shadow: 0 3px 6px rgba(66, 153, 225, 0.3);
+}
+
+.loading-spinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 /* 注册按钮 */
 .register-btn {
-  background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
-  border: none !important;
-  color: white !important;
-  box-shadow: 
-    0 4px 12px rgba(37, 99, 235, 0.25), 
-    0 2px 4px rgba(37, 99, 235, 0.1) !important;
+  width: 100%;
+  height: 48px;
+  border-radius: 8px;
+  background-color: rgba(235, 248, 255, 0.7);
+  color: #2b6cb0;
+  font-weight: 600;
+  font-size: 16px;
+  border: 2px solid rgba(49, 130, 206, 0.6);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  letter-spacing: 1px;
+  box-shadow: 0 4px 8px rgba(49, 130, 206, 0.15);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
-.register-btn:hover:not(:disabled) {
+.register-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg, 
+    rgba(190, 227, 248, 0) 0%, 
+    rgba(190, 227, 248, 0.3) 50%, 
+    rgba(190, 227, 248, 0) 100%
+  );
+  transition: all 0.8s ease;
+  z-index: 0;
+}
+
+.register-btn span, .register-btn .register-icon {
+  position: relative;
+  z-index: 1;
+}
+
+.register-btn:hover {
+  background-color: rgba(235, 248, 255, 0.9);
+  border-color: #2b6cb0;
+  box-shadow: 0 6px 12px rgba(49, 130, 206, 0.25);
   transform: translateY(-2px);
-  box-shadow: 
-    0 8px 20px rgba(37, 99, 235, 0.3), 
-    0 4px 8px rgba(37, 99, 235, 0.2) !important;
-  background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
+  color: #1a4e82;
 }
 
-.register-btn:active:not(:disabled) {
+.register-btn:hover::before {
+  left: 100%;
+}
+
+.register-btn:active {
   transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(49, 130, 206, 0.2);
 }
 
-.register-btn:disabled {
-  background: linear-gradient(135deg, #93c5fd, #bfdbfe) !important;
-  color: #eff6ff !important;
-  box-shadow: none !important;
-  cursor: not-allowed;
+.register-icon {
+  font-size: 16px;
+  opacity: 0.8;
+  transition: all 0.3s ease;
+  transform: translateX(-5px);
 }
 
-/* 返回按钮 */
-.back-btn {
-  background: rgba(255, 255, 255, 0.8) !important;
-  border: 1px solid #e2e8f0 !important;
-  color: #475569 !important;
-  box-shadow: 
-    0 2px 6px rgba(0, 0, 0, 0.03), 
-    0 0 0 1px rgba(255, 255, 255, 0.8) inset !important;
+.register-btn:hover .register-icon {
+  opacity: 1;
+  transform: translateX(-3px);
 }
 
-.back-btn:hover:not(:disabled) {
-  transform: translateY(-2px);
-  background: #f8fafc !important;
-  border-color: #cbd5e1 !important;
-  color: #334155 !important;
-  box-shadow: 
-    0 4px 12px rgba(0, 0, 0, 0.05), 
-    0 0 0 1px rgba(255, 255, 255, 0.9) inset !important;
-}
-
-.back-btn:active:not(:disabled) {
-  transform: translateY(0);
+/* 固定高度容器 */
+.auth-input-container {
+  min-height: 48px;
+  margin-bottom: 20px;
 }
 
 /* 响应式调整 */
+@media (max-width: 768px) {
+  .register-panel {
+    flex-direction: column;
+    height: auto;
+    max-height: 90vh;
+  }
+  
+  .brand-area, .register-area {
+    width: 100%;
+  }
+  
+  .brand-area {
+    padding: 30px 0;
+  }
+  
+  .brand-content {
+    padding: 30px 20px;
+    max-width: 300px;
+    width: 100%;
+  }
+  
+  .logo {
+    width: 65px;
+    height: 65px;
+    margin-bottom: 20px;
+  }
+  
+  .title {
+    font-size: 26px;
+    margin-bottom: 12px;
+  }
+  
+  .subtitle {
+    font-size: 14px;
+    padding: 0 20px;
+    letter-spacing: 1.5px;
+    min-width: 240px;
+    white-space: nowrap;
+  }
+  
+  .subtitle::before,
+  .subtitle::after {
+    width: 15px;
+  }
+  
+  .register-area {
+    padding: 25px 20px;
+  }
+}
+
 @media (max-width: 480px) {
-  .register-container {
-    max-width: 90%;
-    padding: 35px 20px;
+  .global-message {
+    max-width: calc(100% - 40px);
+    top: 10px;
+    right: 10px;
+    padding: 10px 15px 10px 10px;
   }
   
-  .img-title img {
-    width: 45px;
-    height: 45px;
-  }
-  
-  .img-title span {
-    font-size: 22px;
-  }
-  
-  .form-item {
+  .code-input-group {
     flex-direction: column;
     align-items: stretch;
   }
   
-  .verification-btn {
-    margin-left: 0;
-    margin-top: 12px;
-    width: 100%;
+  .code-input {
+    border-radius: 8px !important;
   }
   
-  .button-group {
-    flex-direction: column;
-    gap: 10px;
+  .code-btn {
+    height: 50px;
+    font-size: 16px;
+    margin-top: 12px;
+    width: 100%;
+    border-radius: 8px;
+    box-shadow: 0 5px 10px rgba(49, 130, 206, 0.4); /* 增强阴影 */
+    background-color: #3182ce; /* 确保在移动端也有正确的颜色 */
+  }
+  
+  .auth-input-container {
+    min-height: 120px; /* 移动端更大的容器高度以适应验证码按钮的位置变化 */
   }
   
   .step-label {
+    font-size: 12px;
+  }
+  
+  .agreement-checkbox {
+    font-size: 12px;
+    line-height: 1.4;
+  }
+  
+  .agreement-checkbox :deep(.el-checkbox__label) {
+    padding-left: 4px;
     font-size: 12px;
   }
 }

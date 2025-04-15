@@ -536,6 +536,11 @@ const getFeedbackIconClass = (type) => {
   }
 };
 
+// 调试函数 - 在控制台输出数据加载状态
+const logDebugInfo = (context, data) => {
+  console.log(`[Dashboard] ${context}:`, data);
+};
+
 // 加载统计数据
 const loadStats = async () => {
   try {
@@ -558,10 +563,18 @@ const loadStats = async () => {
       }
       
       // 系统活跃度
-      if (data.activity_stats) {
-        stats.totalSessions = data.activity_stats.total_sessions || 0;
-        stats.activeUsers = data.activity_stats.active_users || 0;
-        stats.avgMessagesPerSession = data.activity_stats.avg_messages_per_session || 0;
+      if (data.system_activity) {
+        stats.totalSessions = data.system_activity.total_sessions || 0;
+        stats.activeUsers = data.system_activity.active_users || 0;
+        // 计算每个会话的平均消息数
+        if (data.system_activity.avg_messages_per_session !== undefined) {
+          stats.avgMessagesPerSession = data.system_activity.avg_messages_per_session;
+        } else if (data.system_activity.total_sessions && data.system_activity.total_questions) {
+          // 如果后端没有直接提供，尝试自己计算
+          stats.avgMessagesPerSession = data.system_activity.total_questions / data.system_activity.total_sessions;
+        } else {
+          stats.avgMessagesPerSession = 0;
+        }
       }
       
       // 反馈统计
@@ -571,6 +584,8 @@ const loadStats = async () => {
         stats.contentFeedbacks = data.feedback_stats.content_feedbacks || 0;
         stats.avgRating = data.feedback_stats.avg_rating || 0;
       }
+      
+      console.log("Dashboard stats loaded successfully:", stats);
     }
   } catch (error) {
     console.error('加载统计数据失败:', error);
@@ -595,7 +610,17 @@ const loadRecentLogins = async () => {
   try {
     const response = await axios.get(`${API_BASE_URL}/admin/dashboard/recent-data`);
     if (response && response.data && response.data.code === 200 && response.data.data) {
+      logDebugInfo('Recent logins response', response.data.data);
       recentLogins.value = response.data.data.recent_logins || [];
+      
+      // 数据格式化和错误处理
+      recentLogins.value = recentLogins.value.map(login => ({
+        ...login,
+        mobile: login.mobile || `用户${login.user_id}`,
+        login_time: login.login_time || new Date().toISOString()
+      }));
+      
+      logDebugInfo('Processed recent logins', recentLogins.value);
     }
   } catch (error) {
     console.error('加载最近登录失败:', error);
@@ -608,6 +633,7 @@ const loadRecentFeedbacks = async () => {
   try {
     const response = await axios.get(`${API_BASE_URL}/admin/dashboard/recent-data`);
     if (response && response.data && response.data.code === 200 && response.data.data) {
+      logDebugInfo('Recent feedbacks response', response.data.data);
       recentFeedbacks.value = response.data.data.recent_feedbacks || [];
       
       // 确保每个反馈项都有正确的属性
@@ -622,6 +648,8 @@ const loadRecentFeedbacks = async () => {
         // 确保content存在
         content: feedback.content || '无内容'
       }));
+      
+      logDebugInfo('Processed recent feedbacks', recentFeedbacks.value);
     }
   } catch (error) {
     console.error('加载最新反馈失败:', error);
@@ -975,13 +1003,34 @@ const loadContentStats = async () => {
   }
 };
 
-// 修改刷新方法，也加载内容统计
-const refreshStats = () => {
-  ElMessage.info('正在刷新数据...');
-  loadStats();
-  // 如果主统计接口返回的内容数据为零，尝试直接获取
-  if (stats.knowledgeCount === 0 && stats.emergencyCount === 0) {
-    loadContentStats();
+// 定义刷新数据的函数
+const refreshStats = async () => {
+  try {
+    // 显示加载中提示
+    ElMessage({
+      message: '正在刷新数据...',
+      type: 'info',
+      duration: 1000
+    });
+    
+    // 并行加载所有数据
+    await Promise.all([
+      loadStats(),
+      loadRecentConversations(),
+      loadRecentLogins(),
+      loadRecentFeedbacks(),
+      loadSystemInfo()
+    ]);
+    
+    // 刷新成功提示
+    ElMessage({
+      message: '数据刷新成功',
+      type: 'success',
+      duration: 1500
+    });
+  } catch (error) {
+    console.error('刷新数据失败:', error);
+    ElMessage.error('刷新数据失败，请检查网络连接');
   }
 };
 
@@ -994,29 +1043,45 @@ const getSafeValue = (obj, path, defaultValue = '') => {
   }
 };
 
-onMounted(() => {
-  // 首先加载主统计数据
-  loadStats();
-  
-  // 延迟检查内容统计数据，如果为零则通过单独API加载
-  setTimeout(() => {
-    if (stats.knowledgeCount === 0 && stats.emergencyCount === 0) {
-      loadContentStats();
-    }
-  }, 1000);
-  
-  loadRecentConversations();
-  loadRecentLogins();
-  loadRecentFeedbacks();
-  loadSystemInfo();
-  
-  // 图表初始化需要等DOM渲染完成后执行
-  nextTick(() => {
-    // 确保DOM已准备好
-    setTimeout(() => {
-      initCharts();
-    }, 100);
-  });
+// 生命周期钩子
+onMounted(async () => {
+  // 使用try-catch包裹，防止任何初始化错误影响整个页面
+  try {
+    logDebugInfo('Dashboard initializing', 'Started loading data');
+    
+    // 首先加载主统计数据
+    await loadStats();
+    
+    // 延迟加载其他数据，避免并发请求过多
+    setTimeout(async () => {
+      try {
+        // 并行加载最近活动数据
+        await Promise.all([
+          loadRecentConversations(),
+          loadRecentLogins(),
+          loadRecentFeedbacks()
+        ]);
+        
+        // 加载系统信息
+        await loadSystemInfo();
+        
+        logDebugInfo('Dashboard initialization', 'All data loaded successfully');
+      } catch (error) {
+        console.error('加载最近活动数据和系统信息失败:', error);
+      }
+    }, 300);
+    
+    // 图表初始化需要等DOM渲染完成后执行
+    nextTick(() => {
+      // 确保DOM已准备好
+      setTimeout(() => {
+        initCharts();
+        logDebugInfo('Dashboard charts', 'Initialized');
+      }, 400);
+    });
+  } catch (error) {
+    console.error('Dashboard 初始化失败:', error);
+  }
 });
 </script>
 

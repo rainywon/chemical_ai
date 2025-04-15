@@ -394,7 +394,7 @@ const login = async () => {
       // 管理员密码登录
       url = `${API_BASE_URL}/admin_login/`;
       requestData = {
-        mobile: formData.phone,
+        username: formData.phone,
         password: formData.password
       };
     } else {
