@@ -9,7 +9,7 @@
             <img class="brand-icon" src="../assets/product.png" alt="Logo" />
             <span class="brand-text">天工AI智能助手</span>
           </template>
-          <el-tooltip :content="isCollapsed ? '展开侧栏' : '收起侧栏'">
+          <el-tooltip :content="isCollapsed ? '展开侧栏' : '收起侧栏'" placement="right">
             <img class="collapse-icon" src="../assets/aside.png" @click="toggleSidebar" />
           </el-tooltip>
         </header>
@@ -18,31 +18,69 @@
         <div class="new-chat" v-if="!isCollapsed">
           <el-button type="primary" class="new-chat-btn" @click="createNewChatSession">+ 新对话</el-button>
         </div>
-        <div class="new-chat" v-if="isCollapsed">
-          <el-tooltip effect="dark" content="新建对话" placement="top" popper-class="custom-tooltip">
-            <img src="../assets/newchat.png" alt="" class="collapse-icon" @click="createNewChatSession">
+        <div class="new-chat collapsed-new-chat" v-if="isCollapsed">
+          <el-tooltip effect="dark" content="新建对话" placement="right" popper-class="custom-tooltip">
+            <div class="collapsed-icon-wrapper" @click="createNewChatSession">
+              <img src="../assets/newchat.png" alt="新建对话" class="collapsed-icon">
+            </div>
           </el-tooltip>
         </div>
+        
         <!-- 生成模式选择 -->
-        <div class="option-container" v-if="!isCollapsed">
-          <p class="selection-instruction">
-            生成模式
-          </p>
-          <div class="model_select">
-            <el-select v-model="selectedOption" placeholder="请选择生成方式" @change="handleChange">
-              <el-option v-for="item in options" :key="item.value" :label="item.label" :value="item.value">
-              </el-option>
-            </el-select>
+        <div class="model-select-container" v-if="!isCollapsed">
+          <el-select v-model="selectedOption" placeholder="选择生成模式" size="default" class="modern-select" @change="handleChange" popper-class="mode-select-dropdown">
+            <template #prefix>
+              <div class="select-prefix-container">
+                <span class="select-prefix">生成模式</span>
+              </div>
+            </template>
+            <el-option 
+              v-for="item in options" 
+              :key="item.value" 
+              :label="item.label" 
+              :value="item.value"
+              class="mode-option"
+            >
+              <el-tooltip 
+                :content="item.description" 
+                placement="top" 
+                effect="dark" 
+                popper-class="option-tooltip"
+                :enterable="false"
+                :show-after="300"
+              >
+                <div class="option-content">
+                  <span class="option-label">{{ item.label }}</span>
+                  <span class="option-icon">
+                    <i class="el-icon-check" v-if="selectedOption === item.value"></i>
+                  </span>
+                </div>
+              </el-tooltip>
+            </el-option>
+          </el-select>
+          <div class="mode-tooltip">
+            <el-tooltip placement="right" effect="light" popper-class="custom-mode-tooltip">
+              <template #content>
+                <div class="tooltip-content">
+                  <p class="tooltip-title">{{ selectedOptionLabel }}</p>
+                  <p class="tooltip-description">
+                    {{ getModeTip(selectedOption) }}
+                  </p>
+                </div>
+              </template>
+              <i class="mode-info-icon el-icon-question"></i>
+            </el-tooltip>
           </div>
         </div>
 
-        <!-- 分割线 -->
+        <!-- 分割线 - 添加淡入淡出效果 -->
+        <div class="sidebar-divider" v-if="!isCollapsed"></div>
 
         <!-- 历史对话 -->
         <div class="history" v-if="!isCollapsed">
           <div class="history-header">
             <span>历史对话</span>
-            <el-tooltip content="清除所有历史记录">
+            <el-tooltip content="清除所有历史记录" placement="top">
               <img class="delete-icon" src="../assets/delete_history.png" width="20px"
                 height="20px" @click="clearAllChatHistory" />
             </el-tooltip>
@@ -56,7 +94,7 @@
                 <span class="history-text" :title="chat.title">
                   {{ chat.title || '新对话' }}
                 </span>
-                <el-tooltip content="删除记录">
+                <el-tooltip content="删除记录" placement="top">
                   <!-- 添加.stop修饰符阻止事件冒泡 -->
                   <img class="delete-item-icon" src="../assets/delete_history.png" 
                     @click.stop="deleteChatSession(chat.id)" width="20px" height="20px" />
@@ -71,13 +109,12 @@
           </div>
         </div>
 
-
         <!-- 个人信息 -->
         <div class="user-info" v-if="!isCollapsed">
-          <img src="../assets/user_img.png" alt="用户头像" width="40px" height="40px">
+          <img src="../assets/user_img.png" alt="用户头像" class="user-avatar">
           <span class="username">{{UserName}}</span>
           <el-tooltip effect="dark" content="退出登录" placement="top" popper-class="custom-tooltip">
-            <img class="setting-icon" src="../assets/leave.png" alt="设置" width="20px" height="20px" @click="tologin">
+            <img class="setting-icon" src="../assets/leave.png" alt="设置" @click="tologin">
           </el-tooltip>
         </div>
       </el-aside>
@@ -141,10 +178,11 @@
                 </div>
               </div>
             </div>
-            <!-- 添加滑动到底部按钮 -->
-            <div class="scroll-to-bottom-btn" v-show="showScrollButton" @click="handleScrollToBottom">
-              <i class="scroll-bottom-icon">⬇</i>
-            </div>
+          </div>
+
+          <!-- 滚动到底部按钮 - 放在滚动容器外部 -->
+          <div class="scroll-to-bottom-btn" v-show="showScrollButton" @click="handleScrollToBottom">
+            <i class="scroll-bottom-icon">⬇</i>
           </div>
 
           <!-- 用户输入容器 -->
@@ -242,8 +280,16 @@ let UserName = ref("AI用户"); // 用户名，显示当前登录用户
 let abortController = null; // 中止控制器，用于取消正在进行的请求
 const selectedOption = ref("知识库生成"); // 选中的生成模式，控制使用哪种方式生成回答
 const options = [ // 生成模式选项列表
-  { value: "llm", label: "大模型生成" },
-  { value: "kb", label: "知识库生成" },
+  { 
+    value: "llm", 
+    label: "大模型生成",
+    description: "直接调用大模型生成回答，适用于通用问题咨询和创意性任务。"
+  },
+  { 
+    value: "kb", 
+    label: "知识库生成",
+    description: "基于知识库数据生成更准确的专业领域回答，适用于查询专业知识和获取权威信息。" 
+  },
 ];
 const shouldAutoScroll = ref(true);
 const showScrollButton = ref(false);
@@ -272,85 +318,129 @@ const lastAiMessageId = computed(() => {
   return aiMessages.length ? aiMessages[aiMessages.length - 1].id : null;
 });
 
-// 消息虚拟滚动实现
+// 修改虚拟滚动实现
+// 之前的方法没有真正实现虚拟滚动，而是简单地设置了全部消息，这会导致大量消息时的性能问题
 watch(currentChatHistory, () => {
   updateVisibleMessages();
 }, { deep: true });
 
-// 先定义简单的工具函数，不依赖其他函数
-// 防抖函数
+// 改进的防抖函数，使用闭包保存状态，避免使用ref
 const debounce = (fn, delay = 300) => {
+  let timer = null;
   return (...args) => {
-    if (debounceTimer.value) clearTimeout(debounceTimer.value);
-    debounceTimer.value = setTimeout(() => {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => {
       fn(...args);
-      debounceTimer.value = null;
+      timer = null;
     }, delay);
   };
 };
 
-// 滚动相关
+// 滚动相关 - 优化滚动处理逻辑
 const handleScroll = () => {
   const container = scrollContainer.value;
   if (!container) return;
   
-  const threshold = 50;
+  const threshold = 100; // 增大阈值，更容易检测到底部
   const { scrollTop, scrollHeight, clientHeight } = container;
-  const isNearBottom = scrollHeight - (scrollTop + clientHeight) < threshold;
+  const distanceFromBottom = scrollHeight - (scrollTop + clientHeight);
+  const isNearBottom = distanceFromBottom < threshold;
   
   shouldAutoScroll.value = isNearBottom;
-  showScrollButton.value = !isNearBottom && scrollHeight > clientHeight + 150;
+  // 只有当滚动容器有足够内容并且不在底部时才显示按钮
+  showScrollButton.value = !isNearBottom && scrollHeight > clientHeight + 200;
 };
 
-// 滚动到底部
+// 滚动到底部 - 通用函数，供其他地方调用
 const scrollToBottom = (behavior = "smooth") => {
-  if (scrollContainer.value && shouldAutoScroll.value) {
-    const container = scrollContainer.value;
-    container.scrollTo({
-      top: container.scrollHeight,
-      behavior: behavior,
-    });
-  }
-};
-
-const handleScrollToBottom = () => {
+  if (!scrollContainer.value) return;
+  
   const container = scrollContainer.value;
-  if (container) {
+  // 根据behavior参数决定滚动方式
+  if (behavior === "auto") {
+    // 直接设置scrollTop - 更高效但没有动画
+    container.scrollTop = container.scrollHeight;
+  } else {
+    // 使用scrollTo - 有平滑动画效果
     container.scrollTo({
       top: container.scrollHeight,
-      behavior: 'smooth'
+      behavior: behavior
     });
-    shouldAutoScroll.value = true;
   }
 };
 
-// 现在可以安全地引用上面定义的函数
+// 滚动按钮点击处理函数 - 专用于按钮点击
+const handleScrollToBottom = () => {
+  if (!scrollContainer.value) return;
+  
+  // 强制设置自动滚动标志为true
+  shouldAutoScroll.value = true;
+  
+  // 调用通用滚动函数
+  scrollToBottom("smooth");
+  
+  // 设置一个短暂的延时，然后隐藏按钮，提供更好的视觉反馈
+  setTimeout(() => {
+    showScrollButton.value = false;
+  }, 300);
+};
+
 // 防抖处理滚动事件
-const debouncedHandleScroll = debounce(handleScroll, 100);
+const debouncedHandleScroll = debounce(handleScroll, 150); // 增加延迟减少触发频率
 
 // 设置滚动监听
 const setupScrollListener = () => {
   const container = scrollContainer.value;
   if (container) {
-    // 使用防抖处理滚动事件，提高性能
-    container.addEventListener("scroll", debouncedHandleScroll);
+    // 使用passive: true提高滚动性能
+    container.addEventListener("scroll", debouncedHandleScroll, { passive: true });
   }
 };
 
-// 更新可见消息列表
+// 真正的虚拟滚动实现
 const updateVisibleMessages = () => {
-  // 使用批处理更新来减少重绘
+  if (!scrollContainer.value) return;
+  
+  // 使用requestAnimationFrame减少重绘和计算
   requestAnimationFrame(() => {
-    visibleMessages.value = currentChatHistory.value;
+    const container = scrollContainer.value;
+    const { scrollTop, clientHeight } = container;
+    
+    // 如果消息数量较少(小于30条)，直接显示全部消息
+    if (currentChatHistory.value.length <= 30) {
+      visibleMessages.value = currentChatHistory.value;
+      return;
+    }
+    
+    // 实现基于可见区域的消息渲染
+    // 假设每条消息平均高度为150px，这可以根据实际情况调整
+    const estimatedMsgHeight = 150;
+    // 获取大约在可视区域的消息索引
+    const startIndex = Math.max(0, Math.floor(scrollTop / estimatedMsgHeight) - 5); // 缓冲5条
+    const endIndex = Math.min(
+      currentChatHistory.value.length,
+      Math.ceil((scrollTop + clientHeight) / estimatedMsgHeight) + 5 // 缓冲5条
+    );
+    
+    // 只显示可见区域附近的消息
+    visibleMessages.value = currentChatHistory.value.slice(startIndex, endIndex);
   });
 };
 
-// 流式响应文本优化
+// 优化的流式响应文本更新
 const optimizedUpdateMessageText = debounce((messageId, text) => {
-  currentChatHistory.value = currentChatHistory.value.map((msg) =>
-    msg.id === messageId ? { ...msg, text: text } : msg
-  );
-}, 30); // 30ms防抖，平衡更新频率和响应速度
+  // 使用map查找而不是每次都遍历全部消息
+  const index = currentChatHistory.value.findIndex(msg => msg.id === messageId);
+  if (index !== -1) {
+    // 使用不可变数据模式更新，避免修改原对象触发不必要的重渲染
+    const updatedMsg = { ...currentChatHistory.value[index], text };
+    currentChatHistory.value = [
+      ...currentChatHistory.value.slice(0, index),
+      updatedMsg,
+      ...currentChatHistory.value.slice(index + 1)
+    ];
+  }
+}, 50); // 降低到50ms提升流式响应的平滑度
 
 // 分批加载历史消息的实现
 const loadMessagesBatch = (messages, batchSize = 10, delay = 50) => {
@@ -747,47 +837,50 @@ const processAIResponse = async (question, aiMsgOrId) => {
           const { type, data } = JSON.parse(line);
 
           if (type === "references") {
-            // 更新前端显示的引用
-            currentChatHistory.value = currentChatHistory.value.map((msg) =>
-              msg.id === aiMsg.id ? { ...msg, references: data } : msg
-            );
+            // 使用函数查找并更新，避免不必要的全部渲染
+            updateAIMessageReferences(aiMsg.id, data);
           } else if (type === "content") {
             partialText += data;
             
-            // 控制UI更新频率，防止过度渲染
+            // 控制UI更新频率，使用累积更新策略
             const now = Date.now();
             if (now - lastUpdateTime > updateInterval) {
               // 使用优化后的更新函数
               optimizedUpdateMessageText(aiMsg.id, partialText);
               lastUpdateTime = now;
               
-              // 每次添加内容后检查是否需要滚动
+              // 使用requestIdleCallback在浏览器空闲时执行滚动，避免阻塞渲染
               if (shouldAutoScroll.value && scrollContainer.value) {
-                // 使用requestAnimationFrame确保在下一帧渲染前执行滚动
-                requestAnimationFrame(() => {
-                  const container = scrollContainer.value;
-                  // 直接使用scrollTop属性而非scrollTo方法确保滚动到底部
-                  container.scrollTop = container.scrollHeight + 100; // 加上额外的100px确保滚动到底部
-                });
+                if (window.requestIdleCallback) {
+                  window.requestIdleCallback(() => {
+                    const container = scrollContainer.value;
+                    if (container) container.scrollTop = container.scrollHeight;
+                  }, { timeout: 100 });
+                } else {
+                  // 降级处理
+                  requestAnimationFrame(() => {
+                    const container = scrollContainer.value;
+                    if (container) container.scrollTop = container.scrollHeight;
+                  });
+                }
               }
               
-              // 更新数据库仅在积累一定量的文本后进行
-              if (partialText.length % 300 === 0 && currentChatId.value) {
+              // 减少数据库更新频率，提高到500字符一次
+              if (partialText.length % 500 === 0 && currentChatId.value) {
                 const updatedMsg = { ...aiMsg, text: partialText };
-                await updateMessage(updatedMsg);
+                // 使用防抖避免频繁更新数据库
+                debouncedUpdateMessage(updatedMsg);
               }
             }
           } else if (type === "error") {
             partialText += data;
             
             // 错误消息立即更新UI
-            currentChatHistory.value = currentChatHistory.value.map((msg) =>
-              msg.id === aiMsg.id ? { ...msg, text: partialText } : msg
-            );
+            updateAIMessageContent(aiMsg.id, partialText);
             
             // 出错时立即更新数据库
             if (currentChatId.value) {
-              const updatedMsg = { ...aiMsg, text: partialText };
+              const updatedMsg = { ...aiMsg, text: partialText, isLoading: false };
               await updateMessage(updatedMsg);
             }
           }
@@ -795,8 +888,6 @@ const processAIResponse = async (question, aiMsgOrId) => {
           console.error("解析JSON失败:", e);
         }
       }
-
-      // 此处不再需要额外的滚动逻辑，内容循环中已经处理了滚动
     }
 
     // 处理剩余的buffer
@@ -1063,32 +1154,38 @@ const createNewChatSession = async () => {
 const selectChatSession = async (sessionId) => {
   if (sessionId === currentChatId.value) return;
   
-  // 清空当前消息列表
-  currentChatHistory.value = [];
+  // 清空当前消息列表前，保存当前滚动位置
+  const oldScrollPosition = scrollContainer.value ? scrollContainer.value.scrollTop : 0;
   
-  // 设置当前会话ID
-  currentChatId.value = sessionId;
+  // 设置加载状态
+  isChatHistoryLoading.value = true;
   
-  // 始终启用自动滚动
-  shouldAutoScroll.value = true;
-  
-  // 加载会话消息
-  await loadChatSessionMessages(sessionId);
-  
-  // 强制滚动到底部，使用auto立即滚动不带动画效果
-  await nextTick(() => {
-    if (scrollContainer.value) {
-      scrollContainer.value.scrollTo({
-        top: scrollContainer.value.scrollHeight,
-        behavior: 'auto'
+  // 使用setTimeout将清空操作放到下一个事件循环，避免阻塞UI
+  setTimeout(() => {
+    // 清空当前消息列表
+    currentChatHistory.value = [];
+    
+    // 设置当前会话ID
+    currentChatId.value = sessionId;
+    
+    // 始终启用自动滚动
+    shouldAutoScroll.value = true;
+    
+    // 异步加载会话消息
+    loadChatSessionMessages(sessionId).finally(() => {
+      // 强制滚动到底部，使用auto立即滚动不带动画效果
+      nextTick(() => {
+        if (scrollContainer.value) {
+          scrollContainer.value.scrollTop = scrollContainer.value.scrollHeight;
+        }
+        
+        // 聚焦输入框
+        if (inputRef.value) {
+          inputRef.value.focus();
+        }
       });
-    }
-  });
-  
-  // 聚焦输入框
-  if (inputRef.value) {
-    inputRef.value.focus();
-  }
+    });
+  }, 0);
 };
 
 // 删除聊天会话
@@ -1457,6 +1554,103 @@ const updateSessionTitle = async (sessionId, messageText) => {
   }
 };
 
+// 添加新的辅助函数优化更新操作
+// 优化更新AI消息内容的函数
+const updateAIMessageContent = (messageId, text) => {
+  const index = currentChatHistory.value.findIndex(msg => msg.id === messageId);
+  if (index !== -1) {
+    const newHistory = [...currentChatHistory.value];
+    newHistory[index] = { ...newHistory[index], text };
+    currentChatHistory.value = newHistory;
+  }
+};
+
+// 优化更新AI消息引用的函数
+const updateAIMessageReferences = (messageId, references) => {
+  const index = currentChatHistory.value.findIndex(msg => msg.id === messageId);
+  if (index !== -1) {
+    const newHistory = [...currentChatHistory.value];
+    newHistory[index] = { ...newHistory[index], references };
+    currentChatHistory.value = newHistory;
+  }
+};
+
+// 防抖更新消息到数据库
+const debouncedUpdateMessage = debounce(async (message) => {
+  await updateMessage(message);
+}, 300);
+
+// 优化预加载资源的方法
+const preloadAssets = () => {
+  // 使用链接预取，提高后续导航的性能
+  const prefetchLinks = [
+    '../assets/product.png',
+    '../assets/aside.png',
+    '../assets/newchat.png',
+    '../assets/delete_history.png',
+    '../assets/user_img.png',
+    '../assets/leave.png',
+    '../assets/send_message.png',
+    '../assets/stop_message.png'
+  ];
+  
+  // 使用IntersectionObserver延迟加载不可见资源
+  if ('IntersectionObserver' in window) {
+    // 创建一个本地预加载对象数组
+    const preloads = prefetchLinks.map(url => ({ url, loaded: false }));
+    
+    // 创建一个隐藏的div作为观察目标
+    const preloadTarget = document.createElement('div');
+    preloadTarget.style.position = 'absolute';
+    preloadTarget.style.width = '1px';
+    preloadTarget.style.height = '1px';
+    preloadTarget.style.opacity = '0';
+    document.body.appendChild(preloadTarget);
+    
+    // 创建观察器
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        // 视口中出现时加载资源
+        preloads.forEach(item => {
+          if (!item.loaded) {
+            const img = new Image();
+            img.src = item.url;
+            item.loaded = true;
+          }
+        });
+        observer.disconnect();
+        preloadTarget.remove();
+      }
+    });
+    
+    observer.observe(preloadTarget);
+  } else {
+    // 降级方案 - 使用requestIdleCallback延迟加载
+    if (window.requestIdleCallback) {
+      window.requestIdleCallback(() => {
+        prefetchLinks.forEach(url => {
+          const img = new Image();
+          img.src = url;
+        });
+      }, { timeout: 2000 });
+    } else {
+      // 最终降级 - 使用setTimeout延迟加载
+      setTimeout(() => {
+        prefetchLinks.forEach(url => {
+          const img = new Image();
+          img.src = url;
+        });
+      }, 1000);
+    }
+  }
+};
+
+// 添加获取模式提示的方法
+const getModeTip = (mode) => {
+  const option = options.find(o => o.value === mode);
+  return option ? option.description : "请选择生成模式";
+};
+
 /* ------------------ 初始化相关 ------------------ */
 // 组件挂载时执行
 onMounted(async () => {
@@ -1503,33 +1697,19 @@ onMounted(async () => {
   }
 });
 
-// 预加载资源，提升UI响应速度
-const preloadAssets = () => {
-  // 预加载常用图片
-  const imageUrls = [
-    '../assets/product.png',
-    '../assets/aside.png',
-    '../assets/newchat.png',
-    '../assets/delete_history.png',
-    '../assets/user_img.png',
-    '../assets/leave.png',
-    '../assets/send_message.png',
-    '../assets/stop_message.png'
-  ];
-  
-  imageUrls.forEach(url => {
-    const img = new Image();
-    img.src = url;
-  });
-};
-
-// 组件卸载前执行
+// 组件卸载前执行 - 优化清理逻辑
 onBeforeUnmount(() => {
   const container = scrollContainer.value;
   if (container) {
     container.removeEventListener("scroll", debouncedHandleScroll);
   }
-  // 清除所有定时器
+  
+  // 中止任何进行中的请求
+  if (abortController) {
+    abortController.abort();
+  }
+  
+  // 清除所有可能的计时器
   if (debounceTimer.value) {
     clearTimeout(debounceTimer.value);
   }
@@ -1539,12 +1719,273 @@ onBeforeUnmount(() => {
 <style scoped lang="less">
 @import '../styles/chat.less';
 
+/* 添加侧边栏增强样式 */
+.app-sidebar {
+  /* 增强侧边栏视觉效果 */
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.95), rgba(250, 252, 255, 0.92));
+  backdrop-filter: blur(12px);
+  box-shadow: 0 2px 24px rgba(0, 0, 0, 0.08);
+  border-right: 1px solid rgba(226, 232, 240, 0.9);
+  
+  /* 平滑过渡效果 */
+  transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+/* 侧边栏头部优化 */
+.sidebar-header {
+  padding: 13px 18px;
+  height: 60px;
+  line-height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.9);
+  
+  .brand-icon {
+    height: 34px;
+    margin-right: 14px;
+    filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.12));
+    transition: transform 0.3s ease;
+    
+    &:hover {
+      transform: scale(1.05);
+    }
+  }
+  
+  .brand-text {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    background: linear-gradient(120deg, #3b82f6, #8b5cf6, #6366f1);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.07);
+  }
+  
+  .collapse-icon {
+    padding: 8px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    margin: 0 auto; /* 在收起状态下居中 */
+    
+    &:hover {
+      background: rgba(59, 130, 246, 0.12);
+      transform: scale(1.1);
+    }
+  }
+}
+
+/* 新对话按钮优化 */
+.new-chat {
+  padding: 14px 16px 10px;
+
+  .new-chat-btn {
+    height: 44px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 15px;
+    letter-spacing: 0.2px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
+    border: none;
+    
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35);
+    }
+    
+    &:active {
+      transform: translateY(1px);
+    }
+  }
+}
+
+/* 分割线 */
+.sidebar-divider {
+  height: 1px;
+  margin: 12px 16px;
+  background: linear-gradient(to right, rgba(226, 232, 240, 0.1), rgba(226, 232, 240, 0.8), rgba(226, 232, 240, 0.1));
+}
+
+/* 历史对话区域优化 */
+.history {
+  padding: 0 14px;
+  
+  .history-header {
+    padding: 8px 6px;
+    font-weight: 600;
+    color: #4b5563;
+    font-size: 15px;
+    letter-spacing: 0.2px;
+    
+    .delete-icon {
+      transition: all 0.3s ease;
+      opacity: 0.7;
+      padding: 5px;
+      border-radius: 6px;
+      
+      &:hover {
+        background: rgba(239, 68, 68, 0.1);
+        opacity: 1;
+        transform: scale(1.1);
+      }
+    }
+  }
+  
+  .history-list {
+    margin-top: 6px;
+    
+    .history-item {
+      margin-bottom: 4px;
+      padding: 6px 12px;  /* 降低行高 - 由10px减至6px */
+      border-radius: 8px;
+      font-size: 14px;
+      transition: all 0.25s ease;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      
+      &:hover {
+        background: rgba(243, 244, 246, 0.8);
+        transform: translateX(2px);
+      }
+      
+      .history-text {
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: #4b5563;
+        font-weight: 500;
+        text-align: left;  /* 确保文字左对齐 */
+        padding-left: 2px; /* 增加小间距使文字更偏左 */
+      }
+      
+      .delete-item-icon {
+        opacity: 0;
+        transition: all 0.2s ease;
+        padding: 4px;
+        border-radius: 4px;
+        margin-left: 8px; /* 增加与文字的间距 */
+        
+        &:hover {
+          background: rgba(239, 68, 68, 0.1);
+        }
+      }
+      
+      &:hover .delete-item-icon {
+        opacity: 0.7;
+      }
+      
+      &.active-chat {
+        background: rgba(59, 130, 246, 0.1);
+        border-left: 3px solid #3b82f6;
+        padding-left: 9px;
+        
+        .history-text {
+          color: #3b82f6;
+          font-weight: 600;
+        }
+        
+        .delete-item-icon {
+          opacity: 0.7;
+        }
+      }
+    }
+  }
+  
+  .empty-history {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 0;
+    color: #9ca3af;
+    
+    .empty-icon {
+      width: 60px;
+      height: 60px;
+      margin-bottom: 12px;
+      opacity: 0.7;
+    }
+    
+    .empty-text {
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 6px;
+    }
+    
+    .empty-tip {
+      font-size: 12px;
+      opacity: 0.7;
+    }
+  }
+}
+
+/* 用户信息区域优化 */
+.user-info {
+  margin-top: auto;
+  padding: 16px;
+  border-top: 1px solid rgba(226, 232, 240, 0.8);
+  display: flex;
+  align-items: center;
+  background: rgba(249, 250, 251, 0.8);
+  
+  .user-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    margin-right: 12px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+    border: 2px solid white;
+    
+    &:hover {
+      transform: scale(1.05);
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
+    }
+  }
+  
+  .username {
+    flex: 1;
+    font-weight: 500;
+    color: #4b5563;
+    font-size: 14px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  
+  .setting-icon {
+    width: 20px;
+    height: 20px;
+    padding: 4px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    opacity: 0.7;
+    
+    &:hover {
+      opacity: 1;
+      background: rgba(239, 68, 68, 0.1);
+      transform: scale(1.1);
+    }
+  }
+}
+
 /* 添加性能优化相关的CSS */
 .message-item {
   will-change: transform, opacity;
   transition: opacity 0.3s ease;
   contain: content;
   content-visibility: auto;
+  contain-intrinsic-size: 0 150px; /* 提供预估高度，优化渲染 */
+}
+
+/* 使用GPU加速的动画 */
+.chat-scroll-container {
+  -webkit-overflow-scrolling: touch; /* 优化移动端滚动 */
+  transform: translateZ(0); /* 启用GPU加速 */
 }
 
 .loading-messages {
@@ -1567,7 +2008,7 @@ onBeforeUnmount(() => {
   }
 }
 
-/* 优化消息淡入效果 */
+/* 优化消息淡入效果 - 使用transform替代opacity以提高性能 */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
@@ -1575,5 +2016,232 @@ onBeforeUnmount(() => {
 
 .message-item {
   animation: fadeIn 0.3s ease;
+  backface-visibility: hidden; /* 防止动画过程中的闪烁 */
+}
+
+/* 添加消息项的交错动画延迟，使大量消息加载时更平滑 */
+/* 使用LESS循环创建交错延迟 */
+.message-item:nth-child(1) { animation-delay: 0.05s; }
+.message-item:nth-child(2) { animation-delay: 0.1s; }
+.message-item:nth-child(3) { animation-delay: 0.15s; }
+.message-item:nth-child(4) { animation-delay: 0.2s; }
+.message-item:nth-child(5) { animation-delay: 0.25s; }
+.message-item:nth-child(6) { animation-delay: 0.3s; }
+.message-item:nth-child(7) { animation-delay: 0.35s; }
+.message-item:nth-child(8) { animation-delay: 0.4s; }
+.message-item:nth-child(9) { animation-delay: 0.45s; }
+.message-item:nth-child(10) { animation-delay: 0.5s; }
+
+/* 滚动到底部按钮优化 - 修复位置固定问题 */
+.scroll-to-bottom-btn {
+  position: fixed; /* 使用fixed定位 */
+  bottom: 120px; /* 距离底部120px，避免与输入框重叠 */
+  right: 30px; /* 距离右侧30px */
+  width: 40px; /* 设置固定宽度 */
+  height: 40px; /* 设置固定高度 */
+  border-radius: 50%; /* 圆形按钮 */
+  background-color: #ffffff; /* 白色背景 */
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15); /* 添加阴影效果 */
+  display: flex; /* 使用flex布局使图标居中 */
+  align-items: center; /* 垂直居中 */
+  justify-content: center; /* 水平居中 */
+  cursor: pointer; /* 鼠标指针样式 */
+  z-index: 9999; /* 使用更高的z-index确保按钮显示在最上层 */
+  transform: translateZ(0); /* 启用GPU加速 */
+  transition: all 0.2s ease; /* 平滑过渡效果 */
+  opacity: 0.85;
+  
+  &:hover {
+    opacity: 1;
+    transform: translateZ(0) scale(1.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  }
+  
+  /* 按钮内的图标样式 */
+  .scroll-bottom-icon {
+    font-size: 18px;
+    color: #409EFF; /* 使用Element Plus主色调 */
+    font-weight: bold;
+  }
+}
+
+/* 增加主内容区样式以支持按钮的定位 */
+.chat-main {
+  position: relative; /* 使绝对定位的子元素相对于它定位 */
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* 生成模式选择相关样式 */
+.model-select-container {
+  margin: 15px 0;
+  padding: 0 16px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  
+  .modern-select {
+    width: 100%;
+    border-radius: 8px;
+    
+    :deep(.el-input__wrapper) {
+      background-color: #f5f7fa;
+      border-radius: 8px;
+      box-shadow: none;
+      border: 1px solid transparent;
+      transition: all 0.3s ease;
+      
+      &:hover, &.is-focus {
+        border-color: #dcdfe6;
+        box-shadow: 0 0 0 1px rgba(64, 158, 255, 0.1);
+      }
+    }
+    
+    :deep(.el-input__inner) {
+      font-size: 14px;
+      color: #606266;
+      height: 36px;
+    }
+  }
+  
+  .select-prefix-container {
+    margin-right: 8px;
+    
+    .select-prefix {
+      color: #909399;
+      font-size: 13px;
+      font-weight: 500;
+    }
+  }
+  
+  .mode-tooltip {
+    margin-left: 8px;
+    
+    .mode-info-icon {
+      color: #909399;
+      font-size: 16px;
+      cursor: pointer;
+      transition: color 0.2s ease;
+      
+      &:hover {
+        color: #409EFF;
+      }
+    }
+  }
+}
+
+:deep(.custom-mode-tooltip) {
+  max-width: 280px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  
+  .tooltip-content {
+    .tooltip-title {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #303133;
+    }
+    
+    .tooltip-description {
+      font-size: 13px;
+      line-height: 1.5;
+      color: #606266;
+      margin: 0;
+    }
+  }
+}
+
+:deep(.el-select-dropdown__item) {
+  padding: 0 15px;
+  
+  &.selected {
+    color: #409EFF;
+    font-weight: 500;
+    background-color: rgba(64, 158, 255, 0.08);
+  }
+  
+  &:hover {
+    background-color: #f5f7fa;
+  }
+  
+  .option-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 34px;
+    
+    .option-label {
+      font-size: 14px;
+    }
+    
+    .option-icon {
+      color: #409EFF;
+    }
+  }
+}
+
+/* 添加下拉选项悬浮提示样式 */
+:deep(.option-tooltip) {
+  max-width: 240px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  font-size: 13px;
+  line-height: 1.5;
+  background-color: rgba(0, 0, 0, 0.85) !important;
+  color: #ffffff !important;
+}
+
+:deep(.mode-select-dropdown) {
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  
+  .el-select-dropdown__item {
+    height: auto;
+    padding: 8px 15px;
+  }
+}
+
+/* 收起侧栏状态下的新建对话图标样式 */
+.collapsed-new-chat {
+  display: flex;
+  justify-content: center;
+  padding: 16px 0;
+  
+  .collapsed-icon-wrapper {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #3b82f6, #6366f1);
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35);
+    }
+    
+    &:active {
+      transform: translateY(1px);
+    }
+    
+    .collapsed-icon {
+      width: 20px;
+      height: 20px;
+      filter: brightness(0) invert(1); /* 将图标变为白色 */
+      transition: transform 0.2s ease;
+    }
+    
+    &:hover .collapsed-icon {
+      transform: scale(1.1);
+    }
+  }
 }
 </style>

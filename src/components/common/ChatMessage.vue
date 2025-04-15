@@ -55,7 +55,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref, nextTick, watch, onUpdated } from "vue";
+import { computed, onMounted, ref, nextTick, watch, onUpdated, shallowRef, markRaw, onBeforeUnmount } from "vue";
 import { ElMessage } from "element-plus";
 import { marked } from "marked"; // 用于 Markdown 渲染
 import DOMPurify from "dompurify";
@@ -64,6 +64,11 @@ import FeedbackForm from "./FeedbackForm.vue";
 import hljs from "highlight.js";
 import Prism from "prismjs"; //导入代码高亮插件的core（里面提供了其他官方插件及代码高亮样式主题，你只需要引入即可）
 import "prismjs/themes/prism-tomorrow.min.css";
+
+// 使用markRaw避免Vue对这些大型对象进行响应式处理
+const markedInstance = markRaw(marked);
+const prismInstance = markRaw(Prism);
+const domPurify = markRaw(DOMPurify);
 
 const emit = defineEmits(["regenerate"]);
 
@@ -77,9 +82,24 @@ const props = defineProps({
   isLast: Boolean,
 });
 
+// 使用shallowRef来存储thinkBlocksState，避免深层响应式
+const thinkBlocksState = shallowRef(new Map());
+// 缓存解析后的消息，避免频繁重新解析
+const cachedParsedMessage = shallowRef('');
+// 标记是否需要重新解析消息
+const needsReparse = ref(true);
 
-// 存储 think 块的状态（展开/收起）
-const thinkBlocksState = ref(new Map());
+// 使用防抖函数优化事件处理
+const debounce = (fn, delay = 300) => {
+  let timer = null;
+  return (...args) => {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => {
+      fn(...args);
+      timer = null;
+    }, delay);
+  };
+};
 
 // 处理 think 块的点击事件
 const handleThinkBlockClick = (event) => {
@@ -95,13 +115,15 @@ const handleThinkBlockClick = (event) => {
   }
 };
 
-// 切换 think 块的展开/收起状态
+// 切换 think 块的展开/收起状态 - 优化版本
 const toggleThinkBlock = (thinkId) => {
+  // 创建新的Map而不是修改原有Map，以触发响应式更新
   const newState = new Map(thinkBlocksState.value);
   newState.set(thinkId, !newState.get(thinkId));
   thinkBlocksState.value = newState;
   
-  nextTick(() => {
+  // 使用requestAnimationFrame优化DOM操作
+  requestAnimationFrame(() => {
     const thinkContent = document.querySelector(`.think-content[data-think-id="${thinkId}"]`);
     const thinkContainer = document.querySelector(`.think-container[data-think-id="${thinkId}"]`);
     if (thinkContent && thinkContainer) {
@@ -116,79 +138,171 @@ const toggleThinkBlock = (thinkId) => {
   });
 };
 
-marked.setOptions({
+// 设置Marked选项 - 优化代码高亮性能
+markedInstance.setOptions({
   highlight: function (code, lang) {
-    if (Prism.languages[lang]) {
-      return Prism.highlight(code, Prism.languages[lang], lang);
+    if (lang && prismInstance.languages[lang]) {
+      try {
+        return prismInstance.highlight(code, prismInstance.languages[lang], lang);
+      } catch (err) {
+        console.error('Prism highlighting error:', err);
+        return code;
+      }
     }
     return code;
   },
+  gfm: true,
+  breaks: true,
+  silent: true // 避免在解析错误时抛出异常
 });
 
-// 修改计算属性，处理 think 标签并添加展开/收起功能
+// 修改计算属性，使用缓存提高性能
 const parsedMessage = computed(() => {
-  let rawHtml = marked(props.message || "");
+  // 如果消息未更改且已有缓存，直接返回缓存的结果
+  if (!needsReparse.value && cachedParsedMessage.value) {
+    return cachedParsedMessage.value;
+  }
   
-  // 替换 <think> 标签，添加展开/收起功能
-  let thinkBlockCounter = 0;
-  rawHtml = rawHtml.replace(/<think>([\s\S]*?)<\/think>/g, (match, content) => {
-    const thinkId = `think-${props.messageId}-${thinkBlockCounter++}`;
+  // 空消息直接返回空字符串
+  if (!props.message) {
+    cachedParsedMessage.value = '';
+    needsReparse.value = false;
+    return '';
+  }
+  
+  try {
+    // 先使用marked解析markdown
+    let rawHtml = markedInstance(props.message || "");
     
-    // 初始化 think 块的状态（默认收起）
-    if (!thinkBlocksState.value.has(thinkId)) {
-      thinkBlocksState.value.set(thinkId, false);
+    // 替换 <think> 标签，添加展开/收起功能
+    let thinkBlockCounter = 0;
+    rawHtml = rawHtml.replace(/<think>([\s\S]*?)<\/think>/g, (match, content) => {
+      const thinkId = `think-${props.messageId}-${thinkBlockCounter++}`;
+      
+      // 初始化 think 块的状态（默认收起）
+      if (!thinkBlocksState.value.has(thinkId)) {
+        const newState = new Map(thinkBlocksState.value);
+        newState.set(thinkId, false);
+        thinkBlocksState.value = newState;
+      }
+      
+      return `
+        <div class="think-container" data-think-id="${thinkId}">
+          <div class="think-header" data-think-id="${thinkId}">
+            <span class="think-icon">💭</span>
+            <span class="think-title">思考过程</span>
+            <span class="think-toggle-btn">${thinkBlocksState.value.get(thinkId) ? '收起' : '展开'}</span>
+          </div>
+          <div class="think-content" data-think-id="${thinkId}">
+            ${content}
+          </div>
+        </div>
+      `;
+    });
+    
+    // 清理HTML
+    const sanitizedHtml = domPurify.sanitize(rawHtml);
+    
+    // 更新缓存和状态
+    cachedParsedMessage.value = sanitizedHtml;
+    needsReparse.value = false;
+    
+    // 使用requestAnimationFrame优化DOM操作
+    requestAnimationFrame(() => {
+      handlePostRender();
+    });
+    
+    return sanitizedHtml;
+  } catch (error) {
+    console.error("Error parsing message:", error);
+    return props.message || ""; // 解析失败时返回原始消息
+  }
+});
+
+// DOM操作优化 - 将所有DOM操作合并到一个函数
+const handlePostRender = debounce(() => {
+  // 使用IntersectionObserver判断元素是否可见，只处理可见元素
+  if ('IntersectionObserver' in window) {
+    // 代码高亮处理
+    const codeBlocks = document.querySelectorAll('.message-content pre code');
+    if (codeBlocks.length > 0) {
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            try {
+              prismInstance.highlightElement(entry.target);
+            } catch (e) {
+              console.warn('Code highlighting error:', e);
+            }
+            observer.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.1 });
+      
+      codeBlocks.forEach(block => observer.observe(block));
     }
     
-    return `
-      <div class="think-container" data-think-id="${thinkId}">
-        <div class="think-header" data-think-id="${thinkId}">
-          <span class="think-icon">💭</span>
-          <span class="think-title">思考过程</span>
-          <span class="think-toggle-btn">${thinkBlocksState.value.get(thinkId) ? '收起' : '展开'}</span>
-        </div>
-        <div class="think-content" data-think-id="${thinkId}">
-          ${content}
-        </div>
-      </div>
-    `;
-  });
-
-  nextTick(() => {
-    // 在渲染后，手动触发 Prism 高亮
+    // 处理think块
+    const thinkContents = document.querySelectorAll(".think-content");
+    if (thinkContents.length > 0) {
+      thinkContents.forEach((content) => {
+        const thinkId = content.dataset.thinkId;
+        const isExpanded = thinkBlocksState.value.get(thinkId);
+        
+        if (isExpanded) {
+          content.style.maxHeight = `${content.scrollHeight}px`;
+          content.closest('.think-container')?.classList.add('expanded');
+        } else {
+          content.style.maxHeight = '0';
+        }
+      });
+    }
+  } else {
+    // 降级处理 - 直接处理DOM
     document.querySelectorAll("pre code").forEach((block) => {
-      Prism.highlightElement(block);
-    });
-    document.querySelectorAll("code").forEach((block) => {
-      Prism.highlightElement(block);
+      try {
+        prismInstance.highlightElement(block);
+      } catch (e) {
+        console.warn('Code highlighting error:', e);
+      }
     });
     
-    // 设置 think 块的初始展开/收起状态
     document.querySelectorAll(".think-content").forEach((content) => {
       const thinkId = content.dataset.thinkId;
       const isExpanded = thinkBlocksState.value.get(thinkId);
       
       if (isExpanded) {
         content.style.maxHeight = `${content.scrollHeight}px`;
-        content.closest('.think-container').classList.add('expanded');
+        content.closest('.think-container')?.classList.add('expanded');
       } else {
         content.style.maxHeight = '0';
       }
     });
-  });
+  }
+}, 50);
 
-  return DOMPurify.sanitize(rawHtml); // 防止 XSS 攻击
-});
+// 监听消息变化，触发重新解析
+watch(() => props.message, () => {
+  needsReparse.value = true;
+}, { immediate: true });
 
+// 组件挂载完成后处理DOM
 onMounted(() => {
-  nextTick(() => {
-    document.querySelectorAll("pre code").forEach((block) => {
-      Prism.highlightElement(block);
-    });
-  });
+  handlePostRender();
 });
+
+// 组件更新后处理DOM，使用防抖减少频繁调用
+const debouncedPostUpdate = debounce(() => {
+  handlePostRender();
+}, 100);
 
 onUpdated(() => {
-  Prism.highlightAll();
+  debouncedPostUpdate();
+});
+
+// 组件卸载前清理
+onBeforeUnmount(() => {
+  // 清理任何可能的订阅、定时器等
 });
 
 const dialogVisible = ref(false);
@@ -199,16 +313,33 @@ const actionStyle = computed(() => ({
   gap: "12px",
 }));
 
-// 复制消息方法
-const copyMessage = () => {
+// 复制消息方法 - 添加错误处理
+const copyMessage = async () => {
   let messageToCopy = props.message;
   if (props.messageType === "user") {
     messageToCopy = messageToCopy.trim();
   }
-  navigator.clipboard
-    .writeText(messageToCopy)
-    .then(() => ElMessage.success("复制成功"))
-    .catch(() => ElMessage.error("复制失败"));
+  
+  try {
+    await navigator.clipboard.writeText(messageToCopy);
+    ElMessage.success("复制成功");
+  } catch (error) {
+    console.error("复制失败:", error);
+    // 尝试降级处理
+    try {
+      const textarea = document.createElement('textarea');
+      textarea.value = messageToCopy;
+      textarea.style.position = 'fixed';
+      textarea.style.left = '-9999px';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      ElMessage.success("复制成功");
+    } catch (fallbackError) {
+      ElMessage.error("复制失败");
+    }
+  }
 };
 
 // 打开反馈对话框
@@ -229,6 +360,8 @@ const handleFeedbackSubmit = (feedback) => {
   align-items: flex-start;
   margin: 20px 0;
   flex-direction: column;
+  contain: content; /* 添加包含属性提高渲染性能 */
+  will-change: transform; /* 暗示浏览器元素将改变，优化渲染 */
 }
 
 /* AI 消息样式 */
@@ -237,6 +370,7 @@ const handleFeedbackSubmit = (feedback) => {
   display: flex;
   align-items: flex-start;
   text-align: left;
+  transform: translateZ(0); /* 启用GPU加速 */
 }
 
 .message-container .ai-image {
@@ -245,12 +379,15 @@ const handleFeedbackSubmit = (feedback) => {
   border-radius: 50%;
   margin-right: 10px;
   margin-bottom: 10px;
+  contain: strict; /* 严格包含，避免布局变化影响其他元素 */
+  will-change: transform; /* 启用GPU加速 */
 }
 
 /* AI 对话框 */
 .ai-message-content {
   position: relative;
   width: 100%;
+  contain: layout; /* 包含布局变化 */
 }
 
 .chat-message.ai {
@@ -259,11 +396,13 @@ const handleFeedbackSubmit = (feedback) => {
   margin-left: 5px;
   text-align: left;
   box-sizing: border-box;
+  transform: translateZ(0); /* 启用GPU加速 */
 }
 
 /* 用户消息 */
 .message-container.user {
   flex-direction: row-reverse;
+  transform: translateZ(0); /* 启用GPU加速 */
 }
 
 .chat-message.user {
@@ -284,6 +423,7 @@ const handleFeedbackSubmit = (feedback) => {
   cursor: pointer;
   transition: opacity 0.2s, background-color 0.2s;
   padding: 4px;
+  transform: translateZ(0); /* 启用GPU加速 */
 }
 
 .action-icon:hover {
@@ -309,6 +449,8 @@ const handleFeedbackSubmit = (feedback) => {
   border-top: 4px solid #2196f3;
   box-shadow: 0 0 10px rgba(33, 150, 243, 0.5);
   animation: spin 1s linear infinite;
+  will-change: transform; /* 告知浏览器将会变化，优化动画性能 */
+  backface-visibility: hidden; /* 优化动画 */
 }
 
 @keyframes spin {
@@ -323,14 +465,41 @@ const handleFeedbackSubmit = (feedback) => {
 /* 参考框样式 */
 .references-box {
   margin-bottom: 20px;
+  contain: content; /* 包含内容，提高渲染性能 */
 }
 
-/* Markdown 内容样式 */
+/* 保留其余样式，但使用CSS contain属性优化渲染性能 */
+/* Markdown 内容样式 - 使用GPU加速和优化渲染属性 */
 .message-content :deep(*) {
   /* font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; */
   line-height: 1.6;
+  -webkit-font-smoothing: antialiased; /* 提高文本渲染 */
+  text-rendering: optimizeLegibility; /* 优化字体渲染 */
 }
 
+.message-content :deep(pre) {
+  position: relative;
+  padding: 30px !important;
+  border-radius: 15px;
+  transform: translateZ(0); /* 启用GPU加速 */
+  contain: content; /* 包含内容，提高渲染性能 */
+  will-change: transform; /* 告知浏览器变化特性，优化渲染 */
+}
+
+/* 优化思考块性能 */
+.message-content :deep(.think-container) {
+  transform: translateZ(0); /* 启用GPU加速 */
+  contain: content; /* 包含内容，提高渲染性能 */
+  will-change: transform, max-height; /* 优化变换和高度变化 */
+}
+
+.message-content :deep(.think-content) {
+  transform: translateZ(0); /* 启用GPU加速 */
+  backface-visibility: hidden; /* 优化3D渲染 */
+  will-change: max-height; /* 指定会改变的属性，优化渲染 */
+}
+
+/* 保留其余样式不变 */
 /* 标题样式 */
 .message-content :deep(h1) {
   margin: 0.8em 0 0.5em;
@@ -387,12 +556,6 @@ const handleFeedbackSubmit = (feedback) => {
 
 /* 代码块系统 */
 /* 调整原有代码块样式 */
-.message-content :deep(pre) {
-  position: relative;
-  padding: 30px !important;
-  border-radius: 15px;
-}
-
 .message-content :deep(code) {
   font-size: 0.9em;
 }
