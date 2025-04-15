@@ -381,18 +381,12 @@ const fetchFeedbackList = async () => {
       params.append('keyword', searchForm.keyword);
     }
     
-    // 获取当前管理员ID
-    const adminId = localStorage.getItem('admin_id');
-    if (adminId) {
-      params.append('current_admin_id', adminId);
-    }
-    
     // 发送请求
     const response = await fetch(`${API_BASE_URL}/admin/feedback/system?${params.toString()}`, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
       }
     });
     
@@ -440,7 +434,7 @@ const fetchStatusCounts = async () => {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
       }
     });
     
@@ -525,22 +519,13 @@ const submitProcess = async () => {
       admin_reply: processForm.adminReply
     };
     
-    // 获取当前管理员ID
-    const adminId = localStorage.getItem('admin_id');
-    
-    // 构建URL
-    let url = `${API_BASE_URL}/admin/feedback/system/${currentFeedback.value.feedback_id}`;
-    if (adminId) {
-      url += `?current_admin_id=${adminId}`;
-    }
-    
     // 发送请求
-    const response = await fetch(url, {
+    const response = await fetch(`${API_BASE_URL}/admin/feedback/system/${currentFeedback.value.feedback_id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
       },
       body: JSON.stringify(requestBody)
     });

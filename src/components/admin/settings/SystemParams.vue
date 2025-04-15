@@ -247,43 +247,47 @@ const getAdminId = () => {
   return adminId ? parseInt(adminId) : 1; // 默认返回1，根据实际情况调整
 };
 
-// 载入系统配置
+// 加载系统配置
 const loadConfigs = async () => {
   loading.configs = true;
   try {
-    const adminId = getAdminId();
     const response = await axios.get(`${API_BASE_URL}/admin/settings/system-configs`, {
-      params: { admin_id: adminId }
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
     });
+
     if (response.data.code === 200) {
       configList.value = response.data.data;
     } else {
-      ElMessage.error(response.data.message || '加载系统配置失败');
+      ElMessage.error(response.data.message || '获取系统配置失败');
     }
   } catch (error) {
-    console.error('加载系统配置失败', error);
-    ElMessage.error('加载系统配置失败');
+    console.error('获取系统配置失败:', error);
+    ElMessage.error('获取系统配置失败');
   } finally {
     loading.configs = false;
   }
 };
 
-// 载入系统版本
+// 加载系统版本信息
 const loadVersions = async () => {
   loading.versions = true;
   try {
-    const adminId = getAdminId();
     const response = await axios.get(`${API_BASE_URL}/admin/settings/system-versions`, {
-      params: { admin_id: adminId }
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
     });
+
     if (response.data.code === 200) {
       versionList.value = response.data.data;
     } else {
-      ElMessage.error(response.data.message || '加载系统版本失败');
+      ElMessage.error(response.data.message || '获取系统版本失败');
     }
   } catch (error) {
-    console.error('加载系统版本失败', error);
-    ElMessage.error('加载系统版本失败');
+    console.error('获取系统版本失败:', error);
+    ElMessage.error('获取系统版本失败');
   } finally {
     loading.versions = false;
   }
@@ -341,8 +345,6 @@ const submitConfigChanges = async () => {
 const saveConfigChanges = async () => {
   loading.saveConfig = true;
   try {
-    const adminId = getAdminId();
-    
     // 对于日期类型的配置，确保使用正确的格式
     let configValue = configForm.value.config_value;
     if (currentConfig.value.config_key === 'knowledge_base_update_date' && configForm.value.dateValue) {
@@ -351,11 +353,18 @@ const saveConfigChanges = async () => {
     
     const payload = {
       config_value: configValue,
-      description: configForm.value.description,
-      admin_id: adminId
+      description: configForm.value.description
     };
     
-    const response = await axios.put(`${API_BASE_URL}/admin/settings/system-configs/${currentConfig.value.config_id}`, payload);
+    const response = await axios.put(
+      `${API_BASE_URL}/admin/settings/system-configs/${currentConfig.value.config_id}`, 
+      payload,
+      {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      }
+    );
     
     if (response.data.code === 200) {
       ElMessage({
@@ -390,10 +399,15 @@ const setAsCurrentVersion = async (version) => {
         type: 'warning',
       }
     ).then(async () => {
-      const adminId = getAdminId();
-      const response = await axios.put(`${API_BASE_URL}/admin/settings/system-versions/${version.version_id}/set-current`, {
-        admin_id: adminId
-      });
+      const response = await axios.put(
+        `${API_BASE_URL}/admin/settings/system-versions/${version.version_id}/set-current`, 
+        {},
+        {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        }
+      );
       
       if (response.data.code === 200) {
         ElMessage.success('当前版本已更新');
@@ -436,17 +450,23 @@ const saveNewVersion = async () => {
       ? newVersion.value.release_date.toISOString().split('T')[0]
       : newVersion.value.release_date;
     
-    const adminId = getAdminId();
     const payload = {
       version_number: newVersion.value.version_number,
       knowledge_base_version: newVersion.value.knowledge_base_version,
       release_date: formattedDate,
       update_notes: newVersion.value.update_notes,
-      is_current: newVersion.value.is_current,
-      admin_id: adminId
+      is_current: newVersion.value.is_current
     };
     
-    const response = await axios.post(`${API_BASE_URL}/admin/settings/system-versions`, payload);
+    const response = await axios.post(
+      `${API_BASE_URL}/admin/settings/system-versions`, 
+      payload,
+      {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      }
+    );
     
     if (response.data.code === 200) {
       ElMessage.success('新版本已添加');
