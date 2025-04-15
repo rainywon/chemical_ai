@@ -1,156 +1,132 @@
 ﻿<template>
   <div class="login">
-    <!-- 添加科技感网格背景 -->
-    <div class="tech-grid"></div>
-    
-    <!-- 添加光晕效果 -->
-    <div class="glow-effect"></div>
-    
-    <!-- 添加神经网络效果 -->
-    <div class="neural-network">
-      <div v-for="n in 20" :key="`node-${n}`" class="node" :style="{
-        left: `${Math.random() * 100}%`,
-        top: `${Math.random() * 100}%`,
-        opacity: 0.3 + Math.random() * 0.7
-      }"></div>
-      <div v-for="n in 30" :key="`connection-${n}`" class="connection" :style="{
-        left: `${Math.random() * 100}%`,
-        top: `${Math.random() * 100}%`,
-        width: `${50 + Math.random() * 150}px`,
-        transform: `rotate(${Math.random() * 360}deg)`,
-        opacity: 0.1 + Math.random() * 0.3
-      }"></div>
+    <!-- Modern abstract background elements -->
+    <div class="particles-container">
+      <div v-for="n in 50" :key="`particle-${n}`" class="particle"></div>
     </div>
     
-    <!-- 添加浮动圆环 -->
-    <div class="floating-rings">
-      <div class="ring"></div>
-      <div class="ring"></div>
-      <div class="ring"></div>
+    <div class="geometric-shapes">
+      <div class="shape shape-1"></div>
+      <div class="shape shape-2"></div>
+      <div class="shape shape-3"></div>
     </div>
     
-    <!-- 添加数据流效果 -->
-    <div class="data-stream">
-      <div v-for="n in 15" :key="`data-${n}`" class="data-line" :style="{
-        left: `${Math.random() * 100}%`,
-        top: `${Math.random() * 100}%`,
-        width: `${100 + Math.random() * 200}px`,
-        transform: `rotate(${Math.random() * 360}deg)`,
-        animationDelay: `${Math.random() * 8}s`,
-        opacity: 0.1 + Math.random() * 0.3
-      }"></div>
-    </div>
-    
-    <!-- 添加浮动粒子 -->
-    <div class="floating-particles">
-      <div v-for="n in 30" :key="`particle-${n}`" class="particle" :style="{
-        left: `${Math.random() * 100}%`,
-        top: `${Math.random() * 100}%`,
-        animationDelay: `${Math.random() * 5}s`,
-        animationDuration: `${10 + Math.random() * 10}s`
-      }"></div>
-    </div>
+    <div class="gradient-overlay"></div>
     
     <div class="login-container">
-      <!-- 标题 -->
-      <div class="img-title">
-        <img src="../assets/product.png" alt="" />
-        <span>天工AI智能助手</span>
+      <!-- Logo and title -->
+      <div class="brand-header">
+        <img src="../assets/product.png" alt="天工AI Logo" class="logo-image" />
+        <h1 class="brand-title">天工AI智能助手</h1>
       </div>
 
-      <!-- 登录方式切换 -->
-      <div class="login-type-selector">
-        <el-radio-group v-model="loginMode">
-          <el-radio-button :value="0">验证码登录</el-radio-button>
-          <el-radio-button :value="1">密码登录</el-radio-button>
-          <el-radio-button :value="2">管理员登录</el-radio-button>
-        </el-radio-group>
+      <!-- Login method selector -->
+      <div class="auth-type-tabs">
+        <div 
+          v-for="(type, index) in [{value: 0, label: '验证码登录'}, {value: 1, label: '密码登录'}, {value: 2, label: '管理员登录'}]" 
+          :key="type.value"
+          :class="['auth-tab', { active: loginMode === type.value }]"
+          @click="loginMode = type.value"
+        >
+          {{ type.label }}
+        </div>
       </div>
 
-      <!-- 表单提交 -->
-      <div class="table-submit">
-        <!-- 手机号 -->
-        <div class="form-item">
-          <el-input 
+      <!-- Form content -->
+      <div class="auth-form">
+        <!-- Phone input - common to all login types -->
+        <div class="form-field">
+          <div class="input-icon">
+            <i class="icon-phone"></i>
+          </div>
+          <input 
+            type="tel" 
             v-model="formData.phone" 
-            class="input-field" 
             placeholder="请输入11位手机号" 
-            :prefix-icon="PhoneFilled"
-            size="large" 
+            class="form-input" 
+            maxlength="11"
             @input="handlePhoneInput"
-            type="tel"
             name="phone"
             autocomplete="tel"
-            maxlength="11"
           />
         </div>
         
-        <!-- 使用固定高度容器包裹切换的表单元素 -->
-        <div class="form-container">
-          <!-- 密码输入框 - 在密码登录或管理员登录模式下显示 -->
-          <div v-if="loginMode === 1 || loginMode === 2" class="form-item">
-            <el-input 
-              v-model="formData.password" 
-              class="input-field" 
-              :placeholder="loginMode === 2 ? '请输入管理员密码' : '请输入密码'" 
-              :prefix-icon="Lock" 
-              size="large" 
-              type="password"
-              show-password
-              name="password"
-              autocomplete="current-password"
-            />
+        <!-- Password input - for password and admin login -->
+        <div v-if="loginMode === 1 || loginMode === 2" class="form-field">
+          <div class="input-icon">
+            <i class="icon-lock"></i>
           </div>
+          <input 
+            type="password" 
+            v-model="formData.password" 
+            :placeholder="loginMode === 2 ? '请输入管理员密码' : '请输入密码'" 
+            class="form-input"
+            name="password"
+            autocomplete="current-password"
+          />
+        </div>
+        
+        <!-- Verification code input - for SMS login -->
+        <div v-if="loginMode === 0" class="form-field verification-field">
+          <div class="input-icon">
+            <i class="icon-shield"></i>
+          </div>
+          <input 
+            type="text" 
+            v-model="formData.verificationCode" 
+            placeholder="请输入6位数验证码" 
+            class="form-input verification-input" 
+            maxlength="6"
+            @input="handleVerificationCodeInput"
+          />
+          <button 
+            class="verification-button" 
+            :disabled="isCodeSent || !isPhoneValid" 
+            @click="sendVerificationCode"
+          >
+            {{ isCodeSent ? countdownText + 's' : '发送验证码' }}
+          </button>
+        </div>
+        
+        <!-- Message area -->
+        <div class="message-area">
+          <div v-if="resultMessage" :class="['message', messageType]">
+            {{ resultMessage }}
+          </div>
+        </div>
+
+        <!-- Forgot password link -->
+        <div class="auth-links">
+          <a v-if="loginMode === 1" @click.prevent="forgotPassword" class="forgot-password">
+            忘记密码?
+          </a>
+        </div>
+
+        <!-- Privacy agreement -->
+        <div v-if="loginMode !== 2" class="privacy-agreement">
+          <label class="checkbox-container">
+            <input type="checkbox" v-model="formData.agreed">
+            <span class="checkmark"></span>
+            <span class="agreement-text">我已阅读并同意协议，未注册的手机号将自动注册</span>
+          </label>
+        </div>
+
+        <!-- Action buttons -->
+        <div class="auth-actions">
+          <button 
+            class="action-button primary-button" 
+            :disabled="!isFormValid" 
+            @click="login"
+            :class="{ 'loading': loading }"
+          >
+            <span v-if="loading" class="loader"></span>
+            <span>{{ loginMode === 2 ? '管理员登录' : '登录' }}</span>
+          </button>
           
-          <!-- 验证码 - 仅在验证码登录模式下显示 -->
-          <div v-else class="form-item">
-            <!-- 验证码输入 -->
-            <el-input v-model="formData.verificationCode" class="input-field" placeholder="请输入6位数验证码"
-              :prefix-icon="Search" size="large" @input="handleVerificationCodeInput" />
-            <!-- 发送验证码按钮 -->
-            <el-button type="primary" class="verification-btn" :disabled="isCodeSent || !isPhoneValid"
-              @click="sendVerificationCode">
-              {{ isCodeSent ? countdownText : '发送验证码' }}
-            </el-button>
-          </div>
+          <button v-if="loginMode !== 2" class="action-button secondary-button" @click="goToRegister">
+            注册账号
+          </button>
         </div>
-      </div>
-      
-      <!-- 消息和链接容器 - 使用固定高度包裹，保持位置稳定 -->
-      <div class="fixed-height-container">
-        <!-- 验证码结果信息 -->
-        <div v-if="resultMessage" :class="['result-message', messageType]">
-          {{ resultMessage }}
-        </div>
-        <div v-else class="empty-message-placeholder"></div>
-        
-        <!-- 忘记密码链接 - 使用固定位置，无论是否显示都保持位置 -->
-        <div class="forgot-password-container">
-          <div v-if="loginMode === 1" class="forgot-password">
-            <el-button type="text" @click="forgotPassword">忘记密码?</el-button>
-          </div>
-        </div>
-      </div>
-
-      <!-- 隐私协议 -->
-      <div class="privacy-agreement" v-if="loginMode !== 2">
-        <el-checkbox v-model="formData.agreed" class="checkbox">
-          我已阅读并同意协议，未注册的手机号将自动注册
-        </el-checkbox>
-      </div>
-
-      <!-- 按钮组 -->
-      <div class="button-group">
-        <!-- 登录按钮 -->
-        <el-button type="primary" class="action-btn login-btn"
-          :disabled="!isFormValid" @click="login" :loading="loading">
-          登录
-        </el-button>
-        
-        <!-- 注册按钮, 管理员模式下不显示 -->
-        <el-button v-if="loginMode !== 2" type="default" class="action-btn register-btn" @click="goToRegister">
-          注册账号
-        </el-button>
       </div>
     </div>
   </div>

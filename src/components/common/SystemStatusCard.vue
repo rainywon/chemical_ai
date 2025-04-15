@@ -25,7 +25,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { API_BASE_URL } from '../../config'
 
 const systemStatus = ref({
@@ -35,14 +35,32 @@ const systemStatus = ref({
   response_time: '加载中...'
 })
 
+// 从全局状态中获取系统状态 - 避免重复请求
+let useGlobalStatus = false;
+let statusTimer = null;
+
 const fetchSystemStatus = async () => {
   try {
+    // 检查是否有其他组件已获取状态 - 实际项目中可使用状态管理库
+    const cachedStatus = sessionStorage.getItem('systemStatus');
+    const cachedTime = sessionStorage.getItem('systemStatusTime');
+    
+    // 如果缓存状态存在且未过期（3分钟内的缓存有效）
+    if (cachedStatus && cachedTime && (Date.now() - parseInt(cachedTime)) < 180000) {
+      systemStatus.value = JSON.parse(cachedStatus);
+      return;
+    }
+    
     const response = await fetch(`${API_BASE_URL}/system/status`)
     if (!response.ok) {
       throw new Error('获取系统状态失败')
     }
     const data = await response.json()
     systemStatus.value = data
+    
+    // 缓存系统状态和时间戳
+    sessionStorage.setItem('systemStatus', JSON.stringify(data));
+    sessionStorage.setItem('systemStatusTime', Date.now().toString());
   } catch (error) {
     console.error('获取系统状态失败:', error)
     systemStatus.value = {
@@ -56,6 +74,13 @@ const fetchSystemStatus = async () => {
 
 onMounted(() => {
   fetchSystemStatus()
+  // 设置5分钟的轮询间隔
+  statusTimer = setInterval(fetchSystemStatus, 300000);
+})
+
+// 组件卸载时清除定时器
+onUnmounted(() => {
+  if (statusTimer) clearInterval(statusTimer);
 })
 </script>
 

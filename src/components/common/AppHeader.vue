@@ -95,15 +95,17 @@ const toggleSettings = () => {
 // 组件挂载时获取系统状态
 onMounted(() => {
   fetchSystemStatus();
-  // 每30秒更新一次系统状态
-  setInterval(fetchSystemStatus, 30000);
+  // 将轮询间隔从30秒增加到120秒（2分钟）
+  const statusTimer = setInterval(fetchSystemStatus, 120000);
+  
   // 添加点击外部关闭事件监听
   document.addEventListener('click', handleClickOutside);
-});
-
-// 组件卸载时移除事件监听
-onUnmounted(() => {
-  document.removeEventListener('click', handleClickOutside);
+  
+  // 组件卸载时清除定时器
+  onUnmounted(() => {
+    if (statusTimer) clearInterval(statusTimer);
+    document.removeEventListener('click', handleClickOutside);
+  });
 });
 </script>
 
