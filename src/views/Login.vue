@@ -1,131 +1,150 @@
 ﻿<template>
-  <div class="login">
-    <!-- Modern abstract background elements -->
-    <div class="particles-container">
-      <div v-for="n in 50" :key="`particle-${n}`" class="particle"></div>
+  <div class="login-page">
+    <!-- 背景效果 -->
+    <div class="bg-molecules"></div>
+    <div class="bg-tech-overlay"></div>
+    <div class="bg-data-flow">
+      <div v-for="n in 12" :key="`flow-${n}`" class="data-stream"></div>
+    </div>
+    <div class="bg-nodes">
+      <div v-for="n in 8" :key="`node-${n}`" class="node">
+        <div class="node-center"></div>
+        <div v-for="c in 3" :key="`connection-${n}-${c}`" class="node-connection"></div>
+    </div>
     </div>
     
-    <div class="geometric-shapes">
-      <div class="shape shape-1"></div>
-      <div class="shape shape-2"></div>
-      <div class="shape shape-3"></div>
+    <!-- 全局消息提示 -->
+    <transition name="message-fade">
+      <div v-if="resultMessage" class="global-message" :class="messageType">
+        <span class="message-icon"></span>
+        <span class="message-text">{{ resultMessage }}</span>
+        <span class="message-close" @click="resultMessage = ''">×</span>
     </div>
+    </transition>
     
-    <div class="gradient-overlay"></div>
+    <!-- 登录面板 -->
+    <div class="login-panel">
+      <!-- 左侧品牌区域 -->
+      <div class="brand-area">
+        <div class="brand-content">
+          <img src="../assets/product.png" alt="Logo" class="logo" />
+          <h1 class="title">天工AI智能助手</h1>
+          <p class="subtitle">智能问答系统 · 专业高效</p>
+    </div>
+      </div>
     
-    <div class="login-container">
-      <!-- Logo and title -->
-      <div class="brand-header">
-        <img src="../assets/product.png" alt="天工AI Logo" class="logo-image" />
-        <h1 class="brand-title">天工AI智能助手</h1>
-      </div>
+      <!-- 右侧登录区域 -->
+      <div class="login-area">
+        <h2 class="login-title">账号登录</h2>
 
-      <!-- Login method selector -->
-      <div class="auth-type-tabs">
-        <div 
-          v-for="(type, index) in [{value: 0, label: '验证码登录'}, {value: 1, label: '密码登录'}, {value: 2, label: '管理员登录'}]" 
-          :key="type.value"
-          :class="['auth-tab', { active: loginMode === type.value }]"
-          @click="loginMode = type.value"
-        >
-          {{ type.label }}
-        </div>
-      </div>
-
-      <!-- Form content -->
-      <div class="auth-form">
-        <!-- Phone input - common to all login types -->
-        <div class="form-field">
-          <div class="input-icon">
-            <i class="icon-phone"></i>
+      <!-- 登录方式切换 -->
+        <div class="login-tabs">
+          <div 
+            v-for="(tab, index) in [
+              {value: 0, label: '验证码登录', icon: 'Message'},
+              {value: 1, label: '密码登录', icon: 'Lock'}, 
+              {value: 2, label: '管理员登录', icon: 'User'}
+            ]" 
+            :key="`tab-${index}`"
+            :class="['tab-item', { active: loginMode === tab.value }]"
+            @click="loginMode = tab.value"
+          >
+            <el-icon class="tab-icon"><component :is="tab.icon" /></el-icon>
+            <span>{{ tab.label }}</span>
           </div>
-          <input 
-            type="tel" 
+      </div>
+
+        <!-- 表单区域 -->
+        <div class="form-area">
+          <!-- 手机号输入 -->
+          <div class="input-group">
+            <div class="input-icon">
+              <el-icon><PhoneFilled /></el-icon>
+            </div>
+          <el-input 
             v-model="formData.phone" 
+              class="form-input" 
             placeholder="请输入11位手机号" 
-            class="form-input" 
-            maxlength="11"
             @input="handlePhoneInput"
+            type="tel"
             name="phone"
             autocomplete="tel"
+            maxlength="11"
           />
         </div>
         
-        <!-- Password input - for password and admin login -->
-        <div v-if="loginMode === 1 || loginMode === 2" class="form-field">
-          <div class="input-icon">
-            <i class="icon-lock"></i>
+          <!-- 密码/验证码输入 -->
+          <div class="input-group auth-input-container">
+            <div class="input-icon">
+              <el-icon v-if="loginMode === 0"><Search /></el-icon>
+              <el-icon v-else><Lock /></el-icon>
+            </div>
+            
+            <!-- 密码输入框 -->
+            <transition name="fade-transform" mode="out-in">
+            <el-input 
+                v-if="loginMode === 1 || loginMode === 2"
+              v-model="formData.password" 
+                class="form-input" 
+              :placeholder="loginMode === 2 ? '请输入管理员密码' : '请输入密码'" 
+              type="password"
+              show-password
+              name="password"
+              autocomplete="current-password"
+                key="password-input"
+              />
+              
+              <!-- 验证码输入框 -->
+              <div class="code-input-group" v-else key="code-input-group">
+                <el-input 
+                  v-model="formData.verificationCode" 
+                  class="form-input code-input" 
+                  placeholder="请输入6位数验证码"
+                  @input="handleVerificationCodeInput"
+                />
+                <button 
+                  class="code-btn" 
+                  :disabled="isCodeSent || !isPhoneValid"
+                  @click="sendVerificationCode"
+                >
+              {{ isCodeSent ? countdownText : '发送验证码' }}
+                </button>
           </div>
-          <input 
-            type="password" 
-            v-model="formData.password" 
-            :placeholder="loginMode === 2 ? '请输入管理员密码' : '请输入密码'" 
-            class="form-input"
-            name="password"
-            autocomplete="current-password"
-          />
-        </div>
-        
-        <!-- Verification code input - for SMS login -->
-        <div v-if="loginMode === 0" class="form-field verification-field">
-          <div class="input-icon">
-            <i class="icon-shield"></i>
-          </div>
-          <input 
-            type="text" 
-            v-model="formData.verificationCode" 
-            placeholder="请输入6位数验证码" 
-            class="form-input verification-input" 
-            maxlength="6"
-            @input="handleVerificationCodeInput"
-          />
-          <button 
-            class="verification-button" 
-            :disabled="isCodeSent || !isPhoneValid" 
-            @click="sendVerificationCode"
-          >
-            {{ isCodeSent ? countdownText + 's' : '发送验证码' }}
-          </button>
-        </div>
-        
-        <!-- Message area -->
-        <div class="message-area">
-          <div v-if="resultMessage" :class="['message', messageType]">
-            {{ resultMessage }}
-          </div>
-        </div>
+            </transition>
+      </div>
+      
 
-        <!-- Forgot password link -->
-        <div class="auth-links">
-          <a v-if="loginMode === 1" @click.prevent="forgotPassword" class="forgot-password">
-            忘记密码?
-          </a>
-        </div>
+      <!-- 隐私协议 -->
+          <div class="agreement-area" v-if="loginMode !== 2">
+            <el-checkbox v-model="formData.agreed" class="agreement-checkbox">
+              我已阅读并同意<a href="javascript:void(0)" class="agreement-link">《用户服务协议》</a>和<a href="javascript:void(0)" class="agreement-link">《隐私政策》</a>，未注册手机号将自动完成注册
+        </el-checkbox>
 
-        <!-- Privacy agreement -->
-        <div v-if="loginMode !== 2" class="privacy-agreement">
-          <label class="checkbox-container">
-            <input type="checkbox" v-model="formData.agreed">
-            <span class="checkmark"></span>
-            <span class="agreement-text">我已阅读并同意协议，未注册的手机号将自动注册</span>
-          </label>
-        </div>
+      </div>
 
-        <!-- Action buttons -->
-        <div class="auth-actions">
-          <button 
-            class="action-button primary-button" 
-            :disabled="!isFormValid" 
-            @click="login"
-            :class="{ 'loading': loading }"
-          >
-            <span v-if="loading" class="loader"></span>
-            <span>{{ loginMode === 2 ? '管理员登录' : '登录' }}</span>
-          </button>
           
-          <button v-if="loginMode !== 2" class="action-button secondary-button" @click="goToRegister">
-            注册账号
-          </button>
+          <!-- 按钮区域 -->
+          <div class="button-area">
+            <button 
+              class="submit-btn" 
+              :class="{ disabled: !isFormValid }"
+              :disabled="!isFormValid" 
+              @click="login"
+            >
+              <span v-if="!loading">登录</span>
+              <span v-else class="loading-spinner"></span>
+            </button>
+            
+            <!-- 注册按钮 -->
+            <button 
+              v-if="loginMode !== 2" 
+              class="register-btn" 
+              @click="goToRegister"
+            >
+              <span>注册账号</span>
+              <el-icon class="register-icon"><ArrowRight /></el-icon>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -134,7 +153,7 @@
 
 <script setup>
 import { ref, reactive, computed, onUnmounted, watch } from "vue";
-import { PhoneFilled, Search, Iphone, Lock } from "@element-plus/icons-vue";
+import { PhoneFilled, Search, Lock, Message, User, ArrowRight } from "@element-plus/icons-vue";
 import { useRouter } from "vue-router";
 import { API_BASE_URL } from "../config";
 import axios from "axios";
@@ -218,6 +237,7 @@ const resultMessage = ref("");
 const countdown = ref(60);
 const isCodeSent = ref(false);
 let timer = null;
+const messageTimeout = ref(null);
 
 const countdownText = computed(() => {
   return `${countdown.value.toString().padStart(2, "0")}`;
@@ -225,20 +245,33 @@ const countdownText = computed(() => {
 
 onUnmounted(() => {
   if (timer) clearInterval(timer);
+  if (messageTimeout.value) clearTimeout(messageTimeout.value);
 });
 
 // 添加消息类型状态
 const messageType = ref("info");
 
+// 显示全局消息的方法
+const showMessage = (message, type = "info", duration = 3000) => {
+  resultMessage.value = message;
+  messageType.value = type;
+  
+  // 如果已经有定时器，清除它
+  if (messageTimeout.value) clearTimeout(messageTimeout.value);
+  
+  // 设置自动关闭
+  if (duration > 0) {
+    messageTimeout.value = setTimeout(() => {
+  resultMessage.value = "";
+    }, duration);
+  }
+};
+  
 // 忘记密码处理
 const forgotPassword = () => {
-  // 清空结果信息
-  resultMessage.value = "";
-  
   // 检查手机号格式
   if (!isPhoneValid.value) {
-    resultMessage.value = "请输入有效的11位手机号";
-    messageType.value = "warning";
+    showMessage("请输入有效的11位手机号", "warning");
     return;
   }
   
@@ -246,36 +279,27 @@ const forgotPassword = () => {
   loginMode.value = 0;
   
   // 提示用户使用验证码重置密码
-  ElMessage({
-    message: '请使用验证码登录后重置密码',
-    type: 'info'
-  });
+  showMessage("请使用验证码登录后重置密码", "info");
 };
 
 // 修改发送验证码函数，添加消息类型判断
 const sendVerificationCode = async () => {
-  // 先清空之前的提示信息
-  resultMessage.value = "";
-
   // 检查是否同意协议（非管理员登录模式才需要检查）
   if (!formData.agreed) {
-    resultMessage.value = "请勾选同意隐私协议";
-    messageType.value = "warning";
+    showMessage("请勾选同意隐私协议", "warning");
     return;
   }
 
   // 检查手机号格式
   if (!isPhoneValid.value) {
-    resultMessage.value = "请输入有效的11位手机号";
-    messageType.value = "warning";
+    showMessage("请输入有效的11位手机号", "warning");
     return;
   }
 
   // 发送验证码
   try {
     // 提示用户正在发送验证码
-    resultMessage.value = "正在发送验证码...";
-    messageType.value = "info";
+    showMessage("正在发送验证码...", "info");
 
     const response = await fetch(`${API_BASE_URL}/send_sms/`, {
       method: 'POST',
@@ -290,8 +314,7 @@ const sendVerificationCode = async () => {
     const data = await response.json();
 
     if (response.ok) {
-      resultMessage.value = "验证码已发送，请查收";
-      messageType.value = "success"; // 成功发送设置为success类型
+      showMessage("验证码已发送，请查收", "success");
       // 启动倒计时
       isCodeSent.value = true;
       countdown.value = 60;
@@ -301,17 +324,14 @@ const sendVerificationCode = async () => {
         if (countdown.value <= 0) {
           clearInterval(timer);
           isCodeSent.value = false;
-          resultMessage.value = ""; // 清除发送成功提示
         }
       }, 1000);
     } else {
-      resultMessage.value = data.message || "验证码发送失败，请稍后重试";
-      messageType.value = "error";
+      showMessage(data.message || "验证码发送失败，请稍后重试", "error");
     }
   } catch (error) {
     // 网络请求失败的处理
-    resultMessage.value = "网络连接异常，请检查网络";
-    messageType.value = "error";
+    showMessage("网络连接异常，请检查网络", "error");
   }
 };
 
@@ -319,32 +339,27 @@ const sendVerificationCode = async () => {
 const login = async () => {
   // 检测手机号
   if (!isPhoneValid.value) {
-    resultMessage.value = "请输入有效的11位手机号";
-    messageType.value = "warning";
+    showMessage("请输入有效的11位手机号", "warning");
     return;
   }
 
   // 根据登录模式检查输入
   if (loginMode.value === 1 || loginMode.value === 2) {
     if (!isPasswordValid.value) {
-      resultMessage.value = "密码长度不能少于6位";
-      messageType.value = "warning";
+      showMessage("密码长度不能少于6位", "warning");
       return;
     }
     if (loginMode.value === 1 && !formData.agreed) {
-      resultMessage.value = "请勾选同意隐私协议";
-      messageType.value = "warning";
+      showMessage("请勾选同意隐私协议", "warning");
       return;
     }
   } else {
     if (!isVerificationCodeValid.value) {
-      resultMessage.value = "验证码必须是6位数字";
-      messageType.value = "warning";
+      showMessage("验证码必须是6位数字", "warning");
       return;
     }
     if (!formData.agreed) {
-      resultMessage.value = "请勾选同意隐私协议";
-      messageType.value = "warning";
+      showMessage("请勾选同意隐私协议", "warning");
       return;
     }
   }
@@ -352,8 +367,7 @@ const login = async () => {
   // 根据登录逻辑进行登录请求
   try {
     loading.value = true;
-    resultMessage.value = "正在登录...";
-    messageType.value = "info";
+    showMessage("正在登录...", "info");
     
     let url, requestData;
     
@@ -408,11 +422,7 @@ const login = async () => {
         // 非管理员登录时清除管理员状态
       }
       
-      resultMessage.value = "登录成功，正在跳转...";
-      messageType.value = "success";
-      
-      // 显示登录成功提示
-      ElMessage.success(loginMode.value === 2 ? '管理员登录成功' : '登录成功');
+      showMessage("登录成功，正在跳转...", "success");
       
       // 跳转到首页或管理员页面
       setTimeout(() => {
@@ -424,35 +434,13 @@ const login = async () => {
         }
       }, 1000);
     } else {
-      resultMessage.value = data.message || "登录失败";
-      messageType.value = "error";
+      showMessage(data.message || "登录失败", "error");
     }
   } catch (error) {
-    resultMessage.value = "网络连接异常，请检查网络";
-    messageType.value = "error";
+    showMessage("网络连接异常，请检查网络", "error");
   } finally {
     loading.value = false;
   }
-};
-
-const handleLoginError = (error) => {
-  return "网络连接异常，请检查网络";
-};
-
-// 统一错误处理
-const handleApiError = (error, action) => {
-  return `${action}失败，请稍后重试`;
-};
-
-// 添加生成随机数字字符串的方法
-const generateRandomDigits = () => {
-  const length = 20 + Math.floor(Math.random() * 30);
-  let result = '';
-  const characters = '01';
-  for (let i = 0; i < length; i++) {
-    result += characters.charAt(Math.floor(Math.random() * characters.length));
-  }
-  return result;
 };
 
 // 在script setup中添加注册页面跳转
@@ -462,9 +450,6 @@ const goToRegister = () => {
 
 // 当登录模式改变时，清除错误消息和相关输入
 const loginModeChangeHandler = (newMode) => {
-  // 清空错误消息
-  resultMessage.value = "";
-  
   // 清空验证码或密码
   if (newMode === 0) {
     // 切换到验证码登录
@@ -482,824 +467,1267 @@ watch(loginMode, (newValue) => {
 </script>
 
 <style scoped>
-/* 整体页面背景 - 高科技AI主题背景 */
-.login {
+/* 全局变量 */
+:root {
+  --primary: #4299e1;
+  --primary-light: #63b3ed;
+  --primary-dark: #3182ce;
+  --primary-bg: #ebf8ff;
+  --neutral-50: #f8fafc;
+  --neutral-100: #f1f5f9;
+  --neutral-200: #e2e8f0;
+  --neutral-300: #cbd5e1;
+  --neutral-500: #64748b;
+  --neutral-600: #475569;
+  --neutral-700: #334155;
+  --neutral-800: #1e293b;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --error: #ef4444;
+  --info: #3b82f6;
+}
+
+/* 基础布局 */
+.login-page {
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
   height: 100vh;
-  background: linear-gradient(125deg, #0b1437 0%, #172554 50%, #1e3a8a 100%);
+  width: 100%;
   overflow: hidden;
   position: relative;
+  background-color: #f0f9ff;
 }
 
-/* 添加科技感网格背景 */
-.tech-grid {
+/* 背景效果 - 分子背景 */
+.bg-molecules {
   position: absolute;
-  top: 0;
-  left: 0;
   width: 100%;
   height: 100%;
   background-image: 
-    linear-gradient(rgba(99, 102, 241, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(99, 102, 241, 0.05) 1px, transparent 1px);
-  background-size: 40px 40px;
+    radial-gradient(circle at 15% 20%, rgba(59, 130, 246, 0.08) 0, transparent 120px),
+    radial-gradient(circle at 85% 30%, rgba(49, 130, 206, 0.09) 0, transparent 160px),
+    radial-gradient(circle at 35% 70%, rgba(30, 64, 175, 0.07) 0, transparent 140px),
+    radial-gradient(circle at 65% 85%, rgba(66, 153, 225, 0.08) 0, transparent 130px);
+  background-size: 100% 100%;
   z-index: 0;
-  perspective: 1000px;
-  transform-style: preserve-3d;
-  animation: gridMove 60s linear infinite;
 }
 
-@keyframes gridMove {
-  0% {
-    background-position: 0 0;
-  }
-  100% {
-    background-position: 40px 40px;
-  }
-}
-
-/* 添加神经网络效果 */
-.neural-network {
+.bg-tech-overlay {
   position: absolute;
-  top: 0;
-  left: 0;
   width: 100%;
   height: 100%;
-  z-index: 0;
-  overflow: hidden;
+  background-image: 
+    radial-gradient(circle at 25% 25%, rgba(191, 219, 254, 0.04) 0, transparent 80px),
+    radial-gradient(circle at 75% 40%, rgba(147, 197, 253, 0.04) 0, transparent 100px),
+    radial-gradient(circle at 45% 60%, rgba(96, 165, 250, 0.04) 0, transparent 90px),
+    radial-gradient(circle at 80% 75%, rgba(59, 130, 246, 0.04) 0, transparent 110px);
+  z-index: 1;
+  opacity: 0.9;
+}
+
+.bg-data-flow {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.data-stream {
+  position: absolute;
+  height: 2px;
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    rgba(66, 153, 225, 0.15) 20%, 
+    rgba(30, 64, 175, 0.25) 50%,
+    rgba(66, 153, 225, 0.15) 80%,
+    transparent 100%);
+  opacity: 0.6;
+  animation: dataStream 8s infinite linear;
+  transform-origin: left;
+  border-radius: 2px;
+}
+
+.data-stream:nth-child(1) {
+  width: 20%;
+  top: 15%;
+  left: 0;
+  animation-delay: 0s;
+  animation-duration: 7s;
+}
+
+.data-stream:nth-child(2) {
+  width: 30%;
+  top: 25%;
+  left: 20%;
+  animation-delay: 1s;
+  animation-duration: 8s;
+}
+
+.data-stream:nth-child(3) {
+  width: 25%;
+  top: 35%;
+  left: 10%;
+  animation-delay: 2s;
+  animation-duration: 6s;
+}
+
+.data-stream:nth-child(4) {
+  width: 35%;
+  top: 48%;
+  left: 30%;
+  animation-delay: 3s;
+  animation-duration: 9s;
+}
+
+.data-stream:nth-child(5) {
+  width: 28%;
+  top: 62%;
+  left: 15%;
+  animation-delay: 2.5s;
+  animation-duration: 7.5s;
+}
+
+.data-stream:nth-child(6) {
+  width: 32%;
+  top: 78%;
+  left: 5%;
+  animation-delay: 1.5s;
+  animation-duration: 8.5s;
+}
+
+.data-stream:nth-child(7) {
+  width: 22%;
+  top: 85%;
+  left: 40%;
+  animation-delay: 3.5s;
+  animation-duration: 7s;
+}
+
+.data-stream:nth-child(8) {
+  width: 18%;
+  top: 8%;
+  left: 50%;
+  animation-delay: 4s;
+  animation-duration: 6.5s;
+}
+
+.data-stream:nth-child(9) {
+  width: 28%;
+  top: 28%;
+  left: 60%;
+  animation-delay: 2s;
+  animation-duration: 7.5s;
+}
+
+.data-stream:nth-child(10) {
+  width: 35%;
+  top: 40%;
+  left: 65%;
+  animation-delay: 1s;
+  animation-duration: 8s;
+}
+
+.data-stream:nth-child(11) {
+  width: 30%;
+  top: 65%;
+  left: 55%;
+  animation-delay: 3s;
+  animation-duration: 7s;
+}
+
+.data-stream:nth-child(12) {
+  width: 25%;
+  top: 80%;
+  left: 70%;
+  animation-delay: 2.5s;
+  animation-duration: 6.5s;
+}
+
+@keyframes dataStream {
+  0% {
+    transform: scaleX(0);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scaleX(1);
+    opacity: 0.3;
+  }
+  100% {
+    transform: scaleX(0);
+    opacity: 0.7;
+  }
+}
+
+.bg-nodes {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  z-index: 3;
+  pointer-events: none;
 }
 
 .node {
   position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: rgba(66, 153, 225, 0.08);
+  box-shadow: 0 0 20px rgba(66, 153, 225, 0.2);
+}
+
+.node-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   width: 4px;
   height: 4px;
-  background-color: rgba(255, 255, 255, 0.4);
   border-radius: 50%;
-  box-shadow: 0 0 10px rgba(147, 197, 253, 0.6);
-  z-index: 1;
+  background-color: rgba(30, 64, 175, 0.4);
+  animation: pulse 4s infinite ease-in-out;
 }
 
-.connection {
+.node-connection {
   position: absolute;
-  height: 1px;
-  background: linear-gradient(90deg, rgba(147, 197, 253, 0.1), rgba(147, 197, 253, 0.3), rgba(147, 197, 253, 0.1));
-  transform-origin: left center;
-  z-index: 0;
+  top: 50%;
+  left: 50%;
+  height: 2px;
+  width: 50px;
+  background: linear-gradient(90deg, 
+    rgba(59, 130, 246, 0.4) 0%,
+    transparent 100%);
+  transform-origin: left;
 }
 
-/* 添加浮动圆环效果 */
-.floating-rings {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  top: 0;
-  left: 0;
-  z-index: 0;
-  overflow: hidden;
-}
-
-.ring {
-  position: absolute;
-  border-radius: 50%;
-  border: 2px solid rgba(147, 197, 253, 0.1);
-  box-shadow: 0 0 20px rgba(147, 197, 253, 0.05);
-  animation: ringFloat 20s infinite ease-in-out;
-}
-
-.ring:nth-child(1) {
-  width: 300px;
-  height: 300px;
+.node:nth-child(1) {
   top: 20%;
-  left: 10%;
-  border-color: rgba(147, 197, 253, 0.1);
-  animation-duration: 25s;
+  left: 25%;
   animation-delay: 0s;
 }
 
-.ring:nth-child(2) {
-  width: 200px;
-  height: 200px;
-  bottom: 15%;
-  right: 15%;
-  border-color: rgba(168, 85, 247, 0.1);
-  animation-duration: 20s;
-  animation-delay: 5s;
+.node:nth-child(1) .node-connection:nth-child(2) {
+  transform: rotate(45deg);
 }
 
-.ring:nth-child(3) {
-  width: 400px;
-  height: 400px;
-  top: 60%;
-  left: 60%;
-  border-color: rgba(59, 130, 246, 0.1);
-  animation-duration: 30s;
+.node:nth-child(1) .node-connection:nth-child(3) {
+  transform: rotate(180deg);
+}
+
+.node:nth-child(1) .node-connection:nth-child(4) {
+  transform: rotate(270deg);
+}
+
+.node:nth-child(2) {
+  top: 15%;
+  right: 30%;
+  animation-delay: 1s;
+}
+
+.node:nth-child(2) .node-connection:nth-child(2) {
+  transform: rotate(120deg);
+}
+
+.node:nth-child(2) .node-connection:nth-child(3) {
+  transform: rotate(200deg);
+}
+
+.node:nth-child(2) .node-connection:nth-child(4) {
+  transform: rotate(300deg);
+}
+
+.node:nth-child(3) {
+  bottom: 35%;
+  right: 15%;
   animation-delay: 2s;
 }
 
-@keyframes ringFloat {
-  0% {
-    transform: translate(0, 0) rotate(0deg);
-  }
-  33% {
-    transform: translate(-20px, 20px) rotate(120deg);
-  }
-  66% {
-    transform: translate(20px, -20px) rotate(240deg);
-  }
-  100% {
-    transform: translate(0, 0) rotate(360deg);
-  }
+.node:nth-child(3) .node-connection:nth-child(2) {
+  transform: rotate(60deg);
 }
 
-/* 添加光晕效果 */
-.glow-effect {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  top: 0;
-  left: 0;
-  background: 
-    radial-gradient(circle at 20% 20%, rgba(56, 189, 248, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 80% 80%, rgba(168, 85, 247, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.05) 0%, transparent 70%);
-  filter: blur(40px);
-  z-index: 0;
-  animation: glowPulse 15s infinite alternate;
+.node:nth-child(3) .node-connection:nth-child(3) {
+  transform: rotate(150deg);
 }
 
-@keyframes glowPulse {
-  0% {
-    opacity: 0.7;
-  }
-  50% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0.7;
-  }
+.node:nth-child(3) .node-connection:nth-child(4) {
+  transform: rotate(240deg);
 }
 
-/* 添加数据流效果 */
-.data-stream {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  top: 0;
-  left: 0;
-  z-index: 0;
-  overflow: hidden;
+.node:nth-child(4) {
+  bottom: 20%;
+  left: 20%;
+  animation-delay: 1.5s;
 }
 
-.data-line {
-  position: absolute;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(56, 189, 248, 0.5), transparent);
-  animation: dataFlow 8s infinite linear;
-  transform-origin: left center;
+.node:nth-child(4) .node-connection:nth-child(2) {
+  transform: rotate(30deg);
 }
 
-@keyframes dataFlow {
-  0% {
-    transform: translateX(-100%) scaleX(0);
-    opacity: 0;
-  }
-  10% {
-    opacity: 1;
-  }
-  90% {
-    opacity: 1;
-  }
-  100% {
-    transform: translateX(100%) scaleX(1);
-    opacity: 0;
-  }
+.node:nth-child(4) .node-connection:nth-child(3) {
+  transform: rotate(170deg);
 }
 
-/* 添加浮动粒子 */
-.floating-particles {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  top: 0;
-  left: 0;
-  z-index: 0;
+.node:nth-child(4) .node-connection:nth-child(4) {
+  transform: rotate(260deg);
 }
 
-.particle {
-  position: absolute;
-  width: 6px;
-  height: 6px;
-  background-color: rgba(255, 255, 255, 0.2);
-  border-radius: 50%;
-  filter: blur(1px);
-  animation: particleFloat 15s infinite ease-in-out;
+.node:nth-child(5) {
+  top: 50%;
+  left: 12%;
+  animation-delay: 2.5s;
 }
 
-.particle:nth-child(3n) {
-  width: 4px;
-  height: 4px;
-  background-color: rgba(56, 189, 248, 0.3);
+.node:nth-child(5) .node-connection:nth-child(2) {
+  transform: rotate(70deg);
 }
 
-.particle:nth-child(3n+1) {
-  width: 3px;
-  height: 3px;
-  background-color: rgba(99, 102, 241, 0.3);
+.node:nth-child(5) .node-connection:nth-child(3) {
+  transform: rotate(190deg);
 }
 
-.particle:nth-child(3n+2) {
-  width: 5px;
-  height: 5px;
-  background-color: rgba(168, 85, 247, 0.3);
+.node:nth-child(5) .node-connection:nth-child(4) {
+  transform: rotate(290deg);
 }
 
-@keyframes particleFloat {
-  0% {
-    transform: translate(0, 0);
-  }
-  25% {
-    transform: translate(10px, 10px);
-  }
-  50% {
-    transform: translate(0, 20px);
-  }
-  75% {
-    transform: translate(-10px, 10px);
-  }
-  100% {
-    transform: translate(0, 0);
-  }
+.node:nth-child(6) {
+  top: 65%;
+  right: 25%;
+  animation-delay: 3s;
 }
 
-/* 登录容器增强 - 更强的玻璃态效果 */
-.login-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 30px 45px;
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(10px);
-  border-radius: 30px;
-  max-width: 420px;
-  width: 85%;
-  box-shadow: 
-    0 15px 35px rgba(0, 0, 0, 0.1),
-    0 3px 10px rgba(0, 0, 0, 0.05);
-  position: relative;
-  z-index: 10;
-  overflow: hidden;
-  min-height: 480px;
-  transition: all 0.3s ease;
+.node:nth-child(6) .node-connection:nth-child(2) {
+  transform: rotate(100deg);
 }
 
-.login-container:hover {
-  box-shadow: 
-    0 20px 40px rgba(0, 0, 0, 0.1), 
-    0 5px 15px rgba(0, 0, 0, 0.05),
-    0 0 0 1px rgba(255, 255, 255, 0.95) inset;
-  transform: translateY(-5px);
+.node:nth-child(6) .node-connection:nth-child(3) {
+  transform: rotate(210deg);
 }
 
-/* 添加容器内光效 */
-.login-container::before {
-  content: '';
-  position: absolute;
-  top: -2px;
-  left: -2px;
-  right: -2px;
-  bottom: -2px;
-  background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.8), transparent);
-  z-index: -1;
-  border-radius: 26px;
-  animation: borderLight 6s linear infinite;
-  opacity: 0.6;
+.node:nth-child(6) .node-connection:nth-child(4) {
+  transform: rotate(320deg);
 }
 
-@keyframes borderLight {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
+.node:nth-child(7) {
+  top: 40%;
+  right: 10%;
+  animation-delay: 1s;
 }
 
-/* 标题样式 - 更精美的排版和动画 */
-.img-title {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 20px;
-  position: relative;
-  width: 100%;
+.node:nth-child(7) .node-connection:nth-child(2) {
+  transform: rotate(80deg);
 }
 
-.img-title::after {
-  content: '';
-  position: absolute;
-  bottom: -15px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 70px;
-  height: 3px;
-  background: linear-gradient(90deg, #3b82f6, #60a5fa, #93c5fd);
-  border-radius: 3px;
-  animation: shimmer 2s infinite;
+.node:nth-child(7) .node-connection:nth-child(3) {
+  transform: rotate(160deg);
 }
 
-@keyframes shimmer {
-  0% {
-    background-position: -70px 0;
-  }
-  100% {
-    background-position: 70px 0;
-  }
+.node:nth-child(7) .node-connection:nth-child(4) {
+  transform: rotate(290deg);
 }
 
-.img-title img {
-  width: 55px;
-  height: 55px;
-  margin-right: 18px;
-  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.15));
-  animation: pulse 3s ease-in-out infinite;
+.node:nth-child(8) {
+  top: 60%;
+  left: 40%;
+  animation-delay: 1s;
+}
+
+.node:nth-child(8) .node-connection:nth-child(2) {
+  transform: rotate(20deg);
+}
+
+.node:nth-child(8) .node-connection:nth-child(3) {
+  transform: rotate(130deg);
+}
+
+.node:nth-child(8) .node-connection:nth-child(4) {
+  transform: rotate(250deg);
 }
 
 @keyframes pulse {
   0%, 100% {
-    transform: scale(1);
+    opacity: 0.5;
+    transform: translate(-50%, -50%) scale(1);
   }
   50% {
-    transform: scale(1.05);
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.5);
   }
 }
 
-.img-title span {
-  font-size: 26px;
-  font-weight: 800;
-  color: #1e293b;
-  letter-spacing: 0.5px;
-  background: linear-gradient(135deg, #1e293b, #475569);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-/* 表单样式 - 更精美的输入框 */
-.table-submit {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 100%;
-  margin-bottom: 10px;
-}
-
-/* 添加固定高度容器确保切换时高度一致 */
-.form-container {
-  width: 100%;
-  min-height: 66px;
-  position: relative;
-}
-
-.form-item {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  width: 100%;
-  margin-bottom: 12px;
-  position: relative;
-}
-
-/* 输入框样式 */
-.input-field {
-  width: 100%;
-  height: 48px;
-  font-size: 15px;
-  border-radius: 12px !important;
-  background: rgba(255, 255, 255, 0.9) !important;
-  border: 1px solid rgba(226, 232, 240, 0.8) !important;
-  box-shadow: 
-    0 2px 6px rgba(0, 0, 0, 0.03), 
-    0 0 0 1px rgba(255, 255, 255, 0.8) inset !important;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
-  padding-left: 16px !important;
-}
-
-.input-field:focus {
-  border-color: #3b82f6 !important;
-  box-shadow: 
-    0 0 0 3px rgba(59, 130, 246, 0.25), 
-    0 2px 8px rgba(0, 0, 0, 0.05) !important;
-  background: #ffffff !important;
-  transform: translateY(-1px);
-}
-
-.el-input__prefix {
-  color: #64748b !important;
-  font-size: 18px !important;
-  margin-right: 4px !important;
-}
-
-/* 验证码按钮 */
-.verification-btn {
-  margin-left: 12px;
-  height: 48px;
-  min-width: 110px;
-  border-radius: 12px !important;
-  background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
-  border: none !important;
-  color: white !important;
-  font-weight: 600 !important;
-  letter-spacing: 0.5px;
-  box-shadow: 
-    0 4px 12px rgba(37, 99, 235, 0.25), 
-    0 2px 4px rgba(37, 99, 235, 0.1) !important;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
-  position: relative;
-  overflow: hidden;
-}
-
-.verification-btn::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-  transition: all 0.6s ease;
-}
-
-.verification-btn:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 
-    0 6px 18px rgba(37, 99, 235, 0.3), 
-    0 2px 6px rgba(37, 99, 235, 0.2) !important;
-  background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
-}
-
-.verification-btn:hover:not(:disabled)::before {
-  left: 100%;
-}
-
-.verification-btn:active:not(:disabled) {
-  transform: translateY(0);
-}
-
-/* 禁用状态 */
-.verification-btn:disabled {
-  background: linear-gradient(135deg, #93c5fd, #bfdbfe) !important;
-  color: #eff6ff !important;
-  box-shadow: none !important;
-  cursor: not-allowed;
-}
-
-/* 结果消息 - 基础样式 */
-.result-message {
-  padding: 8px 14px;
-  border-radius: 12px;
-  font-size: 14px;
-  line-height: 1.5;
-  margin-bottom: 8px;
-  width: 100%;
-  text-align: left;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-  backdrop-filter: blur(4px);
-  animation: fadeIn 0.3s ease-out;
+/* 全局消息提示 */
+.global-message {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 12px 20px 12px 15px;
+  border-radius: 8px;
+  background-color: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   display: flex;
   align-items: center;
-  position: relative;
-  overflow: hidden;
+  max-width: 400px;
+  z-index: 9999;
+  animation: slideIn 0.3s ease;
 }
 
-/* 根据消息类型设置不同样式 */
-.result-message.success {
-  background: rgba(236, 253, 245, 0.7);
-  border-left: 3px solid #10b981;
-  color: #065f46;
+.global-message.success {
+  border-left: 4px solid var(--success);
 }
 
-.result-message.info {
-  background: rgba(236, 246, 255, 0.7);
-  border-left: 3px solid #3b82f6;
-  color: #1e40af;
-  animation: fadeIn 0.3s ease-out, pulsate 2s infinite ease-in-out;
+.global-message.warning {
+  border-left: 4px solid var(--warning);
 }
 
-.result-message.warning {
-  background: rgba(255, 251, 235, 0.7);
-  border-left: 3px solid #f59e0b;
-  color: #92400e;
+.global-message.error {
+  border-left: 4px solid var(--error);
 }
 
-.result-message.error {
-  background: rgba(254, 226, 226, 0.7);
-  border-left: 3px solid #ef4444;
-  color: #b91c1c;
+.global-message.info {
+  border-left: 4px solid var(--info);
 }
 
-/* 添加脉动动画用于"发送中"状态 */
-@keyframes pulsate {
-  0% {
-    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.2);
-  }
-  70% {
-    box-shadow: 0 0 0 8px rgba(59, 130, 246, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
-  }
-}
-
-/* 添加图标 */
-.result-message::before {
-  content: '';
+.message-icon {
+  display: inline-block;
   width: 20px;
   height: 20px;
   margin-right: 10px;
-  background-size: contain;
-  background-position: center;
-  background-repeat: no-repeat;
-  display: inline-block;
+  position: relative;
 }
 
-.result-message.success::before {
-  content: '✓';
-  color: #10b981;
-  font-weight: bold;
-  text-align: center;
-  line-height: 20px;
-}
-
-.result-message.info::before {
-  content: 'i';
-  color: #3b82f6;
-  font-weight: bold;
-  font-style: italic;
-  text-align: center;
-  line-height: 20px;
-}
-
-.result-message.warning::before {
-  content: '!';
-  color: #f59e0b;
-  font-weight: bold;
-  text-align: center;
-  line-height: 20px;
-}
-
-.result-message.error::before {
-  content: '✕';
-  color: #ef4444;
-  font-weight: bold;
-  text-align: center;
-  line-height: 20px;
-}
-
-/* 隐私协议 */
-.privacy-agreement {
-  margin-bottom: 12px;
+.message-icon::before {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
+  text-align: center;
+  font-weight: bold;
+  font-size: 16px;
 }
 
-.checkbox {
-  font-size: 14px;
-  color: #64748b;
-  text-align: left;
-  word-wrap: break-word;
-  word-break: break-word;
-  transition: color 0.3s ease;
-}
+.success .message-icon::before { content: '✓'; color: var(--success); }
+.warning .message-icon::before { content: '!'; color: var(--warning); }
+.error .message-icon::before { content: '✕'; color: var(--error); }
+.info .message-icon::before { content: 'i'; color: var(--info); font-style: italic; }
 
-.checkbox:hover {
-  color: #475569;
-}
-
-/* 登录类型选择器样式调整，避免切换时高度变化 */
-.login-type-selector {
-  width: 100%;
-  margin-bottom: 15px;
-  display: flex;
-  justify-content: center;
-}
-
-.login-type-selector .el-radio-group {
-  width: 100%;
-  display: flex;
-  border-radius: 14px;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-}
-
-.login-type-selector .el-radio-button {
+.message-text {
   flex: 1;
+  font-size: 14px;
+  color: var(--neutral-700);
 }
 
-.login-type-selector .el-radio-button__inner {
-  width: 100%;
-  height: 48px;
+.message-close {
+  margin-left: 10px;
+  cursor: pointer;
+  font-size: 18px;
+  color: var(--neutral-500);
+  transition: color 0.2s ease;
+}
+
+.message-close:hover {
+  color: var(--neutral-800);
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.message-fade-enter-active, .message-fade-leave-active {
+  transition: all 0.3s ease;
+}
+
+.message-fade-enter-from, .message-fade-leave-to {
+    opacity: 0;
+  transform: translateX(30px);
+}
+
+/* 登录面板 */
+.login-panel {
+  display: flex;
+  width: 800px;
+  max-width: 90%;
+  height: 500px;
+  max-height: 80vh;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+  position: relative;
+  z-index: 10;
+  background-color: white;
+}
+
+/* 品牌区域 */
+.brand-area {
+  width: 40%;
+  background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+  color: white;
+  position: relative;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-color: #e2e8f0;
-  background: rgba(248, 250, 252, 0.8);
-  color: #64748b;
-  font-weight: 500;
-  transition: all 0.3s;
-  font-size: 14px;
-  padding: 0 8px;
 }
 
-.login-type-selector .el-radio-button__original {
-  opacity: 0;
-}
-
-.login-type-selector .el-radio-button__inner:hover {
-  background: rgba(241, 245, 249, 0.9);
-  color: #3b82f6;
-}
-
-.login-type-selector .el-radio-button.is-active .el-radio-button__inner {
-  background: #3b82f6;
-  color: white;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
-  border-color: #3b82f6;
-}
-
-/* 按钮组 */
-.button-group {
-  display: flex;
-  width: 100%;
-  gap: 15px;
-  margin-top: 5px;
-}
-
-.action-btn {
-  flex: 1;
-  height: 48px !important;
-  border-radius: 12px !important;
-  font-weight: 600 !important;
-  letter-spacing: 0.5px;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
-  position: relative;
-  overflow: hidden;
-  font-size: 16px !important;
-}
-
-/* 添加固定高度的消息和链接容器 */
-.fixed-height-container {
-  width: 100%;
-  min-height: 60px;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-}
-
-/* 为空消息状态添加占位符 */
-.empty-message-placeholder {
-  width: 100%;
-  height: 24px;
-  margin-bottom: 8px;
-}
-
-/* 为忘记密码添加固定容器 */
-.forgot-password-container {
-  width: 100%;
-  height: 20px;
-  margin-bottom: 8px;
-}
-
-/* 忘记密码链接 */
-.forgot-password {
-  display: flex;
-  justify-content: flex-end;
-  width: 100%;
-  height: 100%;
-}
-
-.forgot-password .el-button {
-  color: #64748b;
-  font-size: 14px;
-  padding: 0;
-}
-
-.forgot-password .el-button:hover {
-  color: #3b82f6;
-  text-decoration: underline;
-}
-
-/* 登录按钮 */
-.login-btn {
-  background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
-  border: none !important;
-  color: white !important;
-  box-shadow: 
-    0 4px 12px rgba(37, 99, 235, 0.25), 
-    0 2px 4px rgba(37, 99, 235, 0.1) !important;
-}
-
-.login-btn::after {
+.brand-area::before {
   content: '';
   position: absolute;
   top: 0;
-  left: -100%;
+  left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-  transition: all 0.6s ease;
+  background: 
+    linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.5) 0%, transparent 50%);
+  z-index: 1;
 }
 
-.login-btn:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 
-    0 8px 20px rgba(37, 99, 235, 0.3), 
-    0 4px 8px rgba(37, 99, 235, 0.2) !important;
-  background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
+.brand-area::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M54.627,0.353 L59.383,5.109 C59.533,5.260 59.533,5.503 59.383,5.654 L54.627,10.410 C54.476,10.561 54.233,10.561 54.083,10.410 L49.327,5.654 C49.176,5.503 49.176,5.260 49.327,5.109 L54.083,0.353 C54.233,0.202 54.476,0.202 54.627,0.353 Z' fill='%23FFFFFF' fill-opacity='0.02'/%3E%3C/svg%3E");
+  background-size: 60px 60px;
+  opacity: 0.4;
+  z-index: 0;
 }
 
-.login-btn:active:not(:disabled) {
+.brand-content {
+  z-index: 2;
+  text-align: center;
+  padding: 40px 30px;
+}
+
+.logo {
+  width: 80px;
+  height: 80px;
+  margin-bottom: 30px;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.2));
+  transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.brand-content:hover .logo {
+  transform: translateY(-5px);
+  filter: drop-shadow(0 8px 12px rgba(0, 0, 0, 0.3));
+}
+
+.title {
+  font-size: 30px;
+  font-weight: 800;
+  margin-bottom: 16px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  letter-spacing: 1px;
+}
+
+.subtitle {
+  position: relative;
+  display: inline-block;
+  font-size: 16px;
+  opacity: 0.9;
+  letter-spacing: 2px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  padding: 0 30px;
+  line-height: 1.6;
+  white-space: nowrap;
+  min-width: 200px;
+}
+
+.subtitle::before,
+.subtitle::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 20px;
+  height: 1px;
+  background-color: rgba(255, 255, 255, 0.5);
+}
+
+.subtitle::before {
+  left: 0;
+}
+
+.subtitle::after {
+  right: 0;
+}
+
+/* 登录区域 */
+.login-area {
+  width: 60%;
+  padding: 30px;
+  display: flex;
+  flex-direction: column;
+}
+
+.login-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--neutral-800);
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+/* 登录选项卡 */
+.login-tabs {
+  display: flex;
+  margin-bottom: 25px;
+  border-bottom: 1px solid var(--neutral-200);
+  position: relative;
+  justify-content: center;
+  padding-bottom: 2px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.login-tabs::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(
+    90deg, 
+    transparent 0%, 
+    rgba(66, 153, 225, 0.2) 25%, 
+    rgba(66, 153, 225, 0.2) 75%, 
+    transparent 100%
+  );
+}
+
+.tab-item {
+  padding: 10px 16px;
+  margin: 0 8px;
+  cursor: pointer;
+  color: var(--neutral-600);
+  font-size: 14px;
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  text-align: center;
+  border-radius: 8px 8px 0 0;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.tab-item::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(235, 248, 255, 0.8);
+  z-index: -1;
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  border-radius: 8px 8px 0 0;
+  box-shadow: inset 0 -1px 2px rgba(66, 153, 225, 0.1);
+}
+
+.tab-item:hover::after {
+  transform: translateY(70%);
+}
+
+.tab-item.active::after {
   transform: translateY(0);
 }
 
-.login-btn:disabled {
-  background: linear-gradient(135deg, #93c5fd, #bfdbfe) !important;
-  color: #eff6ff !important;
-  box-shadow: none !important;
+.tab-icon {
+  margin-right: 6px;
+  font-size: 16px;
+  transition: transform 0.3s ease;
+}
+
+.tab-item:hover .tab-icon {
+  transform: translateY(-2px);
+}
+
+.tab-item.active .tab-icon {
+  transform: scale(1.1);
+}
+
+.tab-item:first-child {
+  margin-left: 0;
+}
+
+.tab-item:last-child {
+  margin-right: 0;
+}
+
+.tab-item:hover {
+  color: #2c5282; /* 更深的蓝色，提高对比度 */
+}
+
+.tab-item.active {
+  color: #2c5282; /* 更深的蓝色，提高对比度 */
+  font-weight: 600;
+  text-shadow: 0 1px 1px rgba(66, 153, 225, 0.1);
+}
+
+.tab-item::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 0;
+  height: 2px;
+  background-color: #2c5282; /* 更深的蓝色，提高对比度 */
+  transition: all 0.3s ease;
+  transform: translateX(-50%);
+  opacity: 0;
+}
+
+.tab-item:hover::before {
+  width: 30%;
+  opacity: 0.6;
+}
+
+.tab-item.active::before {
+  width: 100%;
+  opacity: 1;
+}
+
+.tab-item.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: #2c5282; /* 更深的蓝色，提高对比度 */
+  transition: transform 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+  transform-origin: left;
+  animation: tabIndicatorIn 0.4s forwards;
+}
+
+@keyframes tabIndicatorIn {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* 表单区域 */
+.form-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.3s ease;
+}
+
+.input-group {
+  position: relative;
+  margin-bottom: 16px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.input-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--neutral-500);
+  font-size: 16px;
+  z-index: 2;
+}
+
+.form-input {
+  width: 100%;
+  height: 44px;
+  border-radius: 8px !important;
+  border: 1px solid var(--neutral-200) !important;
+  background-color: var(--neutral-50) !important;
+  transition: all 0.2s ease !important;
+  padding-left: 38px !important;
+  font-size: 14px !important;
+}
+
+.form-input:focus {
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.15) !important;
+  background-color: white !important;
+}
+
+.code-input-group {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  transition: all 0.3s ease;
+}
+
+.code-input {
+  border-top-right-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+  transition: all 0.3s ease;
+}
+
+.code-btn {
+  min-width: 120px;
+  height: 48px;
+  border: none;
+  background-color: #2b6cb0; /* 更深的蓝色，增强可见性 */
+  color: #ffffff; /* 确保文字为纯白色 */
+  font-weight: 700; /* 加粗字体 */
+  border-radius: 0 8px 8px 0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 16px; /* 增大字体 */
+  white-space: nowrap;
+  padding: 0 15px;
+  box-shadow: 0 4px 8px rgba(49, 130, 206, 0.4); /* 增加阴影 */
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2); /* 添加文字阴影 */
+}
+
+.code-btn:hover:not(:disabled) {
+  background-color: #1a4e82; /* 悬停时颜色更深 */
+  box-shadow: 0 6px 12px rgba(49, 130, 206, 0.5);
+  transform: translateY(-2px);
+}
+
+.code-btn:disabled {
+  background-color: #4299e1;
+  opacity: 0.8;
   cursor: not-allowed;
+}
+
+/* 选项行 */
+.options-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 16px;
+}
+
+.forgot-password {
+  font-size: 13px;
+}
+
+.forgot-password a {
+  color: var(--neutral-500);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.forgot-password a:hover {
+  color: var(--primary);
+}
+
+/* 协议区域 */
+.agreement-area {
+  margin-bottom: 20px;
+}
+
+.agreement-checkbox {
+  font-size: 13px;
+  color: var(--neutral-600);
+  line-height: 1.5;
+  display: flex;
+  align-items: flex-start;
+}
+
+.agreement-checkbox :deep(.el-checkbox__input) {
+  margin-top: 3px;
+  align-self: flex-start;
+}
+
+.agreement-checkbox :deep(.el-checkbox__label) {
+  white-space: normal;
+  line-height: 1.5;
+  word-break: break-word;
+  text-align: left;
+  padding-top: 0;
+}
+
+.agreement-link {
+  color: #3182ce;
+  text-decoration: none;
+  transition: color 0.2s ease;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.agreement-link:hover {
+  color: #2c5282;
+  text-decoration: underline;
+}
+
+.agreement-info {
+  font-size: 12px;
+  color: var(--neutral-500);
+  margin-top: 6px;
+  padding-left: 24px;
+}
+
+/* 按钮区域 */
+.button-area {
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  transition: all 0.3s ease;
+}
+
+.submit-btn {
+  width: 100%;
+  height: 48px;
+  border-radius: 8px;
+  background-color: #3182ce; /* 更深的蓝色 */
+  color: white;
+  font-weight: 800; /* 更粗的字体 */
+  font-size: 17px; /* 更大的字体 */
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 5px 10px rgba(49, 130, 206, 0.5); /* 增强阴影 */
+  letter-spacing: 2px;
+  position: relative;
+  overflow: hidden;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2); /* 添加文字阴影 */
+}
+
+.submit-btn:hover:not(:disabled) {
+  background-color: #2c5282; /* 悬停时颜色更深 */
+  box-shadow: 0 7px 14px rgba(49, 130, 206, 0.6);
+  transform: translateY(-3px);
+}
+
+.submit-btn.disabled {
+  background-color: #63b3ed;
+  opacity: 0.8;
+  cursor: not-allowed;
+  box-shadow: 0 3px 6px rgba(66, 153, 225, 0.3);
+}
+
+.loading-spinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 /* 注册按钮 */
 .register-btn {
-  background: rgba(255, 255, 255, 0.8) !important;
-  border: 1px solid #e2e8f0 !important;
-  color: #475569 !important;
-  box-shadow: 
-    0 2px 6px rgba(0, 0, 0, 0.03), 
-    0 0 0 1px rgba(255, 255, 255, 0.8) inset !important;
+  width: 100%;
+  height: 48px;
+  border-radius: 8px;
+  background-color: rgba(235, 248, 255, 0.7);
+  color: #2b6cb0;
+  font-weight: 600;
+  font-size: 16px;
+  border: 2px solid rgba(49, 130, 206, 0.6);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  letter-spacing: 1px;
+  box-shadow: 0 4px 8px rgba(49, 130, 206, 0.15);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
-.register-btn:hover:not(:disabled) {
+.register-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg, 
+    rgba(190, 227, 248, 0) 0%, 
+    rgba(190, 227, 248, 0.3) 50%, 
+    rgba(190, 227, 248, 0) 100%
+  );
+  transition: all 0.8s ease;
+  z-index: 0;
+}
+
+.register-btn span, .register-btn .register-icon {
+  position: relative;
+  z-index: 1;
+}
+
+.register-btn:hover {
+  background-color: rgba(235, 248, 255, 0.9);
+  border-color: #2b6cb0;
+  box-shadow: 0 6px 12px rgba(49, 130, 206, 0.25);
   transform: translateY(-2px);
-  background: #f8fafc !important;
-  border-color: #cbd5e1 !important;
-  color: #334155 !important;
-  box-shadow: 
-    0 4px 12px rgba(0, 0, 0, 0.05), 
-    0 0 0 1px rgba(255, 255, 255, 0.9) inset !important;
+  color: #1a4e82;
 }
 
-.register-btn:active:not(:disabled) {
+.register-btn:hover::before {
+  left: 100%;
+}
+
+.register-btn:active {
   transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(49, 130, 206, 0.2);
 }
 
-.register-btn:disabled {
-  background: rgba(241, 245, 249, 0.8) !important;
-  color: #94a3b8 !important;
-  border-color: #e2e8f0 !important;
-  box-shadow: none !important;
-  cursor: not-allowed;
+.register-icon {
+  font-size: 16px;
+  opacity: 0.8;
+  transition: all 0.3s ease;
+  transform: translateX(-5px);
+}
+
+.register-btn:hover .register-icon {
+  opacity: 1;
+  transform: translateX(3px);
 }
 
 /* 响应式调整 */
-@media (max-width: 480px) {
-  .login-container {
-    max-width: 90%;
-    padding: 35px 25px;
-  }
-  
-  .img-title img {
-    width: 45px;
-    height: 45px;
-  }
-  
-  .img-title span {
-    font-size: 22px;
-  }
-  
-  .form-item {
+@media (max-width: 768px) {
+  .login-panel {
     flex-direction: column;
+    height: auto;
+    max-height: 90vh;
+  }
+  
+  .brand-area, .login-area {
+  width: 100%;
+  }
+  
+  .brand-area {
+    padding: 30px 0;
+  }
+  
+  .brand-content {
+    padding: 30px 20px;
+    max-width: 300px;
+  width: 100%;
+  }
+  
+  .logo {
+    width: 65px;
+    height: 65px;
+    margin-bottom: 20px;
+  }
+  
+  .title {
+    font-size: 26px;
+    margin-bottom: 12px;
+  }
+  
+  .subtitle {
+    font-size: 14px;
+    padding: 0 20px;
+    letter-spacing: 1.5px;
+    min-width: 240px;
+    white-space: nowrap;
+  }
+  
+  .subtitle::before,
+  .subtitle::after {
+    width: 15px;
+  }
+  
+  .login-area {
+    padding: 25px 20px;
+  }
+  
+  .login-tabs {
+    justify-content: space-around;
+    border-bottom-width: 1px;
+  }
+}
+
+@media (max-width: 480px) {
+  .global-message {
+    max-width: calc(100% - 40px);
+    top: 10px;
+    right: 10px;
+    padding: 10px 15px 10px 10px;
+  }
+  
+  .code-input-group {
+  flex-direction: column;
     align-items: stretch;
   }
   
-  .verification-btn {
-    margin-left: 0;
+  .code-input {
+    border-radius: 8px !important;
+  }
+  
+  .code-btn {
+    height: 50px;
+    font-size: 16px;
     margin-top: 12px;
+  width: 100%;
+    border-radius: 8px;
+    box-shadow: 0 5px 10px rgba(49, 130, 206, 0.4); /* 增强阴影 */
+    background-color: #3182ce; /* 确保在移动端也有正确的颜色 */
+  }
+  
+  .submit-btn, .register-btn {
+    height: 52px;
+    font-size: 16px;
+    box-shadow: 0 5px 10px rgba(49, 130, 206, 0.4); /* 增强阴影 */
+  }
+  
+  .tab-item {
+    font-size: 12px;
+    margin: 0 2px;
+    padding: 8px 6px;
+    letter-spacing: 0;
+  }
+  
+  .tab-icon {
+    margin-right: 4px;
+  font-size: 14px;
+  }
+  
+  .login-title {
+    font-size: 18px;
+    margin-bottom: 15px;
+  }
+  
+  .login-tabs {
+    margin-bottom: 20px;
+    padding-bottom: 0;
+  }
+
+  .register-icon {
+    font-size: 14px;
+  }
+  
+  .agreement-checkbox {
+    font-size: 12px;
+    line-height: 1.4;
+  }
+  
+  .agreement-checkbox :deep(.el-checkbox__label) {
+    padding-left: 4px;
+    font-size: 12px;
+  }
+  
+  .agreement-checkbox :deep(.el-checkbox__input) {
+    margin-top: 2px;
+  }
+  
+  .brand-content {
+    padding: 20px;
+    max-width: 280px;
     width: 100%;
   }
   
-  .button-group {
-    flex-direction: column;
-    gap: 10px;
+  .logo {
+    width: 60px;
+    height: 60px;
   }
   
-  /* 为小屏幕设备调整选项卡文字大小 */
-  .login-type-selector .el-radio-button__inner {
-    font-size: 12px;
-    padding: 0 4px;
+  .title {
+    font-size: 24px;
+    margin-bottom: 10px;
   }
+  
+  .subtitle {
+    font-size: 13px;
+    padding: 0 16px;
+    letter-spacing: 1px;
+    min-width: 220px;
+    white-space: nowrap;
+    overflow: visible;
+  }
+  
+  .subtitle::before,
+  .subtitle::after {
+    width: 12px;
+  }
+
+  .auth-input-container {
+    min-height: 140px; /* 移动端更大的容器高度以适应验证码按钮的位置变化 */
+  }
+}
+
+@keyframes patternMove {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* 固定高度容器 */
+.auth-input-container {
+  min-height: 48px;
+  margin-bottom: 20px;
+}
+
+/* 添加过渡效果 */
+.fade-transform-enter-active,
+.fade-transform-leave-active {
+  transition: all 0.3s ease;
+}
+
+.fade-transform-enter-from {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.fade-transform-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+/* 按钮区动画优化 */
+.button-area {
+  margin-bottom: 20px;
+  display: flex;
+    flex-direction: column;
+  gap: 15px;
+  transition: all 0.3s ease;
+}
+
+/* 确保移动端样式一致性 */
+@media (max-width: 480px) {
+  .auth-input-container {
+    min-height: 140px; /* 移动端更大的容器高度以适应验证码按钮的位置变化 */
+  }
+  
+  /* ... existing code ... */
+}
+
+/* ... existing code ... */
+
+/* 添加化学分子结构背景 */
+.login-page::before {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Cg fill='none' stroke='%233B82F6' stroke-width='0.5' stroke-opacity='0.05'%3E%3Ccircle cx='100' cy='100' r='40'/%3E%3Ccircle cx='100' cy='100' r='60'/%3E%3Cline x1='60' y1='100' x2='140' y2='100'/%3E%3Cline x1='100' y1='60' x2='100' y2='140'/%3E%3Ccircle cx='60' cy='100' r='5'/%3E%3Ccircle cx='140' cy='100' r='5'/%3E%3Ccircle cx='100' cy='60' r='5'/%3E%3Ccircle cx='100' cy='140' r='5'/%3E%3Cline x1='65' y1='65' x2='135' y2='135'/%3E%3Cline x1='135' y1='65' x2='65' y2='135'/%3E%3Ccircle cx='65' cy='65' r='5'/%3E%3Ccircle cx='135' cy='65' r='5'/%3E%3Ccircle cx='65' cy='135' r='5'/%3E%3Ccircle cx='135' cy='135' r='5'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 200px 200px;
+  z-index: 0;
+  opacity: 0.6;
 }
 </style>
