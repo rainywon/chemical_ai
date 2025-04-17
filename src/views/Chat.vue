@@ -356,12 +356,16 @@ const scrollToBottom = (behavior = "smooth") => {
   if (!scrollContainer.value) return;
   
   const container = scrollContainer.value;
+  
   // 根据behavior参数决定滚动方式
   if (behavior === "auto") {
     // 直接设置scrollTop - 更高效但没有动画
     container.scrollTop = container.scrollHeight;
+  } else if (behavior === "smooth") {
+    // 使用自定义平滑滚动效果
+    smoothScrollToBottom();
   } else {
-    // 使用scrollTo - 有平滑动画效果
+    // 使用原生scrollTo - 有平滑动画效果
     container.scrollTo({
       top: container.scrollHeight,
       behavior: behavior
@@ -376,13 +380,13 @@ const handleScrollToBottom = () => {
   // 强制设置自动滚动标志为true
   shouldAutoScroll.value = true;
   
-  // 调用通用滚动函数
-  scrollToBottom("smooth");
+  // 使用自定义平滑滚动
+  smoothScrollToBottom();
   
   // 设置一个短暂的延时，然后隐藏按钮，提供更好的视觉反馈
   setTimeout(() => {
     showScrollButton.value = false;
-  }, 300);
+  }, 100); // 降低延迟，提高响应速度
 };
 
 // 防抖处理滚动事件
@@ -456,29 +460,29 @@ const loadMessagesBatch = (messages, batchSize = 10, delay = 50) => {
       currentChatHistory.value = [...currentChatHistory.value, ...batch];
       loadedCount = end;
       
-      // 更新后滚动到最新消息
-      nextTick(() => {
-        if (scrollContainer.value) {
-          scrollContainer.value.scrollTo({
-            top: scrollContainer.value.scrollHeight,
-            behavior: 'auto'
+      // 更新后滚动到最新消息，但只在最后一批使用动画
+      if (loadedCount >= totalMessages) {
+        // 最后一批消息 - 使用优化的滚动方法
+        nextTick(() => {
+          requestAnimationFrame(() => {
+            if (scrollContainer.value) {
+              smoothScrollToBottom();
+            }
           });
-        }
-      });
+        });
+      } else {
+        // 中间批次 - 使用立即滚动避免多次动画
+        nextTick(() => {
+          if (scrollContainer.value) {
+            scrollContainer.value.scrollTop = scrollContainer.value.scrollHeight;
+          }
+        });
+      }
       
       // 是否加载完所有消息
       if (loadedCount < totalMessages) {
         setTimeout(loadNextBatch, delay);
       } else {
-        // 所有消息加载完成后，再次确保滚动到底部
-        setTimeout(() => {
-          if (scrollContainer.value) {
-            scrollContainer.value.scrollTo({
-              top: scrollContainer.value.scrollHeight,
-              behavior: 'auto'
-            });
-          }
-        }, 100);
         resolve();
       }
     };
@@ -705,9 +709,8 @@ const handleSendMessage = async () => {
         // 增加小延时确保DOM完全更新
         setTimeout(() => {
           if (scrollContainer.value) {
-            // 强制设置滚动位置到绝对底部
-            const container = scrollContainer.value;
-            container.scrollTop = container.scrollHeight;
+            // 使用平滑滚动到底部
+            smoothScrollToBottom();
           }
         }, 50);
       });
@@ -917,9 +920,8 @@ const processAIResponse = async (question, aiMsgOrId) => {
     await nextTick(() => {
       if (scrollContainer.value && shouldAutoScroll.value) {
         setTimeout(() => {
-          const container = scrollContainer.value;
-          // 直接设置scrollTop而不是使用scrollTo
-          container.scrollTop = container.scrollHeight + 200;
+          // 使用平滑滚动代替直接设置scrollTop
+          smoothScrollToBottom();
         }, 100); // 增加延时，确保内容完全渲染
       }
     });
@@ -1052,6 +1054,14 @@ const loadChatSessionMessages = async (sessionId) => {
     } else {
       // 少量消息直接设置
       currentChatHistory.value = messages;
+      
+      // 确保DOM更新后再滚动
+      nextTick(() => {
+        requestAnimationFrame(() => {
+          // 使用自定义平滑滚动
+          smoothScrollToBottom();
+        });
+      });
     }
     
     // 查找该会话的标题
@@ -1080,18 +1090,8 @@ const loadChatSessionMessages = async (sessionId) => {
     // 更新可见消息
     updateVisibleMessages();
     
-    // 强制启用自动滚动并滚动到底部
+    // 强制启用自动滚动
     shouldAutoScroll.value = true;
-    
-    // 确保滚动到底部，使用50ms延迟确保DOM已更新
-    setTimeout(() => {
-      if (scrollContainer.value) {
-        scrollContainer.value.scrollTo({
-          top: scrollContainer.value.scrollHeight,
-          behavior: 'auto'
-        });
-      }
-    }, 50);
   }
 };
 
@@ -1173,19 +1173,63 @@ const selectChatSession = async (sessionId) => {
     
     // 异步加载会话消息
     loadChatSessionMessages(sessionId).finally(() => {
-      // 强制滚动到底部，使用auto立即滚动不带动画效果
-      nextTick(() => {
-        if (scrollContainer.value) {
-          scrollContainer.value.scrollTop = scrollContainer.value.scrollHeight;
-        }
-        
-        // 聚焦输入框
-        if (inputRef.value) {
-          inputRef.value.focus();
-        }
+      // 使用RAF嵌套确保视图更新后再滚动
+      requestAnimationFrame(() => {
+        // 再次使用RAF确保所有内容已渲染
+        requestAnimationFrame(() => {
+          if (scrollContainer.value) {
+            // 使用滚动动画方法
+            smoothScrollToBottom();
+          }
+          
+          // 聚焦输入框
+          if (inputRef.value) {
+            inputRef.value.focus();
+          }
+        });
       });
     });
   }, 0);
+};
+
+// 添加平滑滚动到底部的方法
+const smoothScrollToBottom = () => {
+  if (!scrollContainer.value) return;
+  
+  const container = scrollContainer.value;
+  const targetPosition = container.scrollHeight;
+  const startPosition = container.scrollTop;
+  const distance = targetPosition - startPosition;
+  
+  // 如果距离很小，直接滚动无需动画
+  if (distance < 200) {
+    container.scrollTop = targetPosition;
+    return;
+  }
+  
+  // 否则使用平滑滚动动画
+  let startTime = null;
+  const duration = 500; // 滚动持续时间，可根据需要调整
+  
+  // 使用requestAnimationFrame实现平滑滚动
+  const animateScroll = (timestamp) => {
+    if (!startTime) startTime = timestamp;
+    const elapsed = timestamp - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    
+    // 使用easeInOutQuad缓动函数使滚动更自然
+    const easeProgress = progress < 0.5 
+      ? 2 * progress * progress 
+      : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+    
+    container.scrollTop = startPosition + distance * easeProgress;
+    
+    if (progress < 1) {
+      requestAnimationFrame(animateScroll);
+    }
+  };
+  
+  requestAnimationFrame(animateScroll);
 };
 
 // 删除聊天会话
@@ -1670,14 +1714,44 @@ onMounted(async () => {
     // 再设置滚动监听
     setupScrollListener();
     
-// 最后加载用户的所有聊天历史
-    loadUserChatSessions();
+    // 加载用户的所有聊天历史
+    await loadUserChatSessions();
       
-    // 如果有历史会话且没有指定当前会话，自动选择最近的一个
-    if (totalChatHistory.value.length > 0 && !currentChatId.value) {
-      // 历史会话已按更新时间降序排序，所以第一个就是最近的
-      const mostRecentSession = totalChatHistory.value[0];
-      await selectChatSession(mostRecentSession.id);
+    // 从后端获取最近的会话并加载
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.error('未找到认证令牌');
+        return;
+      }
+      
+      const response = await fetch(`${API_BASE_URL}/chat/sessions?latest=true`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error("获取最近会话失败");
+      }
+      
+      const data = await response.json();
+      if (data.sessions && data.sessions.length > 0) {
+        // 获取服务器返回的最新会话
+        const latestSession = data.sessions[0];
+        // 设置当前会话
+        currentChatId.value = latestSession.id;
+        currentChatTitle.value = latestSession.title;
+        // 加载该会话的消息
+        await loadChatSessionMessages(latestSession.id);
+      }
+    } catch (error) {
+      console.error("获取最近会话失败:", error);
+      // 如果后端API不支持获取最近会话，则使用前端列表的第一个
+      if (totalChatHistory.value.length > 0 && !currentChatId.value) {
+        const mostRecentSession = totalChatHistory.value[0];
+        await selectChatSession(mostRecentSession.id);
+      }
     }
     
     nextTick(() => {
@@ -1718,6 +1792,15 @@ onBeforeUnmount(() => {
 
 <style scoped lang="less">
 @import '../styles/chat.less';
+
+/* 添加滚动相关的优化样式 */
+.chat-scroll-container {
+  scroll-behavior: smooth; /* 启用原生平滑滚动 */
+  -webkit-overflow-scrolling: touch; /* 优化移动端滚动 */
+  transform: translateZ(0); /* 启用GPU加速 */
+  will-change: scroll-position; /* 提示浏览器优化滚动性能 */
+  overscroll-behavior: contain; /* 防止滚动链接 */
+}
 
 /* 添加侧边栏增强样式 */
 .app-sidebar {
@@ -1980,12 +2063,6 @@ onBeforeUnmount(() => {
   contain: content;
   content-visibility: auto;
   contain-intrinsic-size: 0 150px; /* 提供预估高度，优化渲染 */
-}
-
-/* 使用GPU加速的动画 */
-.chat-scroll-container {
-  -webkit-overflow-scrolling: touch; /* 优化移动端滚动 */
-  transform: translateZ(0); /* 启用GPU加速 */
 }
 
 .loading-messages {

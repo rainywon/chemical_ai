@@ -14,7 +14,14 @@
           <div class="message-content" ref="messageContentRef" v-html="parsedMessage" @click="handleThinkBlockClick"></div>
         </div>
         <!-- 加载指示器 -->
-        <div v-if="isLoading" class="loading-indicator"></div>
+        <div v-if="isLoading" class="loading-indicator">
+          <div class="typing-animation">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+          <div class="loading-text">天工AI正在思考中...</div>
+        </div>
       </div>
     </template>
 
@@ -76,6 +83,117 @@ import katex from 'katex';
 import 'katex/dist/katex.min.css';
 import { renderMathInElement } from 'katex/dist/contrib/auto-render.min.js';
 
+// 自定义Prism插件文本
+if (window.Prism && window.Prism.plugins && window.Prism.plugins.toolbar) {
+  // 检查按钮是否已经存在
+  if (!window.Prism.plugins.toolbar.buttons || !window.Prism.plugins.toolbar.buttons['copy-to-clipboard']) {
+    try {
+      window.Prism.plugins.toolbar.registerButton('copy-to-clipboard', function(env) {
+        const linkCopy = document.createElement('button');
+        linkCopy.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg><span>复制</span>';
+        linkCopy.className = 'copy-to-clipboard-button';
+        
+        registerClipboard(linkCopy, env.element);
+        return linkCopy;
+        
+        function registerClipboard(copyButton, element) {
+          copyButton.addEventListener('click', function() {
+            const textToCopy = element.textContent;
+            
+            navigator.clipboard.writeText(textToCopy).then(function() {
+              copyButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg><span>已复制!</span>';
+              
+              setTimeout(function () {
+                copyButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg><span>复制</span>';
+              }, 2000);
+            }, function() {
+              copyButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg><span>复制失败!</span>';
+            });
+          });
+        }
+      });
+      console.log('成功注册复制按钮');
+    } catch (error) {
+      console.warn('复制按钮注册失败:', error);
+    }
+  } else {
+    console.log('复制按钮已存在，跳过注册');
+  }
+  
+  // 检查按钮是否已经存在
+  if (!window.Prism.plugins.toolbar.buttons || !window.Prism.plugins.toolbar.buttons['show-language']) {
+    try {
+      window.Prism.plugins.toolbar.registerButton('show-language', function(env) {
+        const languageMap = {
+          'javascript': '语言: JavaScript',
+          'js': '语言: JavaScript',
+          'typescript': '语言: TypeScript',
+          'ts': '语言: TypeScript',
+          'jsx': '语言: React JSX',
+          'tsx': '语言: React TSX',
+          'html': '语言: HTML',
+          'xml': '语言: XML',
+          'svg': '语言: SVG',
+          'css': '语言: CSS',
+          'scss': '语言: SCSS',
+          'less': '语言: Less',
+          'python': '语言: Python',
+          'py': '语言: Python',
+          'java': '语言: Java',
+          'c': '语言: C',
+          'cpp': '语言: C++',
+          'csharp': '语言: C#',
+          'cs': '语言: C#',
+          'php': '语言: PHP',
+          'ruby': '语言: Ruby',
+          'rb': '语言: Ruby',
+          'go': '语言: Go',
+          'rust': '语言: Rust',
+          'swift': '语言: Swift',
+          'kotlin': '语言: Kotlin',
+          'dart': '语言: Dart',
+          'sql': '语言: SQL',
+          'bash': '语言: Bash',
+          'sh': '语言: Shell',
+          'json': '语言: JSON',
+          'yaml': '语言: YAML',
+          'yml': '语言: YAML',
+          'markdown': '语言: Markdown',
+          'md': '语言: Markdown',
+          'plaintext': '语言: 纯文本',
+          'txt': '语言: 纯文本'
+        };
+        
+        const pre = env.element.parentNode;
+        if (!pre || !/pre/i.test(pre.nodeName)) {
+          return;
+        }
+        
+        let language = pre.getAttribute('data-language') || 
+                      Array.from(env.element.classList)
+                        .find(cls => cls.startsWith('language-'))?.replace('language-', '');
+                        
+        if (!language) {
+          return;
+        }
+        
+        language = language.toLowerCase();
+        
+        const element = document.createElement('span');
+        element.className = 'show-language';
+        element.textContent = languageMap[language] || `语言: ${language.toUpperCase()}`;
+        
+        return element;
+      });
+      console.log('成功注册显示语言按钮');
+    } catch (error) {
+      console.warn('显示语言按钮注册失败:', error);
+    }
+  } else {
+    console.log('显示语言按钮已存在，跳过注册');
+  }
+}
+
 // 使用markRaw避免Vue对这些大型对象进行响应式处理
 const markedInstance = markRaw(marked);
 const prismInstance = markRaw(Prism);
@@ -127,13 +245,14 @@ const debounce = (fn, delay = 300) => {
 
 // 处理 think 块的点击事件
 const handleThinkBlockClick = (event) => {
-  // 检查点击的是否是 think 块的头部或展开/收起按钮
-  const targetElement = event.target;
-  if (targetElement.classList.contains('think-header') || 
-      targetElement.classList.contains('think-toggle-btn')) {
-    const thinkBlock = targetElement.closest('.think-container');
-    if (thinkBlock) {
-      const thinkId = thinkBlock.dataset.thinkId;
+  // 寻找最近的think-header或think-toggle-btn元素
+  const header = event.target.closest('.think-header');
+  const toggleBtn = event.target.closest('.think-toggle-btn');
+  
+  if (header || toggleBtn) {
+    const container = event.target.closest('.think-container');
+    if (container) {
+      const thinkId = container.dataset.thinkId;
       toggleThinkBlock(thinkId);
     }
   }
@@ -143,23 +262,78 @@ const handleThinkBlockClick = (event) => {
 const toggleThinkBlock = (thinkId) => {
   // 创建新的Map而不是修改原有Map，以触发响应式更新
   const newState = new Map(thinkBlocksState.value);
-  newState.set(thinkId, !newState.get(thinkId));
+  const currentState = newState.get(thinkId);
+  const newExpandState = !currentState;
+  
+  // 设置新状态
+  newState.set(thinkId, newExpandState);
   thinkBlocksState.value = newState;
   
-  // 使用requestAnimationFrame优化DOM操作
-  requestAnimationFrame(() => {
+  // 使用setTimeout确保DOM已更新
+  setTimeout(() => {
     const thinkContent = document.querySelector(`.think-content[data-think-id="${thinkId}"]`);
     const thinkContainer = document.querySelector(`.think-container[data-think-id="${thinkId}"]`);
-    if (thinkContent && thinkContainer) {
-      if (newState.get(thinkId)) {
-        thinkContainer.classList.add('expanded');
-        thinkContent.style.maxHeight = `${thinkContent.scrollHeight}px`;
-      } else {
-        thinkContainer.classList.remove('expanded');
-        thinkContent.style.maxHeight = '0';
-      }
+    const toggleBtn = document.querySelector(`.think-toggle-btn[data-think-id="${thinkId}"]`);
+    
+    if (!thinkContent || !thinkContainer) {
+      console.error('思考过程框元素未找到:', thinkId);
+      return;
     }
-  });
+    
+    try {
+      if (newExpandState) {
+        // 展开状态
+        thinkContainer.classList.add('expanded');
+        
+        // 计算内容实际高度
+        thinkContent.style.maxHeight = 'none';
+        thinkContent.style.visibility = 'hidden';
+        thinkContent.style.position = 'absolute';
+        thinkContent.style.padding = '16px';
+        
+        const contentHeight = thinkContent.scrollHeight;
+        
+        thinkContent.style.visibility = '';
+        thinkContent.style.position = '';
+        thinkContent.style.padding = '';
+        thinkContent.style.maxHeight = '0';
+        
+        // 使用requestAnimationFrame来确保在下一帧进行动画
+        requestAnimationFrame(() => {
+          thinkContent.style.maxHeight = `${contentHeight}px`;
+          
+          // 动画完成后，设置maxHeight为none，以允许内容自适应变化
+          setTimeout(() => {
+            thinkContent.style.maxHeight = 'none';
+          }, 500); // 与CSS过渡时间匹配
+        });
+        
+        if (toggleBtn) {
+          toggleBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>';
+        }
+      } else {
+        // 收起状态
+        // 先设置确切的高度值，再过渡到0
+        const contentHeight = thinkContent.scrollHeight;
+        thinkContent.style.maxHeight = `${contentHeight}px`;
+        
+        // 先进行一次重绘，确保浏览器记录了当前高度
+        thinkContent.offsetHeight; 
+        
+        // 设置收起动画的目标高度
+        requestAnimationFrame(() => {
+          thinkContainer.classList.remove('expanded');
+          thinkContent.style.maxHeight = '0';
+        });
+        
+        if (toggleBtn) {
+          toggleBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>';
+        }
+      }
+    } catch (error) {
+      console.error('切换思考过程框状态失败:', error);
+    }
+  }, 0);
 };
 
 // 设置Marked选项 - 优化代码高亮性能
@@ -256,25 +430,31 @@ const parsedMessage = computed(() => {
     
     // 替换 <think> 标签，添加展开/收起功能
     let thinkBlockCounter = 0;
-    rawHtml = rawHtml.replace(/<think>([\s\S]*?)<\/think>/g, (match, content) => {
+    rawHtml = rawHtml.replace(/<think>([\s\S]*?)(<\/think>|$)/g, (match, content, endTag) => {
       const thinkId = `think-${props.messageId}-${thinkBlockCounter++}`;
       
-      // 初始化 think 块的状态（默认收起）
+      // 初始化 think 块的状态（默认展开）
       if (!thinkBlocksState.value.has(thinkId)) {
         const newState = new Map(thinkBlocksState.value);
-        newState.set(thinkId, false);
+        // 默认展开所有思考块
+        newState.set(thinkId, true);
         thinkBlocksState.value = newState;
       }
       
+      // 检查是否有结束标签，如果没有，添加一个占位符
+      const isComplete = endTag === '</think>';
+      
       return `
-        <div class="think-container" data-think-id="${thinkId}">
+        <div class="think-container expanded" data-think-id="${thinkId}">
           <div class="think-header" data-think-id="${thinkId}">
-            <span class="think-icon">💭</span>
-            <span class="think-title">思考过程</span>
-            <span class="think-toggle-btn">${thinkBlocksState.value.get(thinkId) ? '收起' : '展开'}</span>
+            <div class="think-title">思考过程</div>
+            <div class="think-toggle-btn" data-think-id="${thinkId}">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
+            </div>
           </div>
-          <div class="think-content" data-think-id="${thinkId}">
+          <div class="think-content" data-think-id="${thinkId}" style="max-height: none;">
             ${content}
+            ${!isComplete ? '<div class="think-loading">思考中...</div>' : ''}
           </div>
         </div>
       `;
@@ -292,12 +472,12 @@ const parsedMessage = computed(() => {
     rawHtml = rawHtml.replace(/<pre class="line-numbers" data-language="([^"]*)">([\s\S]*?)<\/pre>/g, (match, lang, code) => {
       // 获取友好的语言名称
       const langDisplay = getLangDisplayName(lang);
-      return `<div class="code-block-wrapper">
+      return `<div class="code-block-container">
         <div class="code-block-header">
           <span class="code-lang-tag">${langDisplay}</span>
-          <button class="code-copy-btn" title="复制代码">
+          <button class="code-copy-btn" onclick="(function(e){e.preventDefault();const code=this.parentElement.parentElement.querySelector('pre code').textContent;navigator.clipboard.writeText(code).then(()=>{this.innerHTML='<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'16\' height=\'16\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'><polyline points=\'20 6 9 17 4 12\'></polyline></svg><span>已复制!</span>';setTimeout(()=>{this.innerHTML='<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'16\' height=\'16\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'><rect x=\'9\' y=\'9\' width=\'13\' height=\'13\' rx=\'2\' ry=\'2\'></rect><path d=\'M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1\'></path></svg><span>复制</span>';},2000);}).catch(()=>{this.innerHTML='<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'16\' height=\'16\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'><circle cx=\'12\' cy=\'12\' r=\'10\'></circle><line x1=\'12\' y1=\'8\' x2=\'12\' y2=\'12\'></line><line x1=\'12\' y1=\'16\' x2=\'12.01\' y2=\'16\'></line></svg><span>复制失败!</span>';});})(event)">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-            <span class="copy-text">复制</span>
+            <span>复制</span>
           </button>
         </div>
         ${match}
@@ -386,7 +566,7 @@ const handlePostRender = debounce(() => {
               prismInstance.highlightElement(entry.target);
               
               // 获取代码块wrapper
-              const codeWrapper = entry.target.closest('.code-block-wrapper');
+              const codeWrapper = entry.target.closest('.code-block-container');
               if (codeWrapper) {
                 // 绑定复制按钮事件
                 const copyBtn = codeWrapper.querySelector('.code-copy-btn');
@@ -411,7 +591,7 @@ const handlePostRender = debounce(() => {
                 }
               }
             } catch (e) {
-              console.warn('Code highlighting error:', e);
+              console.warn('代码高亮失败:', e);
             }
             observer.unobserve(entry.target);
           }
@@ -421,18 +601,17 @@ const handlePostRender = debounce(() => {
       codeBlocks.forEach(block => observer.observe(block));
     }
     
-    // 处理think块
+    // 处理think块 - 确保默认展开
     const thinkContents = document.querySelectorAll(".think-content");
     if (thinkContents.length > 0) {
       thinkContents.forEach((content) => {
         const thinkId = content.dataset.thinkId;
-        const isExpanded = thinkBlocksState.value.get(thinkId);
+        const thinkContainer = content.closest('.think-container');
         
-        if (isExpanded) {
-          content.style.maxHeight = `${content.scrollHeight}px`;
-          content.closest('.think-container')?.classList.add('expanded');
-        } else {
-          content.style.maxHeight = '0';
+        // 确保思考块展开
+        if (thinkContainer) {
+          thinkContainer.classList.add('expanded');
+          content.style.maxHeight = 'none';
         }
       });
     }
@@ -486,27 +665,33 @@ const handlePostRender = debounce(() => {
       try {
         prismInstance.highlightElement(block);
       } catch (e) {
-        console.warn('Code highlighting error:', e);
+        console.warn('代码高亮失败:', e);
       }
     });
     
+    // 确保思考块展开
     document.querySelectorAll(".think-content").forEach((content) => {
-      const thinkId = content.dataset.thinkId;
-      const isExpanded = thinkBlocksState.value.get(thinkId);
-      
-      if (isExpanded) {
-        content.style.maxHeight = `${content.scrollHeight}px`;
-        content.closest('.think-container')?.classList.add('expanded');
-      } else {
-        content.style.maxHeight = '0';
+      const thinkContainer = content.closest('.think-container');
+      if (thinkContainer) {
+        thinkContainer.classList.add('expanded');
+        content.style.maxHeight = 'none';
       }
     });
   }
 }, 50);
 
 // 监听消息变化，触发重新解析
-watch(() => props.message, () => {
-  needsReparse.value = true;
+watch(() => props.message, (newMessage, oldMessage) => {
+  // 检查是否有新的<think>标签开始或结束
+  const hasNewThinkStart = newMessage && newMessage.includes('<think>') && 
+                          (!oldMessage || !oldMessage.includes('<think>'));
+  const hasNewThinkEnd = newMessage && newMessage.includes('</think>') && 
+                        (!oldMessage || !oldMessage.includes('</think>'));
+  
+  // 如果有新的<think>标签开始或结束，或者消息内容变化，则重新解析
+  if (hasNewThinkStart || hasNewThinkEnd || newMessage !== oldMessage) {
+    needsReparse.value = true;
+  }
 }, { immediate: true });
 
 // 组件挂载完成后处理DOM
@@ -663,25 +848,54 @@ const handleFeedbackSubmit = (feedback) => {
 
 /* 加载指示器 */
 .loading-indicator {
-  position: absolute;
-  bottom: -70px;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  border: 4px solid rgba(192, 192, 192, 0.5);
-  border-top: 4px solid #2196f3;
-  box-shadow: 0 0 10px rgba(33, 150, 243, 0.5);
-  animation: spin 1s linear infinite;
-  will-change: transform; /* 告知浏览器将会变化，优化动画性能 */
-  backface-visibility: hidden; /* 优化动画 */
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin-top: 8px;
+  margin-left: 20px;
 }
 
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
+.typing-animation {
+  display: flex;
+  align-items: center;
+}
+
+.typing-animation span {
+  height: 8px;
+  width: 8px;
+  margin: 0 2px;
+  background-color: #2563eb;
+  border-radius: 50%;
+  display: inline-block;
+  animation: bounce 1.5s infinite ease-in-out;
+}
+
+.typing-animation span:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.typing-animation span:nth-child(2) {
+  animation-delay: 0.3s;
+}
+
+.typing-animation span:nth-child(3) {
+  animation-delay: 0.6s;
+}
+
+.loading-text {
+  margin-top: 5px;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+@keyframes bounce {
+  0%, 80%, 100% { 
+    transform: scale(0);
+    opacity: 0.5;
   }
-  100% {
-    transform: rotate(360deg);
+  40% { 
+    transform: scale(1);
+    opacity: 1;
   }
 }
 
@@ -1036,249 +1250,117 @@ const handleFeedbackSubmit = (feedback) => {
 /* 更新 think 相关样式 */
 .message-content :deep(.think-container) {
   margin: 1.2rem 0;
-  border-radius: 16px;
-  border: 1px solid rgba(223, 225, 230, 0.6);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
-  background-color: #fcfcfd;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background-color: #f9fafb;
   overflow: hidden;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  transform-origin: top;
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  transition: all 0.3s ease;
 }
 
 .message-content :deep(.think-container.expanded) {
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
-  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
 }
 
 .message-content :deep(.think-header) {
   display: flex;
   align-items: center;
-  padding: 14px 18px;
-  background: linear-gradient(to right, #f9fafc, #f3f4f8);
+  justify-content: space-between;
+  padding: 10px 16px;
+  background-color: #f3f4f6;
   cursor: pointer;
   user-select: none;
-  transition: all 0.25s ease;
-  border-bottom: 1px solid transparent;
-}
-
-.message-content :deep(.think-container.expanded .think-header) {
-  border-bottom: 1px solid rgba(223, 225, 230, 0.6);
+  border-bottom: 1px solid #e5e7eb;
+  position: relative;
 }
 
 .message-content :deep(.think-header:hover) {
-  background: linear-gradient(to right, #f5f6fa, #eef0f6);
-}
-
-.message-content :deep(.think-header:active) {
-  background: linear-gradient(to right, #f1f2f6, #eaecf2);
-}
-
-.message-content :deep(.think-icon) {
-  margin-right: 10px;
-  font-size: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #6d7aad;
-  background-color: rgba(109, 122, 173, 0.1);
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
+  background-color: #e5e7eb;
 }
 
 .message-content :deep(.think-title) {
-  flex-grow: 1;
-  font-weight: 600;
-  color: #4a5173;
-  font-size: 15px;
-  letter-spacing: 0.4px;
-  text-transform: capitalize;
+  font-weight: 500;
+  color: #6b7280;
+  font-size: 14px;
+  pointer-events: none; /* 确保标题不会干扰点击 */
 }
 
 .message-content :deep(.think-toggle-btn) {
-  color: #4a6ee0;
-  font-size: 13px;
-  font-weight: 500;
-  background: rgba(74, 110, 224, 0.08);
-  padding: 6px 12px;
-  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+  padding: 6px;
+  min-height: 24px;
+  min-width: 24px;
+  border-radius: 4px;
   transition: all 0.2s ease;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-  position: relative;
-  overflow: hidden;
-  letter-spacing: 0.3px;
-}
-
-.message-content :deep(.think-toggle-btn::after) {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(255, 255, 255, 0.1);
-  opacity: 0;
-  transition: opacity 0.2s ease;
 }
 
 .message-content :deep(.think-toggle-btn:hover) {
-  background: rgba(74, 110, 224, 0.12);
-  transform: translateY(-1px);
+  background-color: rgba(107, 114, 128, 0.2);
 }
 
-.message-content :deep(.think-toggle-btn:hover::after) {
-  opacity: 1;
+.message-content :deep(.think-toggle-btn svg) {
+  transition: transform 0.3s ease;
+  pointer-events: none; /* 确保SVG不会干扰点击 */
 }
 
-.message-content :deep(.think-toggle-btn:active) {
-  transform: translateY(0);
-  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.03);
+.message-content :deep(.think-container:not(.expanded) .think-toggle-btn svg) {
+  transform: rotate(180deg);
 }
 
 .message-content :deep(.think-content) {
   padding: 0;
   max-height: 0;
   overflow: hidden;
-  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-  font-size: 14.5px;
-  line-height: 1.65;
-  color: #3e4158;
-  background-color: #ffffff;
-  border-top: 1px solid transparent;
-  font-weight: 400;
-  letter-spacing: 0.2px;
-  word-spacing: 0.5px;
+  transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 14px;
+  line-height: 1.5;
+  color: #4b5563;
+  background-color: #f9fafb;
+}
+
+.message-content :deep(.think-loading) {
+  display: flex;
+  align-items: center;
+  margin: 10px 0;
+  color: #6b7280;
+  font-style: italic;
+  font-size: 13px;
+}
+
+.message-content :deep(.think-loading::before) {
+  content: "";
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  margin-right: 8px;
+  border: 2px solid rgba(107, 114, 128, 0.3);
+  border-top-color: #6b7280;
+  border-radius: 50%;
+  animation: think-spin 1s linear infinite;
 }
 
 .message-content :deep(.think-container.expanded .think-content) {
-  padding: 22px;
+  padding: 16px;
   overflow: auto;
+  max-height: 10000px; /* 设置一个足够大的值 */
+  transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* 内容区块的内部元素样式 */
 .message-content :deep(.think-content p) {
-  margin-bottom: 14px !important;
-  text-rendering: optimizeLegibility;
+  margin-bottom: 12px !important;
 }
 
 .message-content :deep(.think-content p:last-child) {
   margin-bottom: 0 !important;
 }
 
-.message-content :deep(.think-content h1, 
-                       .think-content h2, 
-                       .think-content h3, 
-                       .think-content h4) {
-  font-weight: 600;
-  margin: 1.5em 0 0.8em;
-  color: #343956;
-  letter-spacing: 0px;
-  line-height: 1.4;
-}
-
-.message-content :deep(.think-content h1) {
-  font-size: 1.6em;
-  border-bottom: 1px solid rgba(223, 225, 230, 0.8);
-  padding-bottom: 0.3em;
-}
-
-.message-content :deep(.think-content h2) {
-  font-size: 1.4em;
-}
-
-.message-content :deep(.think-content h3) {
-  font-size: 1.2em;
-  font-weight: 550;
-}
-
-.message-content :deep(.think-content h4) {
-  font-size: 1.1em;
-  font-weight: 500;
-}
-
-.message-content :deep(.think-content ul,
-                       .think-content ol) {
-  padding-left: 1.8em;
-  margin: 0.8em 0;
-}
-
-.message-content :deep(.think-content li) {
-  margin: 0.4em 0;
-  padding-left: 0.2em;
-}
-
-.message-content :deep(.think-content strong) {
-  font-weight: 600;
-  color: #2d3452;
-}
-
-.message-content :deep(.think-content em) {
-  font-style: italic;
-  color: #4b5169;
-}
-
-.message-content :deep(.think-content pre) {
-  margin: 16px 0;
-  border-radius: 12px;
-  background-color: #f8f9fc !important;
-  border: 1px solid rgba(223, 225, 230, 0.6);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
-}
-
-.message-content :deep(.think-content code) {
-  background-color: rgba(74, 110, 224, 0.08);
-  padding: 2px 5px;
-  border-radius: 4px;
-  font-family: 'SF Mono', 'Menlo', 'Monaco', 'Courier New', monospace;
-  font-size: 0.9em;
-  color: #3d476a;
-}
-
-.message-content :deep(.think-content pre code) {
-  background-color: transparent;
-  padding: 0;
-  line-height: 1.6;
-  font-size: 0.95em;
-}
-
-.message-content :deep(.think-content blockquote) {
-  border-left: 4px solid #6d7aad;
-  background-color: rgba(109, 122, 173, 0.05);
-  padding: 0.8em 1em;
-  margin: 1em 0;
-  color: #4a5173;
-  border-radius: 0 8px 8px 0;
-}
-
-.message-content :deep(.think-content a) {
-  color: #4a6ee0;
-  text-decoration: none;
-  border-bottom: 1px solid rgba(74, 110, 224, 0.2);
-  transition: all 0.2s ease;
-  font-weight: 500;
-}
-
-.message-content :deep(.think-content a:hover) {
-  color: #3a56b4;
-  border-bottom-color: #3a56b4;
-}
-
-.message-content :deep(.think-container) {
-  position: relative;
-}
-
-.message-content :deep(.think-container::before) {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 4px;
-  height: 100%;
-  background: linear-gradient(to bottom, #4a6ee0, #6d7aad);
-  opacity: 0.6;
-  border-top-left-radius: 16px;
-  border-bottom-left-radius: 16px;
+@keyframes think-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* 数学公式样式 */
@@ -1336,20 +1418,20 @@ const handleFeedbackSubmit = (feedback) => {
 }
 
 /* 代码块容器样式 */
-.message-content :deep(.code-block-wrapper) {
+.message-content :deep(.code-block-container) {
   position: relative;
   margin: 24px 0;
   border-radius: 12px;
   overflow: hidden;
-  background-color: #f5f8ff;
-  box-shadow: 0 4px 20px rgba(0, 0, 50, 0.08);
+  background-color: #f8fafc;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
-  border: 1px solid rgba(147, 174, 243, 0.3);
+  border: 1px solid rgba(59, 130, 246, 0.1);
 }
 
-.message-content :deep(.code-block-wrapper:hover) {
+.message-content :deep(.code-block-container:hover) {
   transform: translateY(-2px);
-  box-shadow: 0 6px 24px rgba(0, 0, 100, 0.12);
+  box-shadow: 0 6px 24px rgba(59, 130, 246, 0.12);
 }
 
 /* 代码块头部 */
@@ -1357,69 +1439,66 @@ const handleFeedbackSubmit = (feedback) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 16px;
-  background-color: #e1e8ff;
-  color: #3a4b7c;
+  padding: 12px 16px;
+  background-color: #1e3a8a;
+  color: #e0e7ff;
   font-family: 'SF Mono', 'Fira Code', monospace;
-  font-size: 12px;
-  border-bottom: 1px solid rgba(147, 174, 243, 0.3);
+  font-size: 13px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 /* 语言标签 */
 .message-content :deep(.code-lang-tag) {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 4px;
-  background-color: rgba(93, 116, 209, 0.12);
-  color: #5d74d1;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  font-size: 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background-color: rgba(255, 255, 255, 0.15);
+  color: #e0e7ff;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  font-size: 12px;
 }
 
 /* 复制按钮 */
 .message-content :deep(.code-copy-btn) {
-  background: rgba(93, 116, 209, 0.12);
+  background: rgba(255, 255, 255, 0.15);
   border: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 6px;
   border-radius: 6px;
-  padding: 3px 8px;
-  color: #5d74d1;
+  padding: 6px 12px;
+  color: #e0e7ff;
   cursor: pointer;
   transition: all 0.2s ease;
-}
-
-.message-content :deep(.code-copy-btn .copy-text) {
   font-size: 12px;
   font-weight: 500;
 }
 
 .message-content :deep(.code-copy-btn:hover) {
-  background: rgba(93, 116, 209, 0.18);
-  color: #2b4098;
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
 }
 
 .message-content :deep(.code-copy-btn.copied) {
-  background-color: rgba(46, 204, 113, 0.15);
-  color: #27ae60;
+  background-color: rgba(46, 213, 115, 0.2);
+  color: #2ed573;
 }
 
 /* 代码块样式 */
 .message-content :deep(pre) {
   margin: 0 !important;
-  border-radius: 0 !important; 
-  background-color: #f5f8ff !important;
+  border-radius: 0 !important;
+  background-color: #f8fafc !important;
   padding: 16px !important;
   overflow-x: auto;
   font-family: 'Fira Code', 'SF Mono', 'Menlo', 'Monaco', 'Courier New', monospace;
   font-size: 14px;
-  line-height: 1.5;
+  line-height: 1.6;
   tab-size: 2;
-  color: #2c3e50;
 }
 
 /* 行号样式 */
@@ -1440,7 +1519,7 @@ const handleFeedbackSubmit = (feedback) => {
   left: -3.8em;
   width: 3em;
   letter-spacing: -1px;
-  border-right: 1px solid rgba(93, 116, 209, 0.15);
+  border-right: 1px solid rgba(59, 130, 246, 0.1);
   user-select: none;
   pointer-events: none;
   font-size: 14px;
@@ -1452,26 +1531,27 @@ const handleFeedbackSubmit = (feedback) => {
 .message-content :deep(.line-numbers-rows > span) {
   display: block;
   counter-increment: linenumber;
-  color: rgba(44, 62, 80, 0.4);
+  color: rgba(59, 130, 246, 0.4);
   text-align: right;
   padding: 0 8px;
 }
 
 .message-content :deep(.line-numbers-rows > span::before) {
   content: counter(linenumber);
-  color: rgba(44, 62, 80, 0.4);
+  color: rgba(59, 130, 246, 0.4);
 }
 
-/* 代码高亮调优 - 白蓝色主题 */
+/* 代码高亮调优 - 深蓝白色主题 */
 .message-content :deep(.token.comment),
 .message-content :deep(.token.prolog),
 .message-content :deep(.token.doctype),
 .message-content :deep(.token.cdata) {
-  color: #5c6370;
+  color: #64748b;
+  font-style: italic;
 }
 
 .message-content :deep(.token.punctuation) {
-  color: #5c6370;
+  color: #475569;
 }
 
 .message-content :deep(.token.property),
@@ -1480,7 +1560,7 @@ const handleFeedbackSubmit = (feedback) => {
 .message-content :deep(.token.number),
 .message-content :deep(.token.constant),
 .message-content :deep(.token.symbol) {
-  color: #0550ae;
+  color: #0f766e;
 }
 
 .message-content :deep(.token.selector),
@@ -1488,7 +1568,7 @@ const handleFeedbackSubmit = (feedback) => {
 .message-content :deep(.token.string),
 .message-content :deep(.token.char),
 .message-content :deep(.token.builtin) {
-  color: #0a7d33;
+  color: #0369a1;
 }
 
 .message-content :deep(.token.operator),
@@ -1496,22 +1576,241 @@ const handleFeedbackSubmit = (feedback) => {
 .message-content :deep(.token.url),
 .message-content :deep(.language-css .token.string),
 .message-content :deep(.style .token.string) {
-  color: #5c6370;
+  color: #475569;
 }
 
 .message-content :deep(.token.atrule),
 .message-content :deep(.token.attr-value),
 .message-content :deep(.token.keyword) {
-  color: #7928ca;
+  color: #1e40af;
+  font-weight: bold;
 }
 
 .message-content :deep(.token.function) {
-  color: #f97316;
+  color: #0d9488;
 }
 
 .message-content :deep(.token.regex),
 .message-content :deep(.token.important),
 .message-content :deep(.token.variable) {
-  color: #e11d48;
+  color: #be123c;
+}
+
+.message-content :deep(.token.important),
+.message-content :deep(.token.bold) {
+  font-weight: bold;
+}
+
+.message-content :deep(.token.italic) {
+  font-style: italic;
+}
+
+.message-content :deep(.token.entity) {
+  cursor: help;
+}
+
+/* Prism工具栏样式优化 */
+.message-content :deep(div.code-toolbar) {
+  position: relative;
+}
+
+.message-content :deep(div.code-toolbar > .toolbar) {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  transition: opacity 0.3s ease-in-out;
+  opacity: 0;
+}
+
+.message-content :deep(div.code-toolbar:hover > .toolbar) {
+  opacity: 1;
+}
+
+.message-content :deep(div.code-toolbar > .toolbar > .toolbar-item) {
+  display: inline-block;
+  margin-left: 8px;
+}
+
+.message-content :deep(div.code-toolbar > .toolbar > .toolbar-item > button) {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(93, 116, 209, 0.12);
+  color: #3a4b7c;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.message-content :deep(div.code-toolbar > .toolbar > .toolbar-item > button:hover) {
+  background: rgba(93, 116, 209, 0.18);
+  color: #2b4098;
+}
+
+.message-content :deep(div.code-toolbar > .toolbar > .toolbar-item > button:focus) {
+  outline: none;
+}
+
+.message-content :deep(div.code-toolbar > .toolbar > .toolbar-item > button > span) {
+  margin-left: 4px;
+}
+
+.message-content :deep(div.code-toolbar > .toolbar > .toolbar-item > .show-language) {
+  display: inline-block;
+  background: rgba(93, 116, 209, 0.08);
+  color: #3a4b7c;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
+}
+
+/* 针对移动设备的响应式样式 */
+@media (max-width: 768px) {
+  .message-content :deep(.think-container) {
+    margin: 1.2rem 0;
+    border-radius: 14px;
+  }
+  
+  .message-content :deep(.think-header) {
+    padding: 12px 16px;
+  }
+  
+  .message-content :deep(.think-icon) {
+    margin-right: 10px;
+    width: 32px;
+    height: 32px;
+    font-size: 18px;
+  }
+  
+  .message-content :deep(.think-title) {
+    font-size: 15px;
+  }
+  
+  .message-content :deep(.think-toggle-btn) {
+    height: 28px;
+    width: 28px;
+    padding: 6px;
+  }
+  
+  .message-content :deep(.think-container.expanded .think-content) {
+    padding: 18px;
+  }
+  
+  .message-content :deep(.think-content) {
+    font-size: 14px;
+    line-height: 1.6;
+  }
+}
+
+@media (max-width: 480px) {
+  .message-content :deep(.think-container) {
+    margin: 1rem 0;
+    border-radius: 12px;
+  }
+  
+  .message-content :deep(.think-header) {
+    padding: 10px 14px;
+  }
+  
+  .message-content :deep(.think-icon) {
+    margin-right: 8px;
+    width: 28px;
+    height: 28px;
+    font-size: 16px;
+  }
+  
+  .message-content :deep(.think-title) {
+    font-size: 14px;
+  }
+  
+  .message-content :deep(.think-toggle-btn) {
+    height: 24px;
+    width: 24px;
+    padding: 4px;
+  }
+  
+  .message-content :deep(.think-container.expanded .think-content) {
+    padding: 14px;
+  }
+  
+  .message-content :deep(.think-content) {
+    font-size: 13.5px;
+    line-height: 1.5;
+  }
+}
+
+/* 提升思考块内部元素的样式 */
+.message-content :deep(.think-content h1, 
+                      .think-content h2, 
+                      .think-content h3, 
+                      .think-content h4) {
+  font-weight: 600;
+  margin: 1.2em 0 0.6em;
+  color: #4b5563;
+}
+
+.message-content :deep(.think-content h1) {
+  font-size: 1.5em;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 0.3em;
+}
+
+.message-content :deep(.think-content h2) {
+  font-size: 1.3em;
+}
+
+.message-content :deep(.think-content h3) {
+  font-size: 1.1em;
+}
+
+.message-content :deep(.think-content h4) {
+  font-size: 1em;
+}
+
+.message-content :deep(.think-content strong) {
+  font-weight: 600;
+  color: #4b5563;
+}
+
+.message-content :deep(.think-content em) {
+  font-style: italic;
+  color: #6b7280;
+}
+
+.message-content :deep(.think-content code) {
+  background-color: #e5e7eb;
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-family: 'SF Mono', 'Menlo', 'Monaco', 'Courier New', monospace;
+  font-size: 0.9em;
+  color: #4b5563;
+}
+
+.message-content :deep(.think-content blockquote) {
+  border-left: 3px solid #9ca3af;
+  background-color: #f3f4f6;
+  padding: 0.8em 1em;
+  margin: 1em 0;
+  color: #4b5563;
+  border-radius: 0 4px 4px 0;
+}
+
+.message-content :deep(.think-content a) {
+  color: #6b7280;
+  text-decoration: none;
+  border-bottom: 1px solid #9ca3af;
+  transition: all 0.2s ease;
+}
+
+.message-content :deep(.think-content a:hover) {
+  color: #4b5563;
+  border-bottom-color: #6b7280;
 }
 </style>
