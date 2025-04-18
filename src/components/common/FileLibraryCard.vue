@@ -1,20 +1,20 @@
 <template>
-  <div class="feature-card small-feature">
+  <div class="feature-card small-feature file-library-card">
     <div class="feature-header">
-      <h2>安全资料库</h2>
+      <h2 class="fade-in">安全资料库</h2>
     </div>
-    <p class="feature-desc">浏览与下载各类化工安全相关文档与标准</p>
-    <div class="feature-tags">
+    <p class="feature-desc fade-in-delay">浏览与下载各类化工安全相关文档与标准</p>
+    <div class="feature-tags fade-in-delay-2">
       <span class="tag file-tag">安全手册</span>
       <span class="tag file-tag">标准文件</span>
       <span class="tag file-tag">危化品MSDS</span>
     </div>
-    <div class="file-list">
-      <div class="file-item" v-for="file in latestFiles.slice(0, 4)" :key="file.id">
+    <div class="file-list fade-in-delay-3">
+      <div class="file-item" v-for="file in latestFiles.slice(0, 5)" :key="file.id">
         <span class="file-name" :title="file.name">{{ file.name }}</span>
       </div>
     </div>
-    <div class="button-container">
+    <div class="button-container fade-in-delay-3">
       <router-link to="/files" class="action-button file-button">
         浏览文件
       </router-link>
@@ -31,7 +31,7 @@ const latestFiles = ref([]);
 // 获取最新的文件列表
 const fetchLatestFiles = async () => {
   try {
-    const response = await fetch(`${API_BASE_URL}/safety_files/?page=1&page_size=5`, {
+    const response = await fetch(`${API_BASE_URL}/safety_files/?page=1&page_size=10`, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('token')}`,
       }
@@ -107,47 +107,84 @@ onMounted(() => {
 }
 
 .tag {
-  background: rgba(79, 70, 229, 0.1);
+  background: linear-gradient(135deg, rgba(79, 70, 229, 0.08), rgba(79, 70, 229, 0.05));
   color: #4f46e5;
   font-size: 0.7rem;
   padding: 4px 10px;
   border-radius: 6px;
   font-weight: 500;
+  border: 1px solid rgba(79, 70, 229, 0.15);
+  transition: all 0.2s ease;
+}
+
+.tag:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(79, 70, 229, 0.1);
 }
 
 .file-tag {
-  background: rgba(16, 185, 129, 0.1);
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(16, 185, 129, 0.05));
   color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.15);
+}
+
+.file-tag:hover {
+  box-shadow: 0 2px 5px rgba(16, 185, 129, 0.1);
 }
 
 /* 文件列表样式 */
 .file-list {
-  background: rgba(16, 185, 129, 0.05);
-  border-radius: 8px;
-  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   margin-bottom: 12px;
   flex: 1;
-  overflow-y: auto;
+  overflow-y: hidden;
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 8px;
+  padding: 12px;
+  border: 1px solid rgba(16, 185, 129, 0.15);
+  box-shadow: 0 2px 10px rgba(16, 185, 129, 0.05);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(247, 255, 250, 0.9));
+  height: 175px;
 }
 
 .file-item {
   display: flex;
+  justify-content: flex-start;
   align-items: center;
-  font-size: 0.8rem;
-  color: #4a5568;
-  margin-bottom: 8px;
-  padding: 6px 10px;
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.7);
-  cursor: default;
+  padding: 10px 14px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  width: 100%;
+  box-sizing: border-box;
+  background: white;
+  cursor: pointer;
+  border-left: 2px solid transparent;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  margin-bottom: 0;
+}
+
+.file-item:hover {
+  border-left: 2px solid #10b981;
+  transform: translateX(2px);
+  box-shadow: 0 2px 5px rgba(16, 185, 129, 0.1);
 }
 
 .file-name {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: normal;
+  color: #4a5568;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 100%;
+  width: 100%;
   position: relative;
+  box-sizing: border-box;
+  padding-right: 5px;
+  text-align: left;
 }
 
 .file-name:hover::after {
@@ -168,10 +205,12 @@ onMounted(() => {
 
 /* 按钮容器 */
 .button-container {
-  margin-top: 15px;
+  margin-top: 10px;
   display: flex;
   justify-content: center;
   width: 100%;
+  position: relative;
+  bottom: 5px;
 }
 
 /* 按钮样式 */
@@ -217,11 +256,31 @@ body.dark-theme .file-item {
 }
 
 body.dark-theme .file-list {
-  background: rgba(16, 185, 129, 0.15);
+  background: linear-gradient(135deg, rgba(31, 41, 55, 0.7), rgba(17, 24, 39, 0.7));
+  border-color: rgba(16, 185, 129, 0.2);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
 }
 
 body.dark-theme .file-item {
-  background: rgba(31, 41, 55, 0.7);
+  background: rgba(31, 41, 55, 0.9);
+  border: none;
+  border-left: 2px solid transparent;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+body.dark-theme .file-item:hover {
+  background: rgba(31, 41, 55, 0.95);
+  border-left: 2px solid #10b981;
+}
+
+body.dark-theme .tag {
+  background: linear-gradient(135deg, rgba(79, 70, 229, 0.15), rgba(79, 70, 229, 0.1));
+  border-color: rgba(79, 70, 229, 0.2);
+}
+
+body.dark-theme .file-tag {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(16, 185, 129, 0.1));
+  border-color: rgba(16, 185, 129, 0.2);
 }
 
 /* Responsive styles */
@@ -232,6 +291,41 @@ body.dark-theme .file-item {
   
   .action-button {
     width: 100%;
+  }
+}
+
+/* 添加渐入动画效果 */
+.fade-in {
+  opacity: 0;
+  animation: fadeIn 0.8s ease forwards;
+}
+
+.fade-in-delay {
+  opacity: 0;
+  animation: fadeIn 0.8s ease forwards;
+  animation-delay: 0.3s;
+}
+
+.fade-in-delay-2 {
+  opacity: 0;
+  animation: fadeIn 0.8s ease forwards;
+  animation-delay: 0.6s;
+}
+
+.fade-in-delay-3 {
+  opacity: 0;
+  animation: fadeIn 0.8s ease forwards;
+  animation-delay: 0.9s;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 </style> 

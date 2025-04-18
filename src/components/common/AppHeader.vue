@@ -1,17 +1,17 @@
 <template>
   <div class="header">
     <div class="logo-container">
-      <img src="@/assets/product_logo.png" alt="应用Logo" class="logo" />
+      <img src="@/assets/product.png" alt="应用Logo" class="logo fade-in" />
     </div>
     <div class="title-container">
-      <h1 class="title">天工AI智能助手</h1>
-      <p class="subtitle">您的专业化工安全AI对话助手，提供实时咨询与安全指导</p>
+      <h1 class="title fade-in">天工AI智能助手</h1>
+      <p class="subtitle fade-in-delay">您的专业化工安全AI对话助手，提供实时咨询与安全指导</p>
     </div>
     <div class="status-section">
-      <div class="status-badge" :class="systemStatus">
+      <div class="status-badge fade-in-delay-2" :class="systemStatus">
         <span>{{ statusText }}</span>
       </div>
-      <div class="settings-dropdown" ref="settingsDropdown">
+      <div class="settings-dropdown fade-in-delay-2" ref="settingsDropdown">
         <button class="settings-button" @click="toggleSettings">
           <span class="settings-icon">设置</span>
         </button>
@@ -110,6 +110,35 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* 添加渐入动画效果 */
+.fade-in {
+  opacity: 0;
+  animation: fadeIn 0.8s ease forwards;
+}
+
+.fade-in-delay {
+  opacity: 0;
+  animation: fadeIn 0.8s ease forwards;
+  animation-delay: 0.3s;
+}
+
+.fade-in-delay-2 {
+  opacity: 0;
+  animation: fadeIn 0.8s ease forwards;
+  animation-delay: 0.6s;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .header {
   display: flex;
   align-items: center;

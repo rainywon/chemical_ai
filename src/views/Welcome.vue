@@ -1,8 +1,8 @@
 <template>
   <div class="welcome-container">
-    <div class="welcome-content">
+    <div class="welcome-content" :class="{ 'content-loaded': isLoaded }">
       <!-- 系统概览区域 -->
-      <div class="system-overview">
+      <div class="system-overview" :class="{ 'fade-in-up': isLoaded }">
         <AppHeader 
           :current-theme="currentTheme" 
           @toggle-theme="toggleTheme" 
@@ -14,17 +14,14 @@
       
       <!-- 功能模块区域 -->
       <div class="features-grid">
-        <!-- 智能问答模块 - 占据左半边 -->
-        <AIFeatureCard />
-
-        <!-- 右半边容器 -->
-        <div class="right-side">
-          <!-- 安全资料库模块 -->
-          <FileLibraryCard />
-
-          <!-- 应急处理模块 -->
-          <EmergencyResponseCard />
-        </div>
+        <!-- 安全资料库模块 -->
+        <FileLibraryCard :class="{ 'fade-in-left': isLoaded }" />
+        
+        <!-- 应急处理模块 -->
+        <EmergencyResponseCard :class="{ 'fade-in-right': isLoaded }" />
+        
+        <!-- 智能问答模块 -->
+        <AIFeatureCard :class="{ 'fade-in-right-delay': isLoaded }" />
       </div>
       
       <!-- 反馈弹窗 -->
@@ -79,6 +76,7 @@ const showConfirmModal = ref(false);
 const confirmMessage = ref('');
 const currentTheme = ref('light');
 const showSuccessNotification = ref(false);
+const isLoaded = ref(false);
 
 // 检查并应用已保存的主题
 onMounted(() => {
@@ -94,6 +92,11 @@ onMounted(() => {
     currentTheme.value = 'dark';
     applyTheme('dark');
   }
+  
+  // 添加页面加载动画
+  setTimeout(() => {
+    isLoaded.value = true;
+  }, 300);
 });
 
 // 应用主题
@@ -183,13 +186,28 @@ const logout = () => {
 <style scoped>
 .welcome-container {
   height: 100vh;
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  background: linear-gradient(135deg, #f0f4ff 0%, #e6eaff 50%, #dde2ff 100%);
   padding: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
   box-sizing: border-box;
+  position: relative;
+}
+
+/* 添加背景装饰元素 */
+.welcome-container::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(circle at 10% 20%, rgba(79, 70, 229, 0.03) 0%, transparent 40%),
+    radial-gradient(circle at 80% 70%, rgba(59, 130, 246, 0.03) 0%, transparent 30%);
+  z-index: 0;
 }
 
 .welcome-content {
@@ -199,40 +217,109 @@ const logout = () => {
   flex-direction: column;
   gap: 20px;
   max-height: calc(100vh - 40px);
+  position: relative;
+  z-index: 1;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.content-loaded {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 /* 系统概览样式 */
 .system-overview {
-  background: white;
-  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 16px;
   padding: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  border: 1px solid #e9ecef;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(233, 236, 239, 0.7);
+  backdrop-filter: blur(8px);
+  transition: all 0.3s ease, transform 0.6s ease, opacity 0.6s ease;
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.system-overview:hover {
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+}
+
+.fade-in-up {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 /* 功能模块网格样式 */
 .features-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  grid-template-columns: 3fr 3fr 4fr;
+  grid-template-areas: "file emergency ai";
+  gap: 20px;
   overflow: hidden;
   flex: 1;
-  height: calc(100vh - 180px);
+  height: calc(100vh - 250px);
+  max-height: 600px;
+}
+
+.features-grid > .file-library-card {
+  grid-area: file;
+}
+
+.features-grid > .emergency-response-card {
+  grid-area: emergency;
+}
+
+.features-grid > .ai-feature-card {
+  grid-area: ai;
+}
+
+.fade-in-left {
+  opacity: 0;
+  transform: translateX(-20px);
+  transition: all 0.5s ease 0.2s;
+}
+
+.fade-in-left.fade-in-left {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.fade-in-right {
+  opacity: 0;
+  transform: translateX(20px);
+  transition: all 0.5s ease 0.2s;
+}
+
+.fade-in-right.fade-in-right {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.fade-in-right-delay {
+  opacity: 0;
+  transform: translateX(20px);
+  transition: all 0.5s ease 0.4s;
+}
+
+.fade-in-right-delay.fade-in-right-delay {
+  opacity: 1;
+  transform: translateX(0);
 }
 
 .right-side {
-  grid-column: 2;
-  grid-row: 1;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  max-height: calc(100vh - 180px);
+  display: none; /* 不再需要这个容器 */
 }
 
 /* 响应式设计 */
 @media (max-width: 1200px) {
   .features-grid {
     grid-template-columns: 1fr 1fr;
+    grid-template-areas: 
+      "file emergency"
+      "ai ai";
   }
 }
 
@@ -240,13 +327,14 @@ const logout = () => {
   .features-grid {
     grid-template-columns: 1fr;
     height: auto;
+    grid-template-areas: 
+      "file"
+      "emergency"
+      "ai";
   }
   
-  .right-side {
-    grid-column: 1;
-    grid-row: auto;
-    grid-template-columns: 1fr;
-    max-height: none;
+  .fade-in-right, .fade-in-right-delay {
+    transition: all 0.5s ease 0.2s;
   }
 }
 
@@ -257,11 +345,18 @@ body.dark-theme {
 }
 
 body.dark-theme .welcome-container {
-  background: linear-gradient(135deg, #343a40 0%, #212529 100%);
+  background: linear-gradient(135deg, #1e2c4f 0%, #1a1f36 50%, #121827 100%);
+}
+
+body.dark-theme .welcome-container::before {
+  background: 
+    radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.08) 0%, transparent 40%),
+    radial-gradient(circle at 80% 70%, rgba(79, 70, 229, 0.06) 0%, transparent 30%);
 }
 
 body.dark-theme .system-overview {
-  background: #343a40;
-  border-color: #495057;
+  background: rgba(31, 41, 55, 0.8);
+  border-color: rgba(55, 65, 81, 0.5);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 }
 </style> 

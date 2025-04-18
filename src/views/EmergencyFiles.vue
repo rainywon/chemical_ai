@@ -83,7 +83,9 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import{API_BASE_URL} from '@/config';
+import { API_BASE_URL } from '@/config';
+import { ElMessage } from 'element-plus'; // 导入提示组件
+
 const router = useRouter();
 
 // 返回欢迎页面
@@ -107,11 +109,27 @@ const fileList = ref([]);
 // 获取文件列表
 const fetchFiles = async () => {
   try {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      ElMessage.error('登录已过期，请重新登录');
+      router.push('/login');
+      return;
+    }
+
     const response = await fetch(`${API_BASE_URL}/emergency_files/?page=${currentPage.value}&page_size=${filesPerPage}&search=${searchQuery.value}`, {
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
+        'Authorization': `Bearer ${token}`
       }
     });
+    
+    if (response.status === 401) {
+      ElMessage.error('登录已过期，请重新登录');
+      // 清除本地存储的无效token
+      localStorage.removeItem('token');
+      localStorage.removeItem('mobile');
+      router.push('/login');
+      return;
+    }
     
     if (!response.ok) {
       throw new Error('获取文件列表失败');
@@ -127,18 +145,34 @@ const fetchFiles = async () => {
     }
   } catch (error) {
     console.error('获取文件列表失败:', error);
-    // 这里可以添加错误提示
+    ElMessage.error(error.message || '获取文件列表失败');
   }
 };
 
 // 下载文件
 const downloadFile = async (file) => {
   try {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      ElMessage.error('登录已过期，请重新登录');
+      router.push('/login');
+      return;
+    }
+
     const response = await fetch(`${API_BASE_URL}/emergency_files/download/${file.id}`, {
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
+        'Authorization': `Bearer ${token}`
       }
     });
+    
+    if (response.status === 401) {
+      ElMessage.error('登录已过期，请重新登录');
+      // 清除本地存储的无效token
+      localStorage.removeItem('token');
+      localStorage.removeItem('mobile');
+      router.push('/login');
+      return;
+    }
     
     if (!response.ok) {
       throw new Error('下载文件失败');
@@ -173,6 +207,14 @@ watch([searchQuery, currentPage], () => {
 
 // 初始化时获取文件列表
 onMounted(() => {
+  // 检查token是否存在
+  const token = localStorage.getItem('token');
+  if (!token) {
+    ElMessage.error('请先登录系统');
+    router.push('/login');
+    return;
+  }
+  
   fetchFiles();
 });
 
