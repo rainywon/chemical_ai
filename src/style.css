@@ -144,12 +144,12 @@ button:focus-visible {
 /* 全局消息提示美化样式 */
 .el-message {
     border-width: 0 !important;
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08), 0 3px 6px -4px rgba(0, 0, 0, 0.12) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
     border-radius: 8px !important;
     padding: 12px 20px !important;
-    backdrop-filter: blur(4px);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    transform: translate3d(0, 0, 0);
     min-width: 300px !important;
+    opacity: 1 !important;
 }
 
 .el-message__content {
@@ -162,14 +162,12 @@ button:focus-visible {
 .el-message__icon {
     margin-right: 12px !important;
     font-size: 18px !important;
-    transform: scale(1.2);
 }
 
 .el-message__closeBtn {
     font-size: 16px !important;
     color: #909399 !important;
     opacity: 0.8;
-    transition: opacity 0.3s ease;
 }
 
 .el-message__closeBtn:hover {
@@ -177,75 +175,82 @@ button:focus-visible {
     color: #606266 !important;
 }
 
-/* 成功消息 */
+/* 成功消息 - 使用更轻量的颜色 */
 .el-message--success {
-    background: linear-gradient(135deg, #f0fff4 0%, #f6ffee 100%) !important;
-    border-left: 4px solid #10b981 !important;
+    background-color: #f0fff4 !important;
+    border-left: 3px solid #10b981 !important;
 }
 
 .el-message--success .el-message__icon {
     color: #10b981 !important;
 }
 
-/* 警告消息 */
+/* 警告消息 - 使用更轻量的颜色 */
 .el-message--warning {
-    background: linear-gradient(135deg, #fffbeb 0%, #fff7e6 100%) !important;
-    border-left: 4px solid #f59e0b !important;
+    background-color: #fffbeb !important;
+    border-left: 3px solid #f59e0b !important;
 }
 
 .el-message--warning .el-message__icon {
     color: #f59e0b !important;
 }
 
-/* 错误消息 */
+/* 错误消息 - 使用更轻量的颜色 */
 .el-message--error {
-    background: linear-gradient(135deg, #fff5f5 0%, #feeae6 100%) !important;
-    border-left: 4px solid #ef4444 !important;
+    background-color: #fff5f5 !important;
+    border-left: 3px solid #ef4444 !important;
 }
 
 .el-message--error .el-message__icon {
     color: #ef4444 !important;
 }
 
-/* 信息消息 */
+/* 信息消息 - 使用更轻量的颜色 */
 .el-message--info {
-    background: linear-gradient(135deg, #ebf8ff 0%, #e6f7ff 100%) !important;
-    border-left: 4px solid #3b82f6 !important;
+    background-color: #ebf8ff !important;
+    border-left: 3px solid #3b82f6 !important;
 }
 
 .el-message--info .el-message__icon {
     color: #3b82f6 !important;
 }
 
-/* 消息动画效果 */
-@keyframes slideInRight {
-    from {
-        transform: translateX(30px);
-        opacity: 0;
-    }
-
-    to {
-        transform: translateX(0);
-        opacity: 1;
-    }
-}
-
-@keyframes slideOutRight {
-    from {
-        transform: translateX(0);
-        opacity: 1;
-    }
-
-    to {
-        transform: translateX(30px);
-        opacity: 0;
-    }
+/* 使用更简单高效的动画 */
+.el-message-fade-enter-from,
+.el-message-fade-leave-to {
+    opacity: 0 !important;
+    transform: translateX(15px) !important;
 }
 
 .el-message-fade-enter-active {
-    animation: slideInRight 0.3s ease forwards;
+    transition: opacity 0.2s ease, transform 0.2s ease !important;
 }
 
 .el-message-fade-leave-active {
-    animation: slideOutRight 0.3s ease forwards;
+    transition: opacity 0.15s ease, transform 0.15s ease !important;
+}
+
+/* 移除旧的关键帧动画，使用更高效的transition */
+@keyframes messageInRight {
+    from {
+        transform: translate3d(20px, 0, 0);
+        opacity: 0;
+    }
+
+    to {
+        transform: translate3d(0, 0, 0);
+        opacity: 1;
+    }
+}
+
+@keyframes messageOutRight {
+    from {
+        transform: translate3d(0, 0, 0);
+        opacity: 1;
+    }
+
+    to {
+        transform: translate3d(20px, 0, 0);
+        opacity: 0;
+    }
 }

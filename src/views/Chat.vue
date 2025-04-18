@@ -9,8 +9,11 @@
             <img class="brand-icon" src="../assets/product.png" alt="Logo" />
             <span class="brand-text">天工AI智能助手</span>
           </template>
-          <el-tooltip :content="isCollapsed ? '展开侧栏' : '收起侧栏'" placement="right">
-            <img class="collapse-icon" src="../assets/aside.png" @click="toggleSidebar" />
+          <el-tooltip :content="isCollapsed ? '展开侧栏' : '收起侧栏'" placement="bottom" :enterable="false" :hide-after="30" effect="dark" popper-class="action-tooltip" :manual="false">
+            <div class="action-icon-button collapse-icon" @click="toggleSidebar">
+              <el-icon v-if="!isCollapsed"><Fold /></el-icon>
+              <el-icon v-else><Expand /></el-icon>
+            </div>
           </el-tooltip>
         </header>
 
@@ -19,9 +22,9 @@
           <el-button type="primary" class="new-chat-btn" @click="createNewChatSession">+ 新对话</el-button>
         </div>
         <div class="new-chat collapsed-new-chat" v-if="isCollapsed">
-          <el-tooltip effect="dark" content="新建对话" placement="right" popper-class="custom-tooltip">
-            <div class="collapsed-icon-wrapper" @click="createNewChatSession">
-              <img src="../assets/newchat.png" alt="新建对话" class="collapsed-icon">
+          <el-tooltip content="新建对话" placement="bottom" :enterable="false" :hide-after="30" effect="dark" popper-class="action-tooltip" :manual="false">
+            <div class="action-icon-button new-chat-icon" @click="createNewChatSession">
+              <el-icon><Plus /></el-icon>
             </div>
           </el-tooltip>
         </div>
@@ -188,9 +191,17 @@
           <!-- 用户输入容器 -->
           <div class="chat-input-container">
             <div class="custom-chat-input">
-              <textarea ref="inputRef" v-model="textarea2" @keyup.enter="handleEnter" @keydown.enter="handleShiftEnter"
-                placeholder="给天工AI发送消息,Shift + Enter 换行,Enter 发送"
-                style="width: 100%; height: 100%; padding: 10px; box-sizing: border-box; background-color: #f9f9f9; color: rgb(71, 71, 71); font-size: 16px; font-weight: normal; border: none; resize: none;   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;"></textarea>
+              <textarea 
+                ref="inputRef" 
+                v-model="textarea2" 
+                @keyup.enter="handleEnter" 
+                @keydown.enter="handleShiftEnter"
+                @focus="handleInputFocus"
+                @blur="handleInputBlur"
+                @input="autoResizeTextarea"
+                placeholder="给天工AI发送消息"
+                class="chat-textarea"
+              ></textarea>
               <!-- 发送按钮 -->
               <div class="send-button-container" @click="handleSendMessage">
                 <img src="../assets/send_message.png" alt="发送" class="send-button" />
@@ -199,9 +210,13 @@
               <div v-if="isSending" class="stop-button-container" @click="handleStopMessage">
                 <img src="../assets/stop_message.png" alt="停止" class="stop-button" />
               </div>
+              <!-- 新增输入提示 -->
+              <div class="input-tip" v-if="!isFocused && !textarea2.trim()">
+                <span><kbd>Enter</kbd> 发送 &nbsp;•&nbsp; <kbd>Shift+Enter</kbd> 换行</span>
+              </div>
             </div>
             <div class="footer-tip">
-              <span style="font-size: 13px; color: rgb(155, 154, 153);">内容由AI生成,请仔细甄别</span>
+              <span>内容由AI生成,请仔细甄别</span>
             </div>
           </div>
 
@@ -294,6 +309,7 @@ const options = [ // 生成模式选项列表
 const shouldAutoScroll = ref(true);
 const showScrollButton = ref(false);
 const debounceTimer = ref(null); // 用于防抖
+const isFocused = ref(false); // 新增输入框焦点状态
 
 // 确认框状态
 const showCustomConfirm = ref(false);
@@ -446,8 +462,8 @@ const optimizedUpdateMessageText = debounce((messageId, text) => {
   }
 }, 50); // 降低到50ms提升流式响应的平滑度
 
-// 分批加载历史消息的实现
-const loadMessagesBatch = (messages, batchSize = 10, delay = 50) => {
+// 分批加载历史消息的实现 (已被1277行的优化版本替代)
+const loadMessagesBatchLegacy = (messages, batchSize = 10, delay = 50) => {
   return new Promise((resolve) => {
     const totalMessages = messages.length;
     let loadedCount = 0;
@@ -588,6 +604,13 @@ const toggleSidebar = () => {
   const scrollPos = scrollContainer.value ? scrollContainer.value.scrollTop : 0;
   document.body.classList.add('sidebar-transitioning');
   isCollapsed.value = !isCollapsed.value;
+  
+  // 手动隐藏所有tooltip，防止它们在侧边栏切换后依然显示
+  const tooltips = document.querySelectorAll('.el-tooltip__popper');
+  tooltips.forEach(tooltip => {
+    tooltip.style.display = 'none';
+  });
+  
   nextTick(() => {
     if (scrollContainer.value) {
       scrollContainer.value.scrollTop = scrollPos;
@@ -1049,7 +1072,7 @@ const loadChatSessionMessages = async (sessionId) => {
     
     // 使用批处理加载消息，提升性能
     if (messages.length > 20) {
-      // 大量消息使用分批加载
+      // 大量消息使用分批加载 (使用第1277行的优化实现)
       await loadMessagesBatch(messages);
     } else {
       // 少量消息直接设置
@@ -1154,46 +1177,68 @@ const createNewChatSession = async () => {
 const selectChatSession = async (sessionId) => {
   if (sessionId === currentChatId.value) return;
   
-  // 清空当前消息列表前，保存当前滚动位置
-  const oldScrollPosition = scrollContainer.value ? scrollContainer.value.scrollTop : 0;
+  // 立即更新侧边栏选中状态，提供即时反馈
+  currentChatId.value = sessionId;
+  
+  // 查找该会话的标题并预先更新，减少等待感
+  const session = totalChatHistory.value.find(s => s.id === sessionId);
+  if (session) {
+    currentChatTitle.value = session.title;
+  }
   
   // 设置加载状态
   isChatHistoryLoading.value = true;
   
-  // 使用setTimeout将清空操作放到下一个事件循环，避免阻塞UI
-  setTimeout(() => {
+  // 使用过渡效果让当前内容淡出
+  const container = scrollContainer.value;
+  if (container) {
+    container.classList.add('content-switching');
+  }
+  
+  // 使用requestAnimationFrame避免阻塞UI
+  requestAnimationFrame(() => {
     // 清空当前消息列表
     currentChatHistory.value = [];
-    
-    // 设置当前会话ID
-    currentChatId.value = sessionId;
     
     // 始终启用自动滚动
     shouldAutoScroll.value = true;
     
-    // 异步加载会话消息
-    loadChatSessionMessages(sessionId).finally(() => {
-      // 使用RAF嵌套确保视图更新后再滚动
-      requestAnimationFrame(() => {
-        // 再次使用RAF确保所有内容已渲染
+    // 使用虚拟滚动和批量加载优化
+    loadChatSessionMessages(sessionId).then(() => {
+      // 完成加载后移除过渡类
+      if (container) {
+        container.classList.remove('content-switching');
+      }
+      
+      // 通知Vue更新DOM，并在更新后执行滚动
+      nextTick(() => {
+        // 双重requestAnimationFrame确保所有DOM更新完成
         requestAnimationFrame(() => {
-          if (scrollContainer.value) {
-            // 使用滚动动画方法
-            smoothScrollToBottom();
-          }
-          
-          // 聚焦输入框
-          if (inputRef.value) {
-            inputRef.value.focus();
-          }
+          requestAnimationFrame(() => {
+            // 流畅滚动到底部
+            smoothScrollToBottom(300); // 降低滚动时间提高响应感
+            
+            // 聚焦输入框并自动调整大小
+            if (inputRef.value) {
+              inputRef.value.focus();
+              autoResizeTextarea();
+            }
+          });
         });
       });
+    }).catch(err => {
+      // 出错时也要移除过渡类
+      if (container) {
+        container.classList.remove('content-switching');
+      }
+      console.error("加载会话消息失败:", err);
+      ElMessage.error("加载会话消息失败");
     });
-  }, 0);
+  });
 };
 
-// 添加平滑滚动到底部的方法
-const smoothScrollToBottom = () => {
+// 优化平滑滚动函数，允许自定义持续时间
+const smoothScrollToBottom = (customDuration) => {
   if (!scrollContainer.value) return;
   
   const container = scrollContainer.value;
@@ -1209,7 +1254,12 @@ const smoothScrollToBottom = () => {
   
   // 否则使用平滑滚动动画
   let startTime = null;
-  const duration = 500; // 滚动持续时间，可根据需要调整
+  const duration = customDuration || 500; // 允许外部设置滚动时间
+  
+  // 取消之前的滚动动画（如果有）
+  if (window.scrollAnimationFrame) {
+    cancelAnimationFrame(window.scrollAnimationFrame);
+  }
   
   // 使用requestAnimationFrame实现平滑滚动
   const animateScroll = (timestamp) => {
@@ -1217,19 +1267,85 @@ const smoothScrollToBottom = () => {
     const elapsed = timestamp - startTime;
     const progress = Math.min(elapsed / duration, 1);
     
-    // 使用easeInOutQuad缓动函数使滚动更自然
-    const easeProgress = progress < 0.5 
-      ? 2 * progress * progress 
-      : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+    // 使用easeOutQuart缓动函数使滚动更自然
+    // 这个函数比easeInOutQuad更有加速感
+    const easeProgress = 1 - Math.pow(1 - progress, 4);
     
     container.scrollTop = startPosition + distance * easeProgress;
     
     if (progress < 1) {
-      requestAnimationFrame(animateScroll);
+      window.scrollAnimationFrame = requestAnimationFrame(animateScroll);
     }
   };
   
-  requestAnimationFrame(animateScroll);
+  window.scrollAnimationFrame = requestAnimationFrame(animateScroll);
+};
+
+// 批量加载消息的优化版本
+const loadMessagesBatch = async (messages) => {
+  if (messages.length === 0) return;
+  
+  // 如果消息数量很少，直接设置
+  if (messages.length <= 10) {
+    currentChatHistory.value = messages;
+    return;
+  }
+  
+  // 优先显示最新的10条消息
+  const latestMessages = messages.slice(-10);
+  currentChatHistory.value = latestMessages;
+  
+  // 确保最新消息先渲染
+  await nextTick();
+  
+  // 先滚动到底部显示最新消息
+  if (scrollContainer.value) {
+    scrollContainer.value.scrollTop = scrollContainer.value.scrollHeight;
+  }
+  
+  // 使用定时器分批加载剩余消息，避免UI阻塞
+  const remaining = messages.slice(0, -10);
+  const batchSize = 20; // 每批加载20条
+  
+  // 使用Worker或requestIdleCallback批量加载
+  if (window.requestIdleCallback) {
+    let loadedIndex = 0;
+    
+    const loadNextBatch = (deadline) => {
+      // 当有空闲时间时加载更多消息
+      while (deadline.timeRemaining() > 0 && loadedIndex < remaining.length) {
+        const endIndex = Math.min(loadedIndex + batchSize, remaining.length);
+        const batch = remaining.slice(loadedIndex, endIndex);
+        
+        // 将批次插入到正确的位置（前面）
+        currentChatHistory.value = [...batch, ...currentChatHistory.value];
+        
+        loadedIndex = endIndex;
+        if (loadedIndex >= remaining.length) break;
+      }
+      
+      if (loadedIndex < remaining.length) {
+        // 如果还有消息待加载，继续请求空闲时间
+        window.requestIdleCallback(loadNextBatch);
+      }
+    };
+    
+    window.requestIdleCallback(loadNextBatch);
+  } else {
+    // 降级处理：使用setTimeout分批加载
+    let i = 0;
+    const loadBatch = () => {
+      const batch = remaining.slice(i, i + batchSize);
+      if (batch.length > 0) {
+        currentChatHistory.value = [...batch, ...currentChatHistory.value];
+        i += batchSize;
+        if (i < remaining.length) {
+          setTimeout(loadBatch, 0);
+        }
+      }
+    };
+    setTimeout(loadBatch, 0);
+  }
 };
 
 // 删除聊天会话
@@ -1788,6 +1904,49 @@ onBeforeUnmount(() => {
     clearTimeout(debounceTimer.value);
   }
 });
+
+// 输入框自动调整高度
+const autoResizeTextarea = () => {
+  if (!inputRef.value) return;
+  
+  const textarea = inputRef.value;
+  
+  // 重置高度以获取正确的scrollHeight
+  textarea.style.height = 'auto';
+  
+  // 根据内容设置高度，同时考虑最小高度和最大高度限制
+  const newHeight = Math.min(Math.max(textarea.scrollHeight, 60), 200);
+  textarea.style.height = `${newHeight}px`;
+};
+
+// 确保在内容变化时也调整高度
+watch(textarea2, () => {
+  nextTick(() => {
+    autoResizeTextarea();
+  });
+});
+
+// 确保组件挂载后初始化高度
+onMounted(() => {
+  nextTick(() => {
+    autoResizeTextarea();
+  });
+});
+
+// 输入框焦点处理
+const handleInputFocus = () => {
+  isFocused.value = true;
+  // 延迟后滚动到底部，确保键盘弹出后能正确滚动
+  setTimeout(() => {
+    scrollToBottom('auto');
+    autoResizeTextarea(); // 确保获得焦点时也调整高度
+  }, 300);
+};
+
+// 输入框失去焦点处理
+const handleInputBlur = () => {
+  isFocused.value = false;
+};
 </script>
 
 <style scoped lang="less">
@@ -1800,6 +1959,11 @@ onBeforeUnmount(() => {
   transform: translateZ(0); /* 启用GPU加速 */
   will-change: scroll-position; /* 提示浏览器优化滚动性能 */
   overscroll-behavior: contain; /* 防止滚动链接 */
+  transition: opacity 0.2s ease;
+  
+  &.content-switching {
+    opacity: 0.6;
+  }
 }
 
 /* 添加侧边栏增强样式 */
@@ -1846,16 +2010,80 @@ onBeforeUnmount(() => {
     text-shadow: 0 1px 1px rgba(0, 0, 0, 0.07);
   }
   
-  .collapse-icon {
-    padding: 8px;
+  .action-icon-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
     border-radius: 8px;
-    transition: all 0.3s ease;
-    margin: 0 auto; /* 在收起状态下居中 */
+    background: #f0f7ff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    position: relative;
+    overflow: hidden;
+    
+    &::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle, rgba(59, 130, 246, 0.12) 0%, rgba(59, 130, 246, 0) 70%);
+      transform: translate(-50%, -50%) scale(0);
+      opacity: 0;
+      transition: transform 0.3s ease, opacity 0.3s ease;
+      pointer-events: none;
+    }
+    
+    :deep(.el-icon) {
+      color: #3b82f6;
+      transition: all 0.2s ease;
+      position: relative;
+      z-index: 2;
+    }
     
     &:hover {
-      background: rgba(59, 130, 246, 0.12);
-      transform: scale(1.1);
+      background: #e6f0ff;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 10px rgba(59, 130, 246, 0.18);
+      
+      &::before {
+        transform: translate(-50%, -50%) scale(2.5);
+        opacity: 1;
+      }
+      
+      :deep(.el-icon) {
+        color: #2563eb;
+        transform: scale(1.08);
+      }
     }
+    
+    &:active {
+      transform: scale(0.92);
+      box-shadow: 0 1px 2px rgba(59, 130, 246, 0.1);
+      
+      &::before {
+        background: radial-gradient(circle, rgba(59, 130, 246, 0.25) 0%, rgba(59, 130, 246, 0) 70%);
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+      }
+      
+      :deep(.el-icon) {
+        transform: scale(0.95);
+      }
+    }
+  }
+}
+
+/* 收起侧栏图标 */
+.collapse-icon {
+  width: 32px;
+  height: 32px;
+  margin: 0 auto;
+  
+  :deep(.el-icon) {
+    font-size: 16px;
   }
 }
 
@@ -2288,37 +2516,145 @@ onBeforeUnmount(() => {
   justify-content: center;
   padding: 16px 0;
   
-  .collapsed-icon-wrapper {
+  .new-chat-icon {
     width: 36px;
     height: 36px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: linear-gradient(135deg, #3b82f6, #6366f1);
-    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
-    cursor: pointer;
-    transition: all 0.3s ease;
+    position: relative;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    
+    &::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      border-radius: 8px;
+      background: rgba(59, 130, 246, 0.08);
+      transform: scale(0);
+      opacity: 0;
+      transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+      z-index: 1;
+    }
+    
+    :deep(.el-icon) {
+      font-size: 18px;
+      transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
     
     &:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35);
+      transform: translateY(-3px) scale(1.05);
+      box-shadow: 0 6px 16px rgba(59, 130, 246, 0.22);
+      
+      &::before {
+        transform: translate(-50%, -50%) scale(3);
+        opacity: 1;
+      }
+      
+      &::after {
+        transform: scale(1.5);
+        opacity: 1;
+      }
+      
+      :deep(.el-icon) {
+        color: #2563eb;
+        transform: scale(1.15) rotate(180deg);
+      }
     }
     
     &:active {
-      transform: translateY(1px);
-    }
-    
-    .collapsed-icon {
-      width: 20px;
-      height: 20px;
-      filter: brightness(0) invert(1); /* 将图标变为白色 */
-      transition: transform 0.2s ease;
-    }
-    
-    &:hover .collapsed-icon {
-      transform: scale(1.1);
+      transform: scale(0.88);
+      box-shadow: 0 2px 5px rgba(59, 130, 246, 0.12);
+      transition: all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+      
+      &::before {
+        background: radial-gradient(circle, rgba(59, 130, 246, 0.35) 0%, rgba(59, 130, 246, 0) 70%);
+        transform: translate(-50%, -50%) scale(0.8);
+        opacity: 1;
+        transition: all 0.15s ease;
+      }
+      
+      :deep(.el-icon) {
+        transform: scale(0.85);
+        transition: all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+      }
     }
   }
+}
+
+/* 提示样式 */
+:deep(.action-tooltip) {
+  font-size: 13px;
+  padding: 6px 10px;
+  border-radius: 4px;
+  background-color: rgba(45, 55, 72, 0.9);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 9999;
+  transition: opacity 0.2s ease !important;
+}
+
+/* 历史记录项目优化 */
+.history-item {
+  transition: background-color 0.15s ease, transform 0.15s ease;
+  will-change: background-color, transform;
+  position: relative;
+  
+  &:active {
+    transform: scale(0.98);
+  }
+  
+  &.active-chat {
+    position: relative;
+    overflow: hidden;
+    
+    &::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 100%;
+      width: 3px;
+      background: linear-gradient(to bottom, #3b82f6, #6366f1);
+      transform: translateZ(0);
+    }
+  }
+  
+  /* 增强点击反馈 */
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: transparent;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+  }
+  
+  &:hover::after {
+    opacity: 0.1;
+    background-color: #6366f1;
+  }
+  
+  &:active::after {
+    opacity: 0.15;
+    background-color: #3b82f6;
+    transition: opacity 0.1s ease;
+  }
+}
+
+.sidebar-transitioning * {
+  pointer-events: none;
+}
+
+.sidebar-transitioning .app-sidebar {
+  will-change: width;
+}
+
+/* 确保侧边栏过渡期间不显示任何tooltip */
+.sidebar-transitioning .el-popper {
+  display: none !important;
 }
 </style>

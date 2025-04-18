@@ -535,7 +535,7 @@
     .chat-content-container {
       width: 60%;
       margin: 0 auto;
-      padding: 40px ;
+      padding: 40px;
       min-height: calc(100% - 80px);
       box-sizing: border-box;
     }
@@ -593,26 +593,72 @@
       transition: all 0.3s ease;
       border: 1px solid rgba(226, 232, 240, 0.8);
 
-      textarea {
-        min-height: 100px;
-        max-height: 150px;
+      .chat-textarea {
+        width: 100%;
+        height: 100%;
+        box-sizing: border-box;
+        background-color: transparent;
+        color: #334155;
+        font-size: 15px;
+        font-weight: normal;
+        border: none;
+        resize: vertical;
+        font-family: 'Source Sans Pro', 'Nunito', system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', 'Segoe UI', Roboto, 'Noto Sans', sans-serif;
+        letter-spacing: 0.015em;
+        line-height: 1.6;
+        text-rendering: optimizeLegibility;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        min-height: 60px;
+        max-height: 200px;
         overflow-y: auto;
         outline: none;
-        border-radius: 16px;
-        padding: 16px 80px 16px 16px;
-        font-size: 15px;
-        line-height: 1.5;
-        color: #334155;
-        background-color: transparent;
+        border-radius: 20px;
+        padding: 18px 80px 18px 20px;
+        transition: all 0.2s ease;
 
         &::placeholder {
           color: #94a3b8;
+          opacity: 0.8;
+        }
+      }
+
+      /* 添加输入提示样式 */
+      .input-tip {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+        opacity: 0.7;
+        transition: opacity 0.2s ease;
+
+        span {
+          font-size: 14px;
+          color: #94a3b8;
+          white-space: nowrap;
+        }
+
+        kbd {
+          background: #e2e8f0;
+          border-radius: 4px;
+          padding: 2px 5px;
+          font-size: 12px;
+          font-family: monospace;
+          color: #475569;
+          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+          margin: 0 2px;
         }
       }
 
       &:focus-within {
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2), 0 2px 15px rgba(0, 0, 0, 0.1);
-        border-color: rgba(59, 130, 246, 0.3);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25), 0 8px 25px rgba(0, 0, 0, 0.1);
+        border-color: rgba(59, 130, 246, 0.4);
+        transform: translateY(-2px);
+
+        .input-tip {
+          opacity: 0;
+        }
       }
 
       textarea::-webkit-scrollbar {
@@ -934,18 +980,98 @@
     width: 80%;
     min-width: 500px;
   }
+
+  .custom-chat-input {
+    .input-tip {
+      span {
+        font-size: 13px;
+      }
+    }
+  }
 }
 
 @media (max-width: 768px) {
 
   .chat-main .chat-content-container,
   .chat-main .chat-input-container {
-    width: 85%;
+    width: 90%;
     min-width: 300px;
+    margin: 0 auto 8px;
+  }
+
+  .chat-input-container {
+    .custom-chat-input {
+      border-radius: 16px;
+
+      .chat-textarea {
+        min-height: 50px;
+        padding: 15px 70px 15px 15px;
+        font-size: 14px;
+      }
+
+      .send-button-container,
+      .stop-button-container {
+        padding: 10px;
+        bottom: 10px;
+        right: 10px;
+      }
+
+      .send-button,
+      .stop-button {
+        width: 18px;
+        height: 18px;
+      }
+
+      .input-tip {
+        span {
+          font-size: 12px;
+        }
+
+        kbd {
+          padding: 1px 3px;
+          font-size: 11px;
+        }
+      }
+    }
+
+    .footer-tip {
+      span {
+        font-size: 12px;
+        padding: 4px 8px;
+      }
+    }
   }
 
   .app-sidebar .history-item .history-text {
     max-width: 70%;
+  }
+}
+
+@media (max-width: 480px) {
+
+  .chat-main .chat-content-container,
+  .chat-main .chat-input-container {
+    width: 95%;
+    min-width: 250px;
+  }
+
+  .chat-input-container {
+    .custom-chat-input {
+      .chat-textarea {
+        padding: 12px 60px 12px 12px;
+      }
+
+      .send-button-container,
+      .stop-button-container {
+        padding: 8px;
+      }
+
+      .send-button,
+      .stop-button {
+        width: 16px;
+        height: 16px;
+      }
+    }
   }
 }
 
