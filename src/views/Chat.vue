@@ -2372,10 +2372,12 @@ const handleInputBlur = () => {
 
 /* 增加主内容区样式以支持按钮的定位 */
 .chat-main {
-  position: relative; /* 使绝对定位的子元素相对于它定位 */
   display: flex;
   flex-direction: column;
+  padding: 0;
+  position: relative;
   height: 100%;
+  overflow: hidden;
 }
 
 /* 生成模式选择相关样式 */
@@ -2656,5 +2658,28 @@ const handleInputBlur = () => {
 /* 确保侧边栏过渡期间不显示任何tooltip */
 .sidebar-transitioning .el-popper {
   display: none !important;
+}
+
+.chat-scroll-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  height: calc(100vh - 190px); /* 固定高度，减去头部和输入框的高度 */
+  max-height: calc(100vh - 190px);
+  scroll-behavior: smooth;
+}
+
+.chat-input-container {
+  padding: 16px 20px;
+  border-top: 1px solid #f0f0f0;
+  background-color: #fff;
+  position: relative;
+  z-index: 2;
+  margin-top: auto;
+}
+
+.container {
+  height: 100vh;
+  overflow: hidden; /* 防止整个页面出现滚动条 */
 }
 </style>
