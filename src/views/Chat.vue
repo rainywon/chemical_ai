@@ -829,13 +829,31 @@ const processAIResponse = async (question, aiMsgOrId) => {
       throw new Error("未找到认证令牌，请重新登录");
     }
 
-    const response = await fetch(`${API_BASE_URL}/${generate_mode}/`, {
+    // 添加会话ID支持多轮对话
+    let apiEndpoint = `${API_BASE_URL}/${generate_mode}/`;
+    let requestBody = { question: question };
+    
+    // 如果有currentChatId则使用多轮对话接口
+    if (currentChatId.value) {
+      if (selectedOption.value === "大模型生成") {
+        apiEndpoint = `${API_BASE_URL}/query_model_chat/`;  // 使用直接大模型多轮对话接口
+      } else if (selectedOption.value === "知识库生成") {
+        apiEndpoint = `${API_BASE_URL}/query_rag_chat/`;  // 使用知识库RAG多轮对话接口
+      }
+      
+      requestBody = { 
+        question: question,
+        session_id: currentChatId.value
+      };
+    }
+
+    const response = await fetch(apiEndpoint, {
       method: "POST",
       headers: { 
         "Content-Type": "application/json",
         "Authorization": `Bearer ${token}`
       },
-      body: JSON.stringify({ question: question }),
+      body: JSON.stringify(requestBody),
       signal: abortController.signal,
     });
 
