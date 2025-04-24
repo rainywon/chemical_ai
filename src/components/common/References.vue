@@ -10,7 +10,10 @@
       </svg>
       <span>参考了 {{ Array.isArray(references) ? references.length : Object.keys(references).length }} 篇文档</span>
     </div>
+  </div>
 
+  <!-- 使用 Teleport 将内容移至 body 下以避免嵌套问题 -->
+  <Teleport to="body">
     <!-- 遮罩层 -->
     <div v-if="showDetails" class="overlay" @click="closeDetails"></div>
 
@@ -48,7 +51,7 @@
         </div>
       </div>
     </transition>
-  </div>
+  </Teleport>
 </template>
 
 <script setup>
@@ -73,11 +76,15 @@ const showDetails = ref(false); // 控制显示详细信息
 // 切换详细信息的显示
 const toggleDetails = () => {
   showDetails.value = true;
+  // 显示弹窗时禁止页面滚动
+  document.body.style.overflow = 'hidden';
 };
 
 // 关闭详细信息的显示
 const closeDetails = () => {
   showDetails.value = false;
+  // 关闭弹窗时恢复页面滚动
+  document.body.style.overflow = '';
 };
 </script>
 
@@ -127,7 +134,7 @@ const closeDetails = () => {
   bottom: 0;
   background: rgba(15, 23, 42, 0.6);
   backdrop-filter: blur(4px);
-  z-index: 100;
+  z-index: 9999;
   cursor: pointer;
   animation: fadeIn 0.2s ease;
 }
@@ -145,7 +152,7 @@ const closeDetails = () => {
   background-color: white;
   border-radius: 20px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15), 0 6px 12px rgba(0, 0, 0, 0.1);
-  z-index: 101;
+  z-index: 10000;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -207,6 +214,7 @@ const closeDetails = () => {
   overflow: hidden;
   transition: all 0.2s ease;
   border: 1px solid rgba(226, 232, 240, 0.8);
+  position: relative;
 }
 
 .reference-card:hover {
@@ -275,6 +283,8 @@ const closeDetails = () => {
   line-height: 1.6;
   color: #475569;
   white-space: pre-line;
+  max-height: 300px;
+  overflow-y: auto;
 }
 
 /* 动画效果 */
