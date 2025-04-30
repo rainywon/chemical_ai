@@ -23,7 +23,7 @@
     <div class="main-content">
       <!-- 顶部标题和搜索 -->
       <div class="content-header">
-        <h1 class="page-title">应急资料库</h1>
+        <h1 class="page-title">事故案例库</h1>
         <div class="search-area">
           <div class="search-box">
             <input type="text" v-model="searchQuery" placeholder="搜索文件..." class="search-input" />

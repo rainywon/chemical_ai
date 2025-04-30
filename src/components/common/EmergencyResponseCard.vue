@@ -1,13 +1,13 @@
 <template>
   <div class="feature-card small-feature emergency-response-card">
     <div class="feature-header">
-      <h2 class="fade-in">应急处理</h2>
+      <h2 class="fade-in">事故案例</h2>
     </div>
-    <p class="feature-desc fade-in-delay">化工事故应急预案与快速响应流程</p>
+    <p class="feature-desc fade-in-delay">化工安全事故案例分析与应急处置方案</p>
     <div class="feature-tags fade-in-delay-2">
-      <span class="tag emergency-tag">泄漏处理</span>
-      <span class="tag emergency-tag">火灾扑救</span>
-      <span class="tag emergency-tag">急救措施</span>
+      <span class="tag emergency-tag">事故分析</span>
+      <span class="tag emergency-tag">处置方案</span>
+      <span class="tag emergency-tag">经验总结</span>
     </div>
     <div class="emergency-actions fade-in-delay-3">
       <div 
@@ -23,7 +23,7 @@
     </div>
     <div class="button-container fade-in-delay-3">
       <router-link to="/emergency_files" class="action-button emergency-button">
-        应急指南
+        案例库
       </router-link>
     </div>
   </div>

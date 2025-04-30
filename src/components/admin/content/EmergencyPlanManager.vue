@@ -3,12 +3,12 @@
     <div class="page-header">
       <div class="title-section">
         <el-icon class="title-icon"><FolderOpened /></el-icon>
-        <h2>应急资料库</h2>
+        <h2>事故案例库</h2>
       </div>
       <div class="header-actions">
         <el-button type="primary" class="action-button" @click="uploadDialogVisible = true">
           <el-icon><UploadFilled /></el-icon>
-          上传应急预案
+          上传事故案例
         </el-button>
         <el-button type="danger" class="action-button" @click="handleBatchDelete" :disabled="multipleSelection.length === 0">
           <el-icon><Delete /></el-icon>
@@ -20,7 +20,7 @@
     <!-- 文件上传对话框 -->
     <el-dialog
       v-model="uploadDialogVisible"
-      title="上传应急预案文件"
+      title="上传事故案例文件"
       width="60%"
       :close-on-click-modal="false"
       class="upload-file-dialog"
@@ -31,7 +31,7 @@
       <div class="upload-dialog-content">
         <div class="upload-explanation">
           <el-alert
-            title="应急预案文件上传说明"
+            title="事故案例文件上传说明"
             type="info"
             :closable="false"
           >
@@ -39,7 +39,7 @@
               <ul class="instruction-list">
                 <li><el-icon class="instruction-icon"><InfoFilled /></el-icon> 支持上传的文件格式：PDF, DOC, DOCX</li>
                 <li><el-icon class="instruction-icon"><InfoFilled /></el-icon> 单个文件大小不超过50MB</li>
-                <li><el-icon class="instruction-icon"><InfoFilled /></el-icon> 文件名应当清晰表明预案类型和内容</li>
+                <li><el-icon class="instruction-icon"><InfoFilled /></el-icon> 文件名应当清晰表明事故案例类型和内容</li>
               </ul>
             </div>
           </el-alert>
@@ -106,7 +106,7 @@
             @click="uploadSelectedFiles" 
             :disabled="!selectedFiles.length"
           >
-            上传到应急资料库
+            上传到事故案例库
           </el-button>
         </span>
       </template>
@@ -189,7 +189,7 @@
     <!-- 文件列表表格 -->
     <el-card class="table-card" :body-style="{ padding: '0px' }">
       <div class="table-header">
-        <h3>应急预案文件列表</h3>
+        <h3>事故案例文件列表</h3>
         <div class="table-stats">共 {{ totalFiles }} 个文件</div>
       </div>
       <el-table

@@ -1016,6 +1016,7 @@ const refreshStats = async () => {
     // 并行加载所有数据
     await Promise.all([
       loadStats(),
+      loadContentStats(),
       loadRecentConversations(),
       loadRecentLogins(),
       loadRecentFeedbacks(),
@@ -1051,6 +1052,9 @@ onMounted(async () => {
     
     // 首先加载主统计数据
     await loadStats();
+    
+    // 加载内容统计数据
+    await loadContentStats();
     
     // 延迟加载其他数据，避免并发请求过多
     setTimeout(async () => {

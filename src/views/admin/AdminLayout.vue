@@ -61,7 +61,7 @@
           </template>
           <el-menu-item index="/admin/content/knowledge-files">知识库文件管理</el-menu-item>
           <el-menu-item index="/admin/content/safety-materials">安全资料库</el-menu-item>
-          <el-menu-item index="/admin/content/emergency-materials">应急处理资料库</el-menu-item>
+          <el-menu-item index="/admin/content/emergency-materials">事故案例库</el-menu-item>
         </el-sub-menu>
         
         <!-- 反馈管理 -->
