@@ -454,7 +454,6 @@ const parsedMessage = computed(() => {
           </div>
           <div class="think-content" data-think-id="${thinkId}" style="max-height: none;">
             ${content}
-            ${!isComplete ? '<div class="think-loading">思考中...</div>' : ''}
           </div>
         </div>
       `;
